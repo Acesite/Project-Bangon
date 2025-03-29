@@ -14,7 +14,7 @@ const Login = () => {
 
           {/* <h2 className="text-3xl font-bold text-green-700 text-center">Welcome back</h2> */}
           <p className="text-gray-500 text-center mb-6">
-       Welcome to <span className="text-blue-700 font-semibold">AgriGIS</span>, please enter your account.
+       Welcome to <span className="text-green-700 font-semibold">AgriGIS</span>, please enter your account nigga.
 </p>
 
           <form>
