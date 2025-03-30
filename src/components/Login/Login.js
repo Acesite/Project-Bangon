@@ -1,5 +1,5 @@
 import React from "react";
-
+import { Link } from 'react-router-dom';
 const Login = () => {
   return (
     <div className="flex h-screen items-center justify-center bg-gray-100 font-poppins">
@@ -43,7 +43,13 @@ const Login = () => {
               <a href="#" className="text-green-600">Forgot password?</a>
             </div>
 
-            <button className="w-full bg-green-500 text-white p-3 rounded-lg mb-4 hover:bg-green-800 active:bg-green-500">Log in</button>
+            <Link to="/">
+  <button className="w-full bg-green-500 text-white p-3 rounded-lg mb-4 hover:bg-green-800 active:bg-green-500">
+    Log in
+  </button>
+</Link>
+
+
             <button className="w-full flex justify-center items-center border p-3 rounded-lg">
               <img src="/images/google.png" alt="Google" className="h-5 mr-2" /> Log in with Google
             </button>
