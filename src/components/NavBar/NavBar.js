@@ -23,17 +23,17 @@ const NavBar = () => {
         Home
       </a>
       <a
-        href="/about"
-        className={`tracking-wide font-light hover:text-green-800 ${
-          location.pathname === "/about" ? "text-green-800 font-semibold" : "text-black-600"
+        href="/AboutUs"
+        className={`tracking-wide font-light hover:text-green-700 ${
+          location.pathname === "/AboutUs" ? "text-green-700 font-medium" : "text-black-600"
         }`}
       >
         About
       </a>
       <a
         href="/contacts"
-        className={`tracking-wide font-light hover:text-green-800 ${
-          location.pathname === "/contacts" ? "text-green-800 font-semibold" : "text-black-600"
+        className={`tracking-wide font-light hover:text-green-700 ${
+          location.pathname === "/contacts" ? "text-green-700 font-medium" : "text-black-600"
         }`}
       >
         Contacts

@@ -10,7 +10,9 @@ import { Map } from "lucide-react";
 import KeyFeatures from "./KeyFeatures";
 import BenefitsSection from "./BenefitsSection";
 import Footer from "./Footer";
-
+import AboutDetails from "./AboutDetails";
+import AboutCommitment from "./AboutCommitment";
+import MeetTheTeam from "./MeetTheTeam";
 
 const images = [
   "/images/Hero.jpeg",
@@ -19,7 +21,7 @@ const images = [
   "/images/Hero4.jpg",
 ];
 
-const LandingPage = () => {
+const AboutUs = () => {
   useEffect(() => {
     AOS.init({ duration: 1000, once: true });
   }, []);
@@ -73,18 +75,17 @@ const LandingPage = () => {
     </span>
     <span className="relative text-base font-semibold invisible">Button Text</span>
   </button>
-</div>
+    </div>
 
       </section>
-        <KeyFeatures />
-        <div className=" h-[700px]">
-          <BenefitsSection /> 
-        </div>
-       <Footer /> 
+      <AboutDetails />
+      <AboutCommitment />
+      <MeetTheTeam /> 
+      <Footer /> 
     </div>
 
     
   );
 };
 
-export default LandingPage;
+export default AboutUs;
