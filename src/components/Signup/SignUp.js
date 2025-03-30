@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 const SignUp = () => {
   return (
-    <div className="flex h-[968px] items-center justify-center bg-gray-100 font-poppins">
+    <div className="flex h-screen items-center justify-center bg-gray-100 font-poppins">
   <div className="flex w-[1100px] h-[720px] bg-white rounded-lg shadow-lg overflow-hidden">
     
     {/* Right Side - Sign Up Form */}
