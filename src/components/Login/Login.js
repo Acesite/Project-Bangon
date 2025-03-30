@@ -57,7 +57,7 @@ const Login = () => {
         <div className="w-1/2 hidden lg:block relative">
   {/* Background Image */}
   <img
-    src="/images/Logimage.jpg"
+    src="/images/Hero.jpeg"
     alt="Farmers in Field"
     className="w-full h-full object-cover mix-blend-multiply"
   />

@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 
 const SignUp = () => {
   return (
-    <div className="flex h-[850px] items-center justify-center bg-gray-100 font-poppins">
-  <div className="flex w-[1100px] h-[800px] bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="flex h-[968px] items-center justify-center bg-gray-100 font-poppins">
+  <div className="flex w-[1100px] h-[720px] bg-white rounded-lg shadow-lg overflow-hidden">
     
     {/* Right Side - Sign Up Form */}
     <div className="w-[55%] p-10 flex flex-col justify-center"> 
@@ -54,8 +54,8 @@ const SignUp = () => {
     </div>
 
     {/* Left Side - Image */}
-    <div className="w-[45%] hidden lg:block">
-      <img src="/images/Logimage.jpg" alt="Farmers in Field" className="w-full h-full object-cover" />
+    <div className="w-[50%] hidden lg:block">
+      <img src="/images/hero.jpeg" alt="Farmers in Field" className="w-full h-full object-cover" />
     </div>
   </div>
 </div>
