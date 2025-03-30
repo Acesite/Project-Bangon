@@ -27,9 +27,8 @@ const KeyFeatures = () => {
   ];
 
   return (
-    <section className="container mx-auto px-6 py-16">
-      <h2 className="text-3xl md:text-4xl font-bold text-center mb-20">Key Features</h2>
-
+    <section className="container mx-auto px-6 py-16 ">
+      <h2 className="text-3xl md:text-4xl font-semibold text-center mb-20 font-poppins text-green-600" data-aos="fade-up">Key Features</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 ">
         {features.map((feature, index) => (
           <FeatureCard key={index} icon={feature.icon} title={feature.title} description={feature.description} />

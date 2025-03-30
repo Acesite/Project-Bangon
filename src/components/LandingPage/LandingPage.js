@@ -8,6 +8,9 @@ import "swiper/css/pagination";
 import NavBar from "../NavBar/NavBar";
 import { Map } from "lucide-react";
 import KeyFeatures from "./KeyFeatures";
+import BenefitsSection from "./BenefitsSection";
+import Footer from "./Footer";
+
 
 const images = [
   "/images/Hero.jpeg",
@@ -75,10 +78,22 @@ const LandingPage = () => {
       </section>
 
       {/* Key Features Section */}
-      <div >
+      <div>
         <KeyFeatures />
       </div>
+
+        <div className=" h-[700px]">
+          <BenefitsSection /> 
+        </div>
+
+        <div className="mt-10" >
+          <Footer /> 
+        </div>
+       
+
     </div>
+
+    
   );
 };
 
