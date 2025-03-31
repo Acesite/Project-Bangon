@@ -33,9 +33,9 @@ const NavBar = () => {
         About
       </a>
       <a
-        href="/contacts"
+        href="/Contact"
         className={`tracking-wide font-light hover:text-green-700 ${
-          location.pathname === "/contacts" ? "text-green-700 font-medium" : "text-black-600"
+          location.pathname === "/Contact" ? "text-green-700 font-medium" : "text-black-600"
         }`}
       >
         Contacts

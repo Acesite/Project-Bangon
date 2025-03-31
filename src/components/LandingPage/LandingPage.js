@@ -80,7 +80,9 @@ const LandingPage = () => {
         <div className=" h-[700px]">
           <BenefitsSection /> 
         </div>
-       <Footer /> 
+        <div className="" data-aos="fade-up">
+      <Footer /> 
+      </div>
     </div>
 
     

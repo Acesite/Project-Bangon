@@ -8,9 +8,8 @@ import "swiper/css/pagination";
 import NavBar from "../NavBar/NavBar";
 import { Map } from "lucide-react";
 import Footer from "./Footer";
-import AboutDetails from "./AboutDetails";
-import AboutCommitment from "./AboutCommitment";
-import MeetTheTeam from "./MeetTheTeam";
+import ContactForm from "./ContactForm";
+
 
 const images = [
   "/images/Hero.jpeg",
@@ -19,7 +18,7 @@ const images = [
   "/images/Hero4.jpg",
 ];
 
-const AboutUs = () => {
+const Contact = () => {
   useEffect(() => {
     AOS.init({ duration: 1000, once: true });
   }, []);
@@ -76,16 +75,16 @@ const AboutUs = () => {
     </div>
 
       </section>
-      <AboutDetails />
-      <AboutCommitment />
-      <MeetTheTeam /> 
+      <ContactForm />
+
       <div className="" data-aos="fade-up">
       <Footer /> 
       </div>
+     
     </div>
 
     
   );
 };
 
-export default AboutUs;
+export default Contact;

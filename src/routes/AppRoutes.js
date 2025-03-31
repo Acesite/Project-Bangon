@@ -4,6 +4,8 @@ import Login from "../components/Login/Login";
 import SignUp from "../components/Signup/SignUp";
 import LandingPage from "../components/LandingPage/LandingPage";
 import AboutUs from "../components/LandingPage/AboutUs";
+import Contact  from "../components/LandingPage/Contact";
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -11,6 +13,7 @@ const AppRoutes = () => {
       <Route path="/Login" element={<Login />} />
       <Route path="/Signup" element={<SignUp />} />
       <Route path="/AboutUs" element={<AboutUs />} />
+      <Route path="/Contact" element={<Contact />} />
     </Routes>
   );
 };
