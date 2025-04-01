@@ -39,7 +39,7 @@ const SignUp = () => {
 
   const onSubmit = async (data) => {
     try {
-      const response = await axios.post("http://localhost:5000/api/users/signup", data);
+      const response = await axios.post("http://localhost:5000/signup", data);
       if (response.data.success) {
         toast.success("Account Created successfully!", {
           position: "top-center", 
