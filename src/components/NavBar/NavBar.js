@@ -8,7 +8,7 @@ const NavBar = () => {
     <header className="w-full bg-white shadow-md fixed top-0 left-0 z-50 font-poppins">
       <div className="container mx-auto flex items-center justify-between py-4 px-6">
         {/* Logo */}
-        <div className="flex items-center">
+        <div className="flex items-start ml-20">
           <img src="/images/AgriGIS.png" alt="Lander Logo" className="h-[50px] w-auto" />
         </div>
 
