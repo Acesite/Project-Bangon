@@ -15,8 +15,13 @@
     "dotenv": "^16.4.7",
     "lucide-react": "^0.485.0",
     "mapbox-gl": "^3.11.0",
+<<<<<<< Updated upstream
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+=======
+    "react": "^18.1.0",
+    "react-dom": "^18.1.0",
+>>>>>>> Stashed changes
     "react-hook-form": "^7.55.0",
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
