@@ -7,7 +7,7 @@ import AboutUs from "../components/LandingPage/AboutUs";
 import Contact from "../components/LandingPage/Contact";
 import SuperAdminLandingPage from "../components/SuperAdmin/SuperAdminLanding";
 import ManageAccount from "../components/SuperAdmin/ManageAccount";
-import MapboxComponent from "../components/Mapbox/MapboxComponent"; // Make sure this path is correct
+import AdminMapbox from "../components/Admin/AdminMapBox";
 
 const AppRoutes = () => {
   return (
@@ -17,9 +17,9 @@ const AppRoutes = () => {
       <Route path="/Signup" element={<SignUp />} />
       <Route path="/AboutUs" element={<AboutUs />} />
       <Route path="/Contact" element={<Contact />} />
-      <Route path="/Map" element={<MapboxComponent />} />
       <Route path="/SuperAdminLandingPage" element={<SuperAdminLandingPage />} />
       <Route path="/ManageAccount" element={<ManageAccount />} />
+      <Route path="/AdminMapbox" element={<AdminMapbox />} />
     </Routes>
   );
 };
