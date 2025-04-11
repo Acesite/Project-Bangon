@@ -51,7 +51,7 @@ const UserSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
     <div className="absolute top-0 left-0 h-full w-80 bg-white shadow-2xl z-20 p-6 overflow-y-auto border-r border-gray-200">
       {/* Logo */}
       <div className="mb-8 flex justify-center">
-        <img src={AgriGISLogo} alt="AgriGIS Logo" className="h-30 object-contain" />
+        <img src={AgriGISLogo} alt="AgriGIS Logo" className="h-[75px] object-contain" />
       </div>
 
       {/* Section Title */}
