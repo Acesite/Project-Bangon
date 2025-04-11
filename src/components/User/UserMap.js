@@ -17,15 +17,15 @@ mapboxgl.accessToken =
 const UserMap = () => {
   const mapContainer = useRef(null);
   const map = useRef(null);
+  const markerRef = useRef(null);
 
   const [lng] = useState(122.961602);
   const [lat] = useState(10.507447);
   const [zoom] = useState(11);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [markers, setMarkers] = useState([]);
   const [mapStyle, setMapStyle] = useState("mapbox://styles/wompwomp-69/cm900xa91008j01t14w8u8i9d");
   const [showLayers, setShowLayers] = useState(false);
-  const [isSwitcherVisible, setIsSwitcherVisible] = useState(false); // New state for toggling visibility
+  const [isSwitcherVisible, setIsSwitcherVisible] = useState(false);
+  const [selectedBarangay, setSelectedBarangay] = useState(null);
 
   const mapStyles = {
     Default: {
@@ -46,10 +46,51 @@ const UserMap = () => {
     },
   };
 
-  useEffect(() => {
-    const storedMarkers = localStorage.getItem("adminMarkers");
-    if (storedMarkers) setMarkers(JSON.parse(storedMarkers));
-  }, []);
+  const zoomToBarangay = (barangayCoordinates) => {
+    if (map.current) {
+      map.current.flyTo({
+        center: barangayCoordinates,
+        zoom: 14, // Set zoom level when zooming into the barangay
+        essential: true, // This ensures the action is considered important for accessibility
+      });
+    }
+  };
+
+  const handleBarangaySelect = (barangayData) => {
+    setSelectedBarangay(barangayData);
+    
+    // Remove previous marker if exists
+    if (markerRef.current) {
+      markerRef.current.remove();
+    }
+    
+    // Add new marker at selected coordinates
+    if (map.current && barangayData) {
+      // Create a new marker
+      const el = document.createElement('div');
+      el.className = 'marker';
+      el.style.width = '18px';
+      el.style.height = '18px';
+      el.style.borderRadius = '50%';
+      el.style.backgroundColor = '#10B981'; // Green color matching the app theme
+      el.style.border = '3px solid white';
+      el.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.3)';
+      
+      // Create popup for the marker
+      const popup = new mapboxgl.Popup({ offset: 25 })
+        .setHTML(`<h3 class="font-bold text-green-600">${barangayData.name}</h3>
+                 <p class="text-sm">Coordinates: ${barangayData.coordinates[1].toFixed(6)}, ${barangayData.coordinates[0].toFixed(6)}</p>`);
+      
+      // Add the marker to the map
+      markerRef.current = new mapboxgl.Marker(el)
+        .setLngLat(barangayData.coordinates)
+        .setPopup(popup)
+        .addTo(map.current);
+        
+      // Open the popup by default
+      markerRef.current.togglePopup();
+    }
+  };
 
   useEffect(() => {
     if (!map.current) {
@@ -63,46 +104,48 @@ const UserMap = () => {
     } else {
       map.current.setStyle(mapStyle);
     }
-  }, [mapStyle]);
+    
+    // Preserve marker when style changes
+    map.current.on('style.load', () => {
+      if (selectedBarangay && markerRef.current) {
+        // Re-add the marker after style change
+        const el = document.createElement('div');
+        el.className = 'marker';
+        el.style.width = '18px';
+        el.style.height = '18px';
+        el.style.borderRadius = '50%';
+        el.style.backgroundColor = '#10B981';
+        el.style.border = '3px solid white';
+        el.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.3)';
+        
+        const popup = new mapboxgl.Popup({ offset: 25 })
+          .setHTML(`<h3 class="font-bold text-green-600">${selectedBarangay.name}</h3>
+                   <p class="text-sm">Coordinates: ${selectedBarangay.coordinates[1].toFixed(6)}, ${selectedBarangay.coordinates[0].toFixed(6)}</p>`);
+        
+        markerRef.current = new mapboxgl.Marker(el)
+          .setLngLat(selectedBarangay.coordinates)
+          .setPopup(popup)
+          .addTo(map.current);
+      }
+    });
+  }, [mapStyle, lng, lat, zoom, selectedBarangay]);
 
+  // Add some CSS for Mapbox popups
   useEffect(() => {
-    if (!map.current) return;
-    markers.forEach((marker) => {
-      new mapboxgl.Marker()
-        .setLngLat([marker.lng, marker.lat])
-        .setPopup(
-          new mapboxgl.Popup().setHTML(
-            `<h3>${marker.crop}</h3><p>${marker.notes}</p>`
-          )
-        )
-        .addTo(map.current);
-    });
-  }, [markers]);
-
-  const handleInputChange = (e) => {
-    setSelectedLocation({
-      ...selectedLocation,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const updatedMarkers = [...markers, selectedLocation];
-    setMarkers(updatedMarkers);
-    localStorage.setItem("adminMarkers", JSON.stringify(updatedMarkers));
-
-    new mapboxgl.Marker()
-      .setLngLat([selectedLocation.lng, selectedLocation.lat])
-      .setPopup(
-        new mapboxgl.Popup().setHTML(
-          `<h3>${selectedLocation.crop}</h3><p>${selectedLocation.notes}</p>`
-        )
-      )
-      .addTo(map.current);
-
-    setSelectedLocation(null);
-  };
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .mapboxgl-popup-content {
+        padding: 12px;
+        border-radius: 8px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   return (
     <div className="relative h-screen w-screen">
@@ -114,12 +157,14 @@ const UserMap = () => {
         setMapStyle={setMapStyle}
         showLayers={showLayers}
         setShowLayers={setShowLayers}
+        zoomToBarangay={zoomToBarangay}
+        onBarangaySelect={handleBarangaySelect} // Pass the new handler
       />
 
       {/* Map Style Switcher Toggle Button */}
       <button
-        onClick={() => setIsSwitcherVisible(!isSwitcherVisible)} // Toggle visibility
-        className="absolute top-5 right-5 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg z-10"
+        onClick={() => setIsSwitcherVisible(!isSwitcherVisible)}
+        className="absolute top-5 right-5 bg-green-600 text-white px-4 py-2 rounded-full shadow-lg z-10"
       >
         {isSwitcherVisible ? "Hide Map Styles" : "Show Map Styles"}
       </button>
@@ -143,38 +188,6 @@ const UserMap = () => {
               </button>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Marker Form Popup */}
-      {selectedLocation && (
-        <div className="absolute top-5 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow-lg z-10 w-80">
-          <h2 className="text-xl font-semibold mb-2">Add Marker Info</h2>
-          <form onSubmit={handleSubmit}>
-            <label className="block mb-1">Crop Type</label>
-            <input
-              name="crop"
-              value={selectedLocation.crop || ""}
-              onChange={handleInputChange}
-              className="w-full border px-2 py-1 mb-2 rounded"
-              required
-            />
-
-            <label className="block mb-1">Notes</label>
-            <textarea
-              name="notes"
-              value={selectedLocation.notes || ""}
-              onChange={handleInputChange}
-              className="w-full border px-2 py-1 mb-2 rounded"
-              rows={3}
-              required
-            />
-
-            <div className="flex gap-2">
-              <button type="submit" className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700">Save</button>
-              <button type="button" onClick={() => setSelectedLocation(null)} className="bg-gray-400 text-white px-4 py-1 rounded hover:bg-gray-500">Cancel</button>
-            </div>
-          </form>
         </div>
       )}
     </div>
