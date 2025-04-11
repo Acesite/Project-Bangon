@@ -21,7 +21,7 @@ const UserMap = () => {
 
   const [lng] = useState(122.961602);
   const [lat] = useState(10.507447);
-  const [zoom] = useState(11);
+  const [zoom] = useState(13);
   const [mapStyle, setMapStyle] = useState("mapbox://styles/wompwomp-69/cm900xa91008j01t14w8u8i9d");
   const [showLayers, setShowLayers] = useState(false);
   const [isSwitcherVisible, setIsSwitcherVisible] = useState(false);
