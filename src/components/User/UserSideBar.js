@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
 
 const UserSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
   const [selectedBarangay, setSelectedBarangay] = useState("");
+  const navigate = useNavigate();
 
   const barangayCoordinates = {
     Abuanan: [122.984389, 10.527456],
@@ -34,12 +36,11 @@ const UserSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
   const handleBarangayChange = (e) => {
     const barangay = e.target.value;
     setSelectedBarangay(barangay);
-    
+
     if (barangayCoordinates[barangay]) {
       const coordinates = barangayCoordinates[barangay];
-      zoomToBarangay(coordinates); // Zoom to selected barangay
-      
-      // Pass the selected barangay's name and coordinates to parent component
+      zoomToBarangay(coordinates);
+
       onBarangaySelect({
         name: barangay,
         coordinates: coordinates
@@ -99,12 +100,7 @@ const UserSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
           onChange={handleBarangayChange}
         >
           <option value="">Select a barangay</option>
-          {[
-            "Abuanan", "Alianza", "Atipuluan", "Bacong", "Bagroy", "Balingasag",
-            "Binubuhan", "Busay", "Calumangan", "Caridad", "Dulao", "Ilijan",
-            "Lag-asan", "Mailum", "Ma-ao", "Malingin", "Napoles", "Pacol",
-            "Poblacion", "Sagasa", "Tabunan", "Taloc", "Talon", "Tinongan"
-          ].map((brgy) => (
+          {Object.keys(barangayCoordinates).map((brgy) => (
             <option key={brgy} value={brgy}>{brgy}</option>
           ))}
         </select>
@@ -119,6 +115,16 @@ const UserSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
             <label htmlFor={crop} className="text-sm text-gray-700">{crop}</label>
           </div>
         ))}
+      </div>
+
+      {/* Back to Home Button */}
+      <div className="mt-6">
+        <button
+          onClick={() => navigate("/")}
+          className="w-auto bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300"
+        >
+           Back to Home
+        </button>
       </div>
     </div>
   );
