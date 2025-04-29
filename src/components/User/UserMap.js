@@ -13,7 +13,8 @@ import SatelliteThumbnail from "../MapboxImages/map-satellite.png";
 import DarkThumbnail from "../MapboxImages/map-dark.png";
 import LightThumbnail from "../MapboxImages/map-light.png";
 
-mapboxgl.accessToken =  "pk.eyJ1Ijoid29tcHdvbXAtNjkiLCJhIjoiY204emxrOHkwMGJsZjJrcjZtZmN4YXdtNSJ9.LIMPvoBNtGuj4O36r3F72w"; // Replace with your token
+mapboxgl.accessToken =
+  "pk.eyJ1Ijoid29tcHdvbXAtNjkiLCJhIjoiY204emxrOHkwMGJsZjJrcjZtZmN4YXdtNSJ9.LIMPvoBNtGuj4O36r3F72w"; // Replace with your token
 
 const UserMap = () => {
   const mapContainer = useRef(null);
@@ -50,6 +51,23 @@ const UserMap = () => {
     },
   };
 
+  // Barangay data with additional info
+  const barangayCoordinates = {
+    Abuanan: {
+      coordinates: [122.984389, 10.527456],
+      population: 1200,
+      crops: ["Banana", "Rice"],
+      iconUrl: "path/to/icon1.png",
+    },
+    Alianza: {
+      coordinates: [122.969238, 10.516775],
+      population: 1100,
+      crops: ["Sugarcane", "Corn"],
+      iconUrl: "path/to/icon2.png",
+    },
+    // Add more barangays here with similar data structure...
+  };
+
   // Zoom to selected barangay
   const zoomToBarangay = (barangayCoordinates) => {
     if (map.current) {
@@ -65,7 +83,7 @@ const UserMap = () => {
   const handleBarangaySelect = (barangayData) => {
     setSelectedBarangay(barangayData);
     if (markerRef.current) markerRef.current.remove();
-
+  
     if (map.current && barangayData) {
       const el = document.createElement("div");
       el.className = "marker";
@@ -75,20 +93,26 @@ const UserMap = () => {
       el.style.backgroundColor = "#10B981";
       el.style.border = "3px solid white";
       el.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.3)";
-
-      const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
-        `<h3 class="font-bold text-green-600">${barangayData.name}</h3>
-         <p class="text-sm">Coordinates: ${barangayData.coordinates[1].toFixed(6)}, ${barangayData.coordinates[0].toFixed(6)}</p>`
-      );
-
+  
+      const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+        <div class="text-sm">
+          <h3 class="font-bold text-green-600 text-base">${barangayData.name}</h3>
+          <p><strong>Coordinates:</strong> ${barangayData.coordinates[1].toFixed(6)}, ${barangayData.coordinates[0].toFixed(6)}</p>
+          ${barangayData.population ? `<p><strong>Population:</strong> ${barangayData.population}</p>` : ""}
+          ${barangayData.crops ? `<p><strong>Crops:</strong> ${barangayData.crops.join(", ")}</p>` : ""}
+          ${barangayData.iconUrl ? `<img src="${barangayData.iconUrl}" alt="Icon" class="mt-2 w-8 h-8">` : ""}
+        </div>
+      `);
+  
       markerRef.current = new mapboxgl.Marker(el)
         .setLngLat(barangayData.coordinates)
         .setPopup(popup)
         .addTo(map.current);
-
+  
       markerRef.current.togglePopup();
     }
   };
+  
 
   // Initialize map and directions
   useEffect(() => {
@@ -99,10 +123,10 @@ const UserMap = () => {
         center: [lng, lat],
         zoom: zoom,
       });
-  
+
       // Add controls
       map.current.addControl(new mapboxgl.NavigationControl(), "bottom-right");
-  
+
       // Initialize Directions
       const directions = new MapboxDirections({
         accessToken: mapboxgl.accessToken,
@@ -112,12 +136,12 @@ const UserMap = () => {
       });
       map.current.addControl(directions, "top-left");
       directionsRef.current = directions;
-  
+
       // Auto-set route when barangay is selected
       directions.on("route", (e) => {
         console.log("Route loaded:", e.route);
       });
-  
+
       // Re-add marker on style change
       map.current.on("style.load", () => {
         if (selectedBarangay) {
@@ -128,7 +152,7 @@ const UserMap = () => {
       map.current.setStyle(mapStyle);
     }
   }, [mapStyle]);
-  
+
   // Custom popup styling
   useEffect(() => {
     const style = document.createElement("style");
@@ -153,13 +177,15 @@ const UserMap = () => {
 
       {/* Sidebar */}
       <Sidebar
-        mapStyles={mapStyles}
-        setMapStyle={setMapStyle}
-        showLayers={showLayers}
-        setShowLayers={setShowLayers}
-        zoomToBarangay={zoomToBarangay}
-        onBarangaySelect={handleBarangaySelect}
-      />
+  mapStyles={mapStyles}
+  setMapStyle={setMapStyle}
+  showLayers={showLayers}
+  setShowLayers={setShowLayers}
+  zoomToBarangay={zoomToBarangay}
+  onBarangaySelect={handleBarangaySelect}
+  selectedBarangay={selectedBarangay} // Pass selectedBarangay data to the sidebar
+/>
+
 
       {/* Map Style Switcher Toggle */}
       <button
