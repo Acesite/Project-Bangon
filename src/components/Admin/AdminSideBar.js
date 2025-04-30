@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
+import Button from "./MapControls/Button";
 
 const AdminSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
   const [selectedBarangay, setSelectedBarangay] = useState("");
@@ -91,7 +92,7 @@ const AdminSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
       </div>
 
       {/* Section Title */}
-      <h2 className="text-xl font-semibold text-gray-800 mb-6 border-b pb-3">📍 Location Info</h2>
+      <h2 className="text-xl font-semibold text-gray-800 mb-6 border-b pb-3"> Location Info</h2>
 
       {/* Static Info Fields */}
       {[
@@ -172,14 +173,7 @@ const AdminSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
       </div>
 
       {/* Home Button */}
-      <div className="mt-8">
-        <button
-          onClick={() => navigate("/AdminLanding")}
-          className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-md shadow transition"
-        >
-          Home
-        </button>
-      </div>
+      <Button to="/AdminLanding" label="Home" />
     </div>
   );
 };
