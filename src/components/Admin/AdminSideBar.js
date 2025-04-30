@@ -87,7 +87,7 @@ const AdminSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
     <div className="absolute top-0 left-0 h-full w-80 bg-white shadow-xl z-20 px-6 py-8 overflow-y-auto border-r border-gray-200 transition-all duration-300">
       {/* Logo */}
       <div className="mb-8 flex justify-center">
-        <img src={AgriGISLogo} alt="AgriGIS Logo" className="h-[80px] object-contain" />
+        <img src={AgriGISLogo} alt="AgriGIS Logo" className="h-[60px] object-contain" />
       </div>
 
       {/* Section Title */}
@@ -185,5 +185,3 @@ const AdminSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
 };
 
 export default AdminSideBar;
-
-
