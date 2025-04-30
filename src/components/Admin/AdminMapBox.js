@@ -1,53 +1,120 @@
 import React, { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import MapboxDirections from "@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions";
+import "@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions.css";
 
-// Import thumbnails and logo
-import DefaultThumbnail from "../../components/MapboxImages/map-default.png";
-import SatelliteThumbnail from "../../components/MapboxImages/map-satellite.png";
-import DarkThumbnail from "../../components/MapboxImages/map-dark.png";
-import LightThumbnail from "../../components/MapboxImages/map-light.png";
-import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
+// Import components
+import AdminSidebar from "./AdminSideBar";
+
+// Import thumbnails
+import DefaultThumbnail from "../MapboxImages/map-default.png";
+import SatelliteThumbnail from "../MapboxImages/map-satellite.png";
+import DarkThumbnail from "../MapboxImages/map-dark.png";
+import LightThumbnail from "../MapboxImages/map-light.png";
 
 mapboxgl.accessToken =
-  "pk.eyJ1Ijoid29tcHdvbXAtNjkiLCJhIjoiY204emxrOHkwMGJsZjJrcjZtZmN4YXdtNSJ9.LIMPvoBNtGuj4O36r3F72w";
+  "pk.eyJ1Ijoid29tcHdvbXAtNjkiLCJhIjoiY204emxrOHkwMGJsZjJrcjZtZmN4YXdtNSJ9.LIMPvoBNtGuj4O36r3F72w"; // Replace with your token
 
-const AdminMapbox = () => {
+const AdminMapBox = () => {
   const mapContainer = useRef(null);
   const map = useRef(null);
+  const markerRef = useRef(null);
+  const directionsRef = useRef(null);
 
   const [lng] = useState(122.961602);
   const [lat] = useState(10.507447);
-  const [zoom] = useState(11);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [markers, setMarkers] = useState([]);
-  const [mapStyle, setMapStyle] = useState("mapbox://styles/wompwomp-69/cm900xa91008j01t14w8u8i9d");
+  const [zoom] = useState(13);
+  const [mapStyle, setMapStyle] = useState(
+    "mapbox://styles/wompwomp-69/cm900xa91008j01t14w8u8i9d"
+  );
   const [showLayers, setShowLayers] = useState(false);
+  const [isSwitcherVisible, setIsSwitcherVisible] = useState(false);
+  const [selectedBarangay, setSelectedBarangay] = useState(null);
 
   const mapStyles = {
-    "Default": {
+    Default: {
       url: "mapbox://styles/wompwomp-69/cm900xa91008j01t14w8u8i9d",
       thumbnail: DefaultThumbnail,
     },
-    "Satellite": {
+    Satellite: {
       url: "mapbox://styles/wompwomp-69/cm96vey9z009001ri48hs8j5n",
       thumbnail: SatelliteThumbnail,
     },
-    "Dark": {
+    Dark: {
       url: "mapbox://styles/wompwomp-69/cm96veqvt009101szf7g42jps",
       thumbnail: DarkThumbnail,
     },
-    "Light": {
+    Light: {
       url: "mapbox://styles/wompwomp-69/cm976c2u700ab01rc0cns2pe0",
       thumbnail: LightThumbnail,
     },
   };
 
-  useEffect(() => {
-    const storedMarkers = localStorage.getItem("adminMarkers");
-    if (storedMarkers) setMarkers(JSON.parse(storedMarkers));
-  }, []);
+  // Barangay data with additional info
+  const barangayCoordinates = {
+    Abuanan: {
+      coordinates: [122.984389, 10.527456],
+      population: 1200,
+      crops: ["Banana", "Rice"],
+      iconUrl: "path/to/icon1.png",
+    },
+    Alianza: {
+      coordinates: [122.969238, 10.516775],
+      population: 1100,
+      crops: ["Sugarcane", "Corn"],
+      iconUrl: "path/to/icon2.png",
+    },
+    // Add more barangays here with similar data structure...
+  };
 
+  // Zoom to selected barangay
+  const zoomToBarangay = (barangayCoordinates) => {
+    if (map.current) {
+      map.current.flyTo({
+        center: barangayCoordinates,
+        zoom: 14,
+        essential: true,
+      });
+    }
+  };
+
+  // Handle barangay selection (add marker)
+  const handleBarangaySelect = (barangayData) => {
+    setSelectedBarangay(barangayData);
+    if (markerRef.current) markerRef.current.remove();
+  
+    if (map.current && barangayData) {
+      const el = document.createElement("div");
+      el.className = "marker";
+      el.style.width = "18px";
+      el.style.height = "18px";
+      el.style.borderRadius = "50%";
+      el.style.backgroundColor = "#10B981";
+      el.style.border = "3px solid white";
+      el.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.3)";
+  
+      const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+        <div class="text-sm">
+          <h3 class="font-bold text-green-600 text-base">${barangayData.name}</h3>
+          <p><strong>Coordinates:</strong> ${barangayData.coordinates[1].toFixed(6)}, ${barangayData.coordinates[0].toFixed(6)}</p>
+          ${barangayData.population ? `<p><strong>Population:</strong> ${barangayData.population}</p>` : ""}
+          ${barangayData.crops ? `<p><strong>Crops:</strong> ${barangayData.crops.join(", ")}</p>` : ""}
+          ${barangayData.iconUrl ? `<img src="${barangayData.iconUrl}" alt="Icon" class="mt-2 w-8 h-8">` : ""}
+        </div>
+      `);
+  
+      markerRef.current = new mapboxgl.Marker(el)
+        .setLngLat(barangayData.coordinates)
+        .setPopup(popup)
+        .addTo(map.current);
+  
+      markerRef.current.togglePopup();
+    }
+  };
+  
+
+  // Initialize map and directions
   useEffect(() => {
     if (!map.current) {
       map.current = new mapboxgl.Map({
@@ -56,182 +123,101 @@ const AdminMapbox = () => {
         center: [lng, lat],
         zoom: zoom,
       });
+
+      // Add controls
       map.current.addControl(new mapboxgl.NavigationControl(), "bottom-right");
+
+      // Initialize Directions
+      const directions = new MapboxDirections({
+        accessToken: mapboxgl.accessToken,
+        unit: "metric",
+        profile: "mapbox/driving",
+        controls: { inputs: true, instructions: true },
+      });
+      map.current.addControl(directions, "top-left");
+      directionsRef.current = directions;
+
+      // Auto-set route when barangay is selected
+      directions.on("route", (e) => {
+        console.log("Route loaded:", e.route);
+      });
+
+      // Re-add marker on style change
+      map.current.on("style.load", () => {
+        if (selectedBarangay) {
+          handleBarangaySelect(selectedBarangay);
+        }
+      });
     } else {
       map.current.setStyle(mapStyle);
     }
   }, [mapStyle]);
 
+  // Custom popup styling
   useEffect(() => {
-    if (!map.current) return;
-    markers.forEach((marker) => {
-      new mapboxgl.Marker()
-        .setLngLat([marker.lng, marker.lat])
-        .setPopup(
-          new mapboxgl.Popup().setHTML(
-            `<h3>${marker.crop}</h3><p>${marker.notes}</p>`
-          )
-        )
-        .addTo(map.current);
-    });
-  }, [markers]);
-
-  const handleInputChange = (e) => {
-    setSelectedLocation({
-      ...selectedLocation,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const updatedMarkers = [...markers, selectedLocation];
-    setMarkers(updatedMarkers);
-    localStorage.setItem("adminMarkers", JSON.stringify(updatedMarkers));
-
-    new mapboxgl.Marker()
-      .setLngLat([selectedLocation.lng, selectedLocation.lat])
-      .setPopup(
-        new mapboxgl.Popup().setHTML(
-          `<h3>${selectedLocation.crop}</h3><p>${selectedLocation.notes}</p>`
-        )
-      )
-      .addTo(map.current);
-
-    setSelectedLocation(null);
-  };
+    const style = document.createElement("style");
+    style.innerHTML = `
+      .mapboxgl-popup-content {
+        padding: 12px;
+        border-radius: 8px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+      }
+      .mapboxgl-ctrl-directions {
+        width: 300px;
+        max-width: 90vw;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
 
   return (
     <div className="relative h-screen w-screen">
       <div ref={mapContainer} className="h-full w-full" />
 
-      {/* Sidebar Panel */}
-      <div className="absolute top-0 left-0 h-full w-80 bg-white shadow-2xl z-20 p-6 overflow-y-auto border-r border-gray-200">
-        {/* Logo */}
-        <div className="mb-8 flex justify-center">
-          <img src={AgriGISLogo} alt="AgriGIS Logo" className="h-30  object-contain" />
-        </div>
+      {/* Sidebar */}
+      <AdminSidebar
+  mapStyles={mapStyles}
+  setMapStyle={setMapStyle}
+  showLayers={showLayers}
+  setShowLayers={setShowLayers}
+  zoomToBarangay={zoomToBarangay}
+  onBarangaySelect={handleBarangaySelect}
+  selectedBarangay={selectedBarangay} // Pass selectedBarangay data to the sidebar
+/>
 
-        {/* Section Title */}
-        <h2 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Location Information</h2>
 
-        {/* Region */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-600 mb-1">Region</label>
-          <input type="text" value="Western Visayas" readOnly className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed" />
-        </div>
+      {/* Map Style Switcher Toggle */}
+      <button
+        onClick={() => setIsSwitcherVisible(!isSwitcherVisible)}
+        className="absolute top-5 right-5 bg-green-600 text-white px-4 py-2 rounded-full shadow-lg z-10"
+      >
+        {isSwitcherVisible ? "Hide Map Styles" : "Show Map Styles"}
+      </button>
 
-        {/* Province */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-600 mb-1">Province</label>
-          <input type="text" value="Negros Occidental" readOnly className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed" />
-        </div>
-
-        {/* Municipality */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-600 mb-1">Municipality</label>
-          <input type="text" value="Bago City" readOnly className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed" />
-        </div>
-
-        {/* Barangay */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-600 mb-1">Barangay</label>
-          <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-            {[
-              "Abuanan", "Alianza", "Atipuluan", "Bacong", "Bagroy", "Balingasag",
-              "Binubuhan", "Busay", "Calumangan", "Caridad", "Dulao", "Ilijan",
-              "Lag-asan", "Mailum", "Ma-ao", "Malingin", "Napoles", "Pacol",
-              "Poblacion", "Sagasa", "Tabunan", "Taloc", "Talon", "Tinongan"
-            ].map((brgy) => (
-              <option key={brgy} value={brgy}>{brgy}</option>
+      {/* Map Style Switcher Panel */}
+      {isSwitcherVisible && (
+        <div className="absolute top-16 right-5 bg-white p-2 rounded-lg shadow-lg z-10">
+          <h3 className="font-semibold">Map Styles</h3>
+          <div className="flex gap-4">
+            {Object.keys(mapStyles).map((styleKey) => (
+              <button
+                key={styleKey}
+                onClick={() => setMapStyle(mapStyles[styleKey].url)}
+                className="p-2 border rounded-lg"
+              >
+                <img
+                  src={mapStyles[styleKey].thumbnail}
+                  alt={styleKey}
+                  className="w-20 h-12 object-cover rounded"
+                />
+              </button>
             ))}
-          </select>
-        </div>
-
-        {/* Crop Filter */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-600 mb-1">Crop Suitability</label>
-          {["Banana", "Cassava", "Corn", "Sugarcane", "Rice", "Vegetables"].map((crop) => (
-            <div className="flex items-center mb-1" key={crop}>
-              <input type="checkbox" id={crop} className="mr-5 accent-green-600" />
-              <label htmlFor={crop} className="text-sm text-gray-700">{crop}</label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Map Style Switcher */}
-      <div className="absolute top-5 right-5 z-30">
-        <div className="relative">
-          <button
-            onClick={() => setShowLayers(!showLayers)}
-            className="w-[70px] h-[70px] bg-cover bg-center border-2 border-white rounded-md shadow-md"
-            style={{ backgroundImage: `url(${mapStyles["Default"].thumbnail})` }}
-            title="Change Map Layer"
-          >
-            <div className="bg-black bg-opacity-50 text-white text-xs font-semibold absolute bottom-0 w-full text-center py-1">
-              <span className="flex justify-center items-center gap-1">
-                <svg className="w-4 h-4 inline-block" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 7l9 4 9-4M3 17l9 4 9-4M3 12l9 4 9-4" />
-                </svg>
-                Layers
-              </span>
-            </div>
-          </button>
-
-          {showLayers && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg border z-50">
-              {Object.entries(mapStyles).map(([label, styleData]) => (
-                <button
-                  key={label}
-                  onClick={() => {
-                    setMapStyle(styleData.url);
-                    setShowLayers(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-2 py-2 hover:bg-gray-100 text-sm"
-                >
-                  <img src={styleData.thumbnail} alt={label} className="w-10 h-10 rounded border" />
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Marker Form Popup */}
-      {selectedLocation && (
-        <div className="absolute top-5 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow-lg z-10 w-80">
-          <h2 className="text-xl font-semibold mb-2">Add Marker Info</h2>
-          <form onSubmit={handleSubmit}>
-            <label className="block mb-1">Crop Type</label>
-            <input
-              name="crop"
-              value={selectedLocation.crop || ""}
-              onChange={handleInputChange}
-              className="w-full border px-2 py-1 mb-2 rounded"
-              required
-            />
-
-            <label className="block mb-1">Notes</label>
-            <textarea
-              name="notes"
-              value={selectedLocation.notes || ""}
-              onChange={handleInputChange}
-              className="w-full border px-2 py-1 mb-2 rounded"
-              rows={3}
-              required
-            />
-
-            <div className="flex gap-2">
-              <button type="submit" className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700">Save</button>
-              <button type="button" onClick={() => setSelectedLocation(null)} className="bg-gray-400 text-white px-4 py-1 rounded hover:bg-gray-500">Cancel</button>
-            </div>
-          </form>
+          </div>
         </div>
       )}
     </div>
   );
 };
 
-export default AdminMapbox;
+export default AdminMapBox;

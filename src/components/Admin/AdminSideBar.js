@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
 
-const UserSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
+const AdminSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
   const [selectedBarangay, setSelectedBarangay] = useState("");
   const [barangayDetails, setBarangayDetails] = useState(null);
   const navigate = useNavigate();
@@ -271,7 +271,7 @@ const UserSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
       {/* Back to Home Button */}
       <div className="mt-6">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/AdminLanding")}
           className="w-auto bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300"
         >
           Back to Home
@@ -281,4 +281,4 @@ const UserSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
   );
 };
 
-export default UserSideBar;
+export default AdminSideBar;

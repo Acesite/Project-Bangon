@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Link } from 'react-router-dom';
 import { FaSignOutAlt } from "react-icons/fa";
 
-const SuperAdminNavBar = () => {
+const AdminNavBar = () => {
   const location = useLocation();
   return (
     <header className="w-full bg-white shadow-md fixed top-0 left-0 z-50 font-poppins">
@@ -17,22 +17,24 @@ const SuperAdminNavBar = () => {
         <div className="flex items-center space-x-6 ml-auto">
           {/* Navigation Links */}
           <nav className="hidden md:flex space-x-6">
-      <a
-        href="/SuperAdminLandingPage"
-        className={`tracking-wide font-light hover:text-green-700 ${
-          location.pathname === "/SuperAdminLandingPage" ? "text-green-700 font-medium" : "text-black-600"
-        }`}
-      >
-        Home
-      </a>
-      <a
-        href="/ManageAccount"
-        className={`tracking-wide font-light hover:text-green-700 ${
-          location.pathname === "/ManageAccount" ? "text-green-700 font-medium" : "text-black-600"
-        }`}
-      >
-        Manage Account
-      </a>
+          <a
+  href="/AdminLanding"
+  className={`tracking-wide font-light hover:text-green-700 ${
+    location.pathname === "/AdminLanding" ? "text-green-700 font-medium" : "text-black-600"
+  }`}
+>
+  Home
+</a>
+
+<a
+  href="/ManageCrops"
+  className={`tracking-wide font-light hover:text-green-700 ${
+    location.pathname === "/ManageCrops" ? "text-green-700 font-medium" : "text-black-600"
+  }`}
+>
+  Manage Crops
+</a>
+
       {/* <a
         href="/Contact"
         className={`tracking-wide font-light hover:text-green-700 ${
@@ -66,4 +68,4 @@ const SuperAdminNavBar = () => {
   );
 };
 
-export default SuperAdminNavBar;
+export default AdminNavBar;
