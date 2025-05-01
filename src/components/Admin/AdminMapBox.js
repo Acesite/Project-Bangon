@@ -1,26 +1,30 @@
-// AdminMapBox.js
+// AdminMapBox.js (Updated with polygon drawing integration + directions toggle + map style switcher + auto hectare injection)
 import React, { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import MapboxDirections from "@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions";
 import "@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions.css";
+import MapboxDraw from "@mapbox/mapbox-gl-draw";
+import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
+import * as turf from "@turf/turf";
+
 import AdminSidebar from "./AdminSideBar";
 import DefaultThumbnail from "../MapboxImages/map-default.png";
 import SatelliteThumbnail from "../MapboxImages/map-satellite.png";
 import DarkThumbnail from "../MapboxImages/map-dark.png";
 import LightThumbnail from "../MapboxImages/map-light.png";
-import TagCropForm from "./TagCropForm";
 import SidebarToggleButton from "./MapControls/SidebarToggleButton";
+import TagCropForm from "./TagCropForm";
 
-
-mapboxgl.accessToken =
-  "pk.eyJ1Ijoid29tcHdvbXAtNjkiLCJhIjoiY204emxrOHkwMGJsZjJrcjZtZmN4YXdtNSJ9.LIMPvoBNtGuj4O36r3F72w";
+mapboxgl.accessToken = "pk.eyJ1Ijoid29tcHdvbXAtNjkiLCJhIjoiY204emxrOHkwMGJsZjJrcjZtZmN4YXdtNSJ9.LIMPvoBNtGuj4O36r3F72w";
 
 const AdminMapBox = () => {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const markerRef = useRef(null);
   const directionsRef = useRef(null);
+  const drawRef = useRef(null);
+
   const [lng] = useState(122.961602);
   const [lat] = useState(10.507447);
   const [zoom] = useState(13);
@@ -71,53 +75,49 @@ const AdminMapBox = () => {
         </div>
       `);
 
-      markerRef.current = new mapboxgl.Marker(el)
-        .setLngLat(barangayData.coordinates)
-        .setPopup(popup)
-        .addTo(map.current);
-
+      markerRef.current = new mapboxgl.Marker(el).setLngLat(barangayData.coordinates).setPopup(popup).addTo(map.current);
       markerRef.current.togglePopup();
     }
   };
 
-  useEffect(() => {
-    if (isTagging && directionsRef.current && map.current) {
-      map.current.removeControl(directionsRef.current);
-      directionsRef.current = null;
-    }
-  }, [isTagging]);
-  
   useEffect(() => {
     if (!map.current) {
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: mapStyle,
         center: [lng, lat],
-        zoom: zoom,
+        zoom,
       });
 
       map.current.addControl(new mapboxgl.NavigationControl(), "bottom-right");
 
-      map.current.on("click", (e) => {
-        setNewTagLocation(e.lngLat);
-        setIsTagging(true);
+      drawRef.current = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: { polygon: true, trash: true },
       });
 
-      if (isDirectionsVisible && !isTagging) {
+      map.current.addControl(drawRef.current, "bottom-right");
+
+      if (isDirectionsVisible) {
         const directions = new MapboxDirections({
           accessToken: mapboxgl.accessToken,
           unit: "metric",
           profile: "mapbox/driving",
           controls: { inputs: true, instructions: true },
         });
-
         map.current.addControl(directions, "top-right");
         directionsRef.current = directions;
       }
 
-      map.current.on("style.load", () => {
-        if (selectedBarangay) {
-          handleBarangaySelect(selectedBarangay);
+      map.current.on("draw.create", (e) => {
+        const feature = e.features[0];
+        if (feature.geometry.type === "Polygon") {
+          const coordinates = feature.geometry.coordinates[0];
+          const area = turf.area(feature);
+          const hectares = +(area / 10000).toFixed(2);
+
+          setNewTagLocation({ coordinates, hectares });
+          setIsTagging(true);
         }
       });
     } else {
@@ -126,73 +126,50 @@ const AdminMapBox = () => {
   }, [mapStyle]);
 
   useEffect(() => {
-    const style = document.createElement("style");
-    style.innerHTML = `
-      .mapboxgl-popup-content {
-        padding: 12px;
-        border-radius: 8px;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-      }
-      .mapboxgl-ctrl-directions {
-        width: 300px;
-        max-width: 90vw;
-      }
-    `;
-    document.head.appendChild(style);
-    return () => document.head.removeChild(style);
-  }, []);
-
-  useEffect(() => {
     if (map.current) {
       taggedData.forEach((entry) => {
-        const marker = new mapboxgl.Marker({ color: "#f59e0b" })
-          .setLngLat(entry.coordinates)
+        const center = turf.centerOfMass(turf.polygon([entry.coordinates])).geometry.coordinates;
+        new mapboxgl.Marker({ color: "#f59e0b" })
+          .setLngLat(center)
+          .setPopup(
+            new mapboxgl.Popup({ offset: 15 }).setHTML(`
+              <div class="text-sm">
+                <h3 class='font-bold text-green-600'>${entry.crop}</h3>
+                <p><strong>Notes:</strong> ${entry.note || "None"}</p>
+                <p><strong>Harvest Date:</strong> ${entry.estimatedHarvest || "N/A"}</p>
+                <p><strong>Volume:</strong> ${entry.estimatedVolume || "N/A"} sacks</p>
+                <p><strong>Land Area:</strong> ${entry.estimatedHectares || "N/A"} ha</p>
+              </div>
+            `)
+          )
           .addTo(map.current);
-  
-        const popup = new mapboxgl.Popup({
-          closeButton: false,
-          closeOnClick: false,
-          offset: 15,
-        }).setHTML(`
-          <div class="text-sm">
-            <h3 class='font-bold text-green-600'>${entry.crop}</h3>
-            <p><strong>Notes:</strong> ${entry.note || "None"}</p>
-            <p><strong>Harvest Date:</strong> ${entry.estimatedHarvest || "N/A"}</p>
-            <p><strong>Volume:</strong> ${entry.estimatedVolume || "N/A"} sacks</p>
-            <p><strong>Land Area:</strong> ${entry.estimatedHectares || "N/A"} ha</p>
-          </div>
-        `);
-  
-        marker.getElement().addEventListener("mouseenter", () => {
-          popup.addTo(map.current).setLngLat(entry.coordinates);
-        });
-  
-        marker.getElement().addEventListener("mouseleave", () => {
-          popup.remove();
-        });
       });
     }
   }, [taggedData]);
-  
 
   return (
     <div className="relative h-screen w-screen">
       <div ref={mapContainer} className="h-full w-full" />
 
-      {/* Tagging Mode Banner */}
-      {isTagging && (
-        <div className="absolute top-4 right-4 bg-yellow-100 text-yellow-800 border border-yellow-300 px-4 py-2 rounded shadow-md z-50">
-         Tagging Mode: Clicked location selected. Fill in crop details.
-        </div>
+      {isTagging && newTagLocation && (
+        <TagCropForm
+          defaultLocation={{ ...newTagLocation, hectares: newTagLocation.hectares }}
+          onCancel={() => {
+            setIsTagging(false);
+            setNewTagLocation(null);
+            drawRef.current?.deleteAll();
+          }}
+          onSave={(data) => {
+            setTaggedData([...taggedData, { ...data, coordinates: newTagLocation.coordinates }]);
+            setIsTagging(false);
+            setNewTagLocation(null);
+            drawRef.current?.deleteAll();
+          }}
+        />
       )}
 
-      {/* Sidebar Toggle Button */}
-      <SidebarToggleButton
-  onClick={() => {
-    setIsSidebarVisible(!isSidebarVisible);
-    setIsSwitcherVisible(false);
-  }}
-/>
+      <SidebarToggleButton onClick={() => setIsSidebarVisible(!isSidebarVisible)} />
+
       {!isSidebarVisible && (
         <button
           onClick={() => {
@@ -218,33 +195,6 @@ const AdminMapBox = () => {
           </svg>
         </button>
       )}
-
-{isTagging && (
-  <TagCropForm
-    defaultLocation={newTagLocation}
-    onCancel={() => {
-      setIsTagging(false);
-      setNewTagLocation(null);
-    }}
-    onSave={(data) => {
-      setTaggedData([...taggedData, data]);
-      setIsTagging(false);
-      setNewTagLocation(null);
-    }}
-  />
-)}
-
-      <div className={`absolute top-0 left-0 h-full w-80 transition-transform duration-500 ease-in-out z-40 ${isSidebarVisible ? "translate-x-0" : "-translate-x-full"}`}>
-        <AdminSidebar
-          mapStyles={mapStyles}
-          setMapStyle={setMapStyle}
-          showLayers={showLayers}
-          setShowLayers={setShowLayers}
-          zoomToBarangay={zoomToBarangay}
-          onBarangaySelect={handleBarangaySelect}
-          selectedBarangay={selectedBarangay}
-        />
-      </div>
 
       {!isSidebarVisible && (
         <>
@@ -281,6 +231,22 @@ const AdminMapBox = () => {
           )}
         </>
       )}
+
+      <div
+        className={`absolute top-0 left-0 h-full w-80 transition-transform duration-500 ease-in-out z-40 ${
+          isSidebarVisible ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <AdminSidebar
+          mapStyles={mapStyles}
+          setMapStyle={setMapStyle}
+          showLayers={showLayers}
+          setShowLayers={setShowLayers}
+          zoomToBarangay={zoomToBarangay}
+          onBarangaySelect={handleBarangaySelect}
+          selectedBarangay={selectedBarangay}
+        />
+      </div>
     </div>
   );
 };

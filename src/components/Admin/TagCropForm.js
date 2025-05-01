@@ -1,6 +1,14 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 
 const TagCropForm = ({ onCancel, onSave, defaultLocation }) => {
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    if (formRef.current && defaultLocation?.hectares) {
+      formRef.current.estimatedHectares.value = defaultLocation.hectares;
+    }
+  }, [defaultLocation]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const form = e.target;
@@ -14,7 +22,7 @@ const TagCropForm = ({ onCancel, onSave, defaultLocation }) => {
     const note = form.note.value;
 
     onSave({
-      coordinates: [defaultLocation.lng, defaultLocation.lat],
+      coordinates: defaultLocation.coordinates || [defaultLocation.lng, defaultLocation.lat],
       crop,
       variety,
       plantedDate,
@@ -30,7 +38,7 @@ const TagCropForm = ({ onCancel, onSave, defaultLocation }) => {
   return (
     <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow-lg z-50 w-80">
       <h2 className="text-lg font-semibold mb-4">Tag Crop at Location</h2>
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} ref={formRef} className="space-y-3">
         <div>
           <label className="block text-sm text-gray-700 mb-1">Crop Type</label>
           <input name="crop" required className="w-full border px-2 py-1 rounded" />
@@ -72,6 +80,8 @@ const TagCropForm = ({ onCancel, onSave, defaultLocation }) => {
             step="0.01"
             required
             className="w-full border px-2 py-1 rounded"
+            defaultValue={defaultLocation?.hectares || ""}
+            readOnly
           />
         </div>
 
