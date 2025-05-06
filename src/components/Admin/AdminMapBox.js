@@ -86,23 +86,48 @@ const AdminMapBox = () => {
       const response = await axios.get("http://localhost:5000/api/crops");
       const crops = response.data;
       crops.forEach((crop) => {
-        if (crop.latitude && crop.longitude) {
-          new mapboxgl.Marker({ color: "#10B981" })
-            .setLngLat([crop.longitude, crop.latitude])
-            .setPopup(
-              new mapboxgl.Popup({ offset: 15 }).setHTML(`
-                <div class="text-sm">
-                  <h3 class='font-bold text-green-600'>${crop.crop}</h3>
-                  <p><strong>Variety:</strong> ${crop.variety || "N/A"}</p>
-                  <p><strong>Notes:</strong> ${crop.note || "None"}</p>
-                  <p><strong>Harvest Date:</strong> ${crop.estimated_harvest || "N/A"}</p>
-                  <p><strong>Volume:</strong> ${crop.estimated_volume || "N/A"} sacks</p>
-                  <p><strong>Land Area:</strong> ${crop.estimated_hectares || "N/A"} ha</p>
-                </div>
-              `)
-            )
-            .addTo(map.current);
-        }
+        crops.forEach((crop) => {
+          let coords = crop.coordinates;
+        
+          // ✅ Parse if coordinates is a string (e.g. "[[122.96,10.50],...]")
+          if (typeof coords === "string") {
+            try {
+              coords = JSON.parse(coords);
+            } catch (err) {
+              console.error("❌ Invalid coordinates format:", crop.coordinates);
+              return;
+            }
+          }
+        
+          // ✅ Ensure it's an array and close the polygon
+          if (Array.isArray(coords) && coords.length > 2) {
+            const first = coords[0];
+            const last = coords[coords.length - 1];
+        
+            if (JSON.stringify(first) !== JSON.stringify(last)) {
+              coords = [...coords, first]; // clone array and close it
+            }
+        
+            const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
+        
+            new mapboxgl.Marker({ color: "#10B981" })
+              .setLngLat(center)
+              .setPopup(
+                new mapboxgl.Popup({ offset: 15 }).setHTML(`
+                  <div class="text-sm">
+                    <h3 class='font-bold text-green-600'>${crop.crop}</h3>
+                    <p><strong>Variety:</strong> ${crop.variety || "N/A"}</p>
+                    <p><strong>Notes:</strong> ${crop.note || "None"}</p>
+                    <p><strong>Harvest Date:</strong> ${crop.estimated_harvest || "N/A"}</p>
+                    <p><strong>Volume:</strong> ${crop.estimated_volume || "N/A"} sacks</p>
+                    <p><strong>Land Area:</strong> ${crop.estimated_hectares || "N/A"} ha</p>
+                  </div>
+                `)
+              )
+              .addTo(map.current);
+          }
+        });
+        
       });
     } catch (error) {
       console.error("❌ Failed to load saved markers:", error);
@@ -129,20 +154,44 @@ const AdminMapBox = () => {
       map.current.on("load", async () => {
         try {
           const res = await axios.get("http://localhost:5000/api/crops/polygons");
-          if (!map.current.getSource("crop-polygons")) {
+          const geojson = res.data;
+      
+          // Add or update GeoJSON source
+          if (map.current.getSource("crop-polygons")) {
+            map.current.getSource("crop-polygons").setData(geojson);
+          } else {
             map.current.addSource("crop-polygons", {
               type: "geojson",
-              data: res.data,
+              data: geojson,
             });
-            map.current.addLayer({ id: "crop-polygons-layer", type: "fill", source: "crop-polygons", paint: { "fill-color": "#10B981", "fill-opacity": 0.4 } });
-            map.current.addLayer({ id: "crop-borders", type: "line", source: "crop-polygons", paint: { "line-color": "#059669", "line-width": 2 } });
+      
+            map.current.addLayer({
+              id: "crop-polygons-layer",
+              type: "fill",
+              source: "crop-polygons",
+              paint: {
+                "fill-color": "#10B981",
+                "fill-opacity": 0.4,
+              },
+            });
+      
+            map.current.addLayer({
+              id: "crop-polygons-outline",
+              type: "line",
+              source: "crop-polygons",
+              paint: {
+                "line-color": "#065F46",
+                "line-width": 2,
+              },
+            });
           }
         } catch (err) {
-          console.error("❌ Failed to load polygons:", err);
+          console.error(" Failed to load polygons:", err);
         }
-
+      
         await renderSavedMarkers();
       });
+      
 
       if (isDirectionsVisible) {
         const directions = new MapboxDirections({
