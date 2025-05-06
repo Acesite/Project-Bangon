@@ -1,4 +1,4 @@
-// AdminMapBox.js (Updated with polygon drawing integration + directions toggle + map style switcher + auto hectare injection)
+
 import React, { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -7,6 +7,7 @@ import "@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions.css";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import * as turf from "@turf/turf";
+import axios from "axios";
 
 import AdminSidebar from "./AdminSideBar";
 import DefaultThumbnail from "../MapboxImages/map-default.png";
@@ -80,6 +81,34 @@ const AdminMapBox = () => {
     }
   };
 
+  const renderSavedMarkers = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/crops");
+      const crops = response.data;
+      crops.forEach((crop) => {
+        if (crop.latitude && crop.longitude) {
+          new mapboxgl.Marker({ color: "#10B981" })
+            .setLngLat([crop.longitude, crop.latitude])
+            .setPopup(
+              new mapboxgl.Popup({ offset: 15 }).setHTML(`
+                <div class="text-sm">
+                  <h3 class='font-bold text-green-600'>${crop.crop}</h3>
+                  <p><strong>Variety:</strong> ${crop.variety || "N/A"}</p>
+                  <p><strong>Notes:</strong> ${crop.note || "None"}</p>
+                  <p><strong>Harvest Date:</strong> ${crop.estimated_harvest || "N/A"}</p>
+                  <p><strong>Volume:</strong> ${crop.estimated_volume || "N/A"} sacks</p>
+                  <p><strong>Land Area:</strong> ${crop.estimated_hectares || "N/A"} ha</p>
+                </div>
+              `)
+            )
+            .addTo(map.current);
+        }
+      });
+    } catch (error) {
+      console.error("❌ Failed to load saved markers:", error);
+    }
+  };
+
   useEffect(() => {
     if (!map.current) {
       map.current = new mapboxgl.Map({
@@ -95,8 +124,25 @@ const AdminMapBox = () => {
         displayControlsDefault: false,
         controls: { polygon: true, trash: true },
       });
-
       map.current.addControl(drawRef.current, "bottom-right");
+
+      map.current.on("load", async () => {
+        try {
+          const res = await axios.get("http://localhost:5000/api/crops/polygons");
+          if (!map.current.getSource("crop-polygons")) {
+            map.current.addSource("crop-polygons", {
+              type: "geojson",
+              data: res.data,
+            });
+            map.current.addLayer({ id: "crop-polygons-layer", type: "fill", source: "crop-polygons", paint: { "fill-color": "#10B981", "fill-opacity": 0.4 } });
+            map.current.addLayer({ id: "crop-borders", type: "line", source: "crop-polygons", paint: { "line-color": "#059669", "line-width": 2 } });
+          }
+        } catch (err) {
+          console.error("❌ Failed to load polygons:", err);
+        }
+
+        await renderSavedMarkers();
+      });
 
       if (isDirectionsVisible) {
         const directions = new MapboxDirections({
@@ -159,12 +205,27 @@ const AdminMapBox = () => {
             setNewTagLocation(null);
             drawRef.current?.deleteAll();
           }}
-          onSave={(data) => {
-            setTaggedData([...taggedData, { ...data, coordinates: newTagLocation.coordinates }]);
-            setIsTagging(false);
-            setNewTagLocation(null);
-            drawRef.current?.deleteAll();
-          }}
+
+          onSave={async (data) => {
+  try {
+    const fullData = { ...data, coordinates: newTagLocation.coordinates };
+
+    const response = await axios.post("http://localhost:5000/api/crops", fullData);
+    
+    // Update local state if needed (for showing the new tag on map)
+    setTaggedData([...taggedData, fullData]);
+
+    alert(" Crop saved successfully!");
+  } catch (error) {
+    console.error(" Error saving crop:", error);
+    alert("Failed to save crop. Please try again.");
+  }
+
+  setIsTagging(false);
+  setNewTagLocation(null);
+  drawRef.current?.deleteAll();
+}}
+
         />
       )}
 
@@ -247,7 +308,7 @@ const AdminMapBox = () => {
           selectedBarangay={selectedBarangay}
         />
       </div>
-    </div>
+    </div>  
   );
 };
 

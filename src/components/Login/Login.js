@@ -30,7 +30,7 @@ const Login = () => {
         if (response.data.role === "super_admin") {
           navigate("/SuperAdminLandingPage");
         } else if (response.data.role === "admin") {
-          navigate("/AdminLandingPage");
+          navigate("/AdminLanding");
         } else {
           navigate("/UserLandingPage");
         }
@@ -92,9 +92,9 @@ const Login = () => {
               Log in
             </button>
 
-            <button className="w-full flex justify-center items-center border p-3 rounded-lg">
+            {/* <button className="w-full flex justify-center items-center border p-3 rounded-lg">
               <img src="/images/google.png" alt="Google" className="h-5 mr-2" /> Log in with Google
-            </button>
+            </button> */}
           </form>
 
           <p className="text-gray-500 text-center mt-4">
