@@ -89,23 +89,23 @@ const AdminMapBox = () => {
         crops.forEach((crop) => {
           let coords = crop.coordinates;
         
-          // ✅ Parse if coordinates is a string (e.g. "[[122.96,10.50],...]")
+          
           if (typeof coords === "string") {
             try {
               coords = JSON.parse(coords);
             } catch (err) {
-              console.error("❌ Invalid coordinates format:", crop.coordinates);
+              console.error("Invalid coordinates format:", crop.coordinates);
               return;
             }
           }
         
-          // ✅ Ensure it's an array and close the polygon
+         
           if (Array.isArray(coords) && coords.length > 2) {
             const first = coords[0];
             const last = coords[coords.length - 1];
         
             if (JSON.stringify(first) !== JSON.stringify(last)) {
-              coords = [...coords, first]; // clone array and close it
+              coords = [...coords, first]; 
             }
         
             const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
@@ -130,10 +130,47 @@ const AdminMapBox = () => {
         
       });
     } catch (error) {
-      console.error("❌ Failed to load saved markers:", error);
+      console.error("Failed to load saved markers:", error);
     }
   };
-
+  const loadPolygons = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/crops/polygons");
+      const geojson = res.data;
+  
+      if (map.current.getSource("crop-polygons")) {
+        map.current.getSource("crop-polygons").setData(geojson);
+      } else {
+        map.current.addSource("crop-polygons", {
+          type: "geojson",
+          data: geojson,
+        });
+  
+        map.current.addLayer({
+          id: "crop-polygons-layer",
+          type: "fill",
+          source: "crop-polygons",
+          paint: {
+            "fill-color": "#10B981",
+            "fill-opacity": 0.4,
+          },
+        });
+  
+        map.current.addLayer({
+          id: "crop-polygons-outline",
+          type: "line",
+          source: "crop-polygons",
+          paint: {
+            "line-color": "#065F46",
+            "line-width": 2,
+          },
+        });
+      }
+    } catch (err) {
+      console.error("❌ Failed to load polygons:", err);
+    }
+  };
+  
   useEffect(() => {
     if (!map.current) {
       map.current = new mapboxgl.Map({
@@ -256,24 +293,26 @@ const AdminMapBox = () => {
           }}
 
           onSave={async (data) => {
-  try {
-    const fullData = { ...data, coordinates: newTagLocation.coordinates };
-
-    const response = await axios.post("http://localhost:5000/api/crops", fullData);
-    
-    // Update local state if needed (for showing the new tag on map)
-    setTaggedData([...taggedData, fullData]);
-
-    alert(" Crop saved successfully!");
-  } catch (error) {
-    console.error(" Error saving crop:", error);
-    alert("Failed to save crop. Please try again.");
-  }
-
-  setIsTagging(false);
-  setNewTagLocation(null);
-  drawRef.current?.deleteAll();
-}}
+            try {
+              const fullData = { ...data, coordinates: newTagLocation.coordinates };
+              await axios.post("http://localhost:5000/api/crops", fullData);
+          
+              setTaggedData([...taggedData, fullData]);
+          
+              await loadPolygons(); // ✅ Refresh polygons
+              await renderSavedMarkers(); // ✅ Refresh markers
+          
+              alert("Crop saved successfully!");
+            } catch (error) {
+              console.error("Error saving crop:", error);
+              alert("Failed to save crop. Please try again.");
+            }
+          
+            setIsTagging(false);
+            setNewTagLocation(null);
+            drawRef.current?.deleteAll();
+          }}
+          
 
         />
       )}
