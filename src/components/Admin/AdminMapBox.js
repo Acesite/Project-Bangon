@@ -85,54 +85,59 @@ const AdminMapBox = () => {
     try {
       const response = await axios.get("http://localhost:5000/api/crops");
       const crops = response.data;
+  
       crops.forEach((crop) => {
-        crops.forEach((crop) => {
-          let coords = crop.coordinates;
-        
-          
-          if (typeof coords === "string") {
-            try {
-              coords = JSON.parse(coords);
-            } catch (err) {
-              console.error("Invalid coordinates format:", crop.coordinates);
-              return;
-            }
+        let coords = crop.coordinates;
+  
+        if (typeof coords === "string") {
+          try {
+            coords = JSON.parse(coords);
+          } catch (err) {
+            console.error("Invalid coordinates format:", crop.coordinates);
+            return;
           }
-        
-         
-          if (Array.isArray(coords) && coords.length > 2) {
-            const first = coords[0];
-            const last = coords[coords.length - 1];
-        
-            if (JSON.stringify(first) !== JSON.stringify(last)) {
-              coords = [...coords, first]; 
-            }
-        
-            const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
-        
-            new mapboxgl.Marker({ color: "#10B981" })
-              .setLngLat(center)
-              .setPopup(
-                new mapboxgl.Popup({ offset: 15 }).setHTML(`
-                  <div class="text-sm">
-                    <h3 class='font-bold text-green-600'>${crop.crop}</h3>
-                    <p><strong>Variety:</strong> ${crop.variety || "N/A"}</p>
-                    <p><strong>Notes:</strong> ${crop.note || "None"}</p>
-                    <p><strong>Harvest Date:</strong> ${crop.estimated_harvest || "N/A"}</p>
-                    <p><strong>Volume:</strong> ${crop.estimated_volume || "N/A"} sacks</p>
-                    <p><strong>Land Area:</strong> ${crop.estimated_hectares || "N/A"} ha</p>
-                  </div>
-                `)
-              )
-              .addTo(map.current);
+        }
+  
+        if (Array.isArray(coords) && coords.length > 2) {
+          const first = coords[0];
+          const last = coords[coords.length - 1];
+  
+          if (JSON.stringify(first) !== JSON.stringify(last)) {
+            coords = [...coords, first];
           }
-        });
-        
+  
+          const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
+  
+          new mapboxgl.Marker({ color: "#10B981" })
+            .setLngLat(center)
+            .setPopup(
+              new mapboxgl.Popup({ offset: 15 }).setHTML(`
+                <div class="text-sm">
+                  <h3 class='font-bold text-green-600'>${crop.crop}</h3>
+                  <p><strong>Variety:</strong> ${crop.variety || "N/A"}</p>
+                  <p><strong>Notes:</strong> ${crop.note || "None"}</p>
+                  <p><strong>Harvest Date:</strong> ${
+                    crop.estimated_harvest
+                      ? new Date(crop.estimated_harvest).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric"
+                        })
+                      : "N/A"
+                  }</p>
+                  <p><strong>Volume:</strong> ${crop.estimated_volume || "N/A"} sacks</p>
+                  <p><strong>Land Area:</strong> ${crop.estimated_hectares || "N/A"} ha</p>
+                </div>
+              `)
+            )
+            .addTo(map.current);
+        }
       });
     } catch (error) {
       console.error("Failed to load saved markers:", error);
     }
   };
+  
   const loadPolygons = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/crops/polygons");
@@ -254,7 +259,14 @@ const AdminMapBox = () => {
       });
     } else {
       map.current.setStyle(mapStyle);
+    
+      // Wait until new style is loaded, then re-add data
+      map.current.once("style.load", async () => {
+        await loadPolygons();
+        await renderSavedMarkers();
+      });
     }
+    
   }, [mapStyle]);
 
   useEffect(() => {
@@ -267,18 +279,30 @@ const AdminMapBox = () => {
             new mapboxgl.Popup({ offset: 15 }).setHTML(`
               <div class="text-sm">
                 <h3 class='font-bold text-green-600'>${entry.crop}</h3>
+                <p><strong>Variety:</strong> ${entry.variety || "N/A"}</p>
                 <p><strong>Notes:</strong> ${entry.note || "None"}</p>
-                <p><strong>Harvest Date:</strong> ${entry.estimatedHarvest || "N/A"}</p>
-                <p><strong>Volume:</strong> ${entry.estimatedVolume || "N/A"} sacks</p>
-                <p><strong>Land Area:</strong> ${entry.estimatedHectares || "N/A"} ha</p>
+                <p><strong>Harvest Date:</strong> ${
+                  entry.estimated_harvest
+                    ? new Date(entry.estimated_harvest).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric"
+                      })
+                    : "N/A"
+                }</p>
+                <p><strong>Volume:</strong> ${entry.estimated_volume || "N/A"} sacks</p>
+                <p><strong>Land Area:</strong> ${entry.estimated_hectares || "N/A"} ha</p>
               </div>
             `)
           )
+          
           .addTo(map.current);
       });
     }
   }, [taggedData]);
-
+  
+  
+  
   return (
     <div className="relative h-screen w-screen">
       <div ref={mapContainer} className="h-full w-full" />
