@@ -316,26 +316,25 @@ const AdminMapBox = () => {
             drawRef.current?.deleteAll();
           }}
 
-          onSave={async (data) => {
+          onSave={async (formData) => {
             try {
-              const fullData = { ...data, coordinates: newTagLocation.coordinates };
-              await axios.post("http://localhost:5000/api/crops", fullData);
+              await axios.post("http://localhost:5000/api/crops", formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+              });
           
-              setTaggedData([...taggedData, fullData]);
-          
-              await loadPolygons(); // ✅ Refresh polygons
-              await renderSavedMarkers(); // ✅ Refresh markers
-          
-              alert("Crop saved successfully!");
+              alert("Crop saved!");
+              await loadPolygons();
+              await renderSavedMarkers();
             } catch (error) {
               console.error("Error saving crop:", error);
-              alert("Failed to save crop. Please try again.");
+              alert("Failed to save crop.");
             }
           
             setIsTagging(false);
             setNewTagLocation(null);
             drawRef.current?.deleteAll();
           }}
+          
           
 
         />
