@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
 import Button from "./MapControls/Button";
 
-const AdminSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
+const AdminSideBar = ({ zoomToBarangay, onBarangaySelect, crops = [], selectedCrop }) => {
+
+
   const [selectedBarangay, setSelectedBarangay] = useState("");
   const [barangayDetails, setBarangayDetails] = useState(null);
   const [showCropDropdown, setShowCropDropdown] = useState(false);
@@ -130,16 +132,64 @@ const AdminSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
 
       {/* Barangay Details */}
       {barangayDetails && (
-        <div className="mt-4 bg-green-50 border-l-4 border-green-400 p-4 rounded">
-          <h3 className="text-green-700 font-semibold text-lg">{barangayDetails.name}</h3>
-          <p className="text-sm text-gray-800">
-            <strong>Population:</strong> {barangayDetails.population}
-          </p>
-          <p className="text-sm text-gray-800">
-            <strong>Crops:</strong> {barangayDetails.crops.join(", ")}
-          </p>
-        </div>
-      )}
+  <div className="mt-4 bg-green-50 border-l-4 border-green-400 p-4 rounded">
+    <h3 className="text-green-700 font-semibold text-lg">{barangayDetails.name}</h3>
+    <p className="text-sm text-gray-800">
+      <strong>Population:</strong> {barangayDetails.population}
+    </p>
+    <p className="text-sm text-gray-800">
+      <strong>Crops:</strong> {barangayDetails.crops.join(", ")}
+    </p>
+  </div>
+)}
+
+{/* Photos of selected crop area */}
+{selectedCrop && selectedCrop.photos && (
+  <div className="mt-6">
+    <h4 className="text-sm font-semibold text-gray-700 mb-2">
+      Photos of: {selectedCrop.crop}
+    </h4>
+    <div className="grid grid-cols-2 gap-2">
+      {JSON.parse(selectedCrop.photos).map((url, i) => (
+        <img
+          key={i}
+          src={`http://localhost:5000${url}`}
+          alt={`Crop photo ${i + 1}`}
+          className="w-full h-24 object-cover rounded-md border"
+        />
+      ))}
+    </div>
+  </div>
+)}
+
+
+
+{barangayDetails && crops.length > 0 && (
+  <div className="mt-6">
+    <h4 className="text-sm font-semibold text-gray-700 mb-2">
+      Photos from {barangayDetails.name}
+    </h4>
+    <div className="grid grid-cols-2 gap-2">
+      {crops
+        .filter((crop) =>
+          crop.barangay?.toLowerCase() === barangayDetails.name.toLowerCase()
+        )
+        .flatMap((crop, idx) => {
+          const photoArray = crop.photos ? JSON.parse(crop.photos) : [];
+          return photoArray.map((url, i) => (
+            <img
+              key={`${idx}-${i}`}
+              src={`http://localhost:5000${url}`}
+              alt={`Crop ${idx}`}
+              className="w-full h-24 object-cover rounded-md border"
+            />
+          ));
+        })}
+    </div>
+  </div>
+)}
+
+
 
       {/* Crop Suitability Dropdown */}
       <div className="mt-6 mb-4">

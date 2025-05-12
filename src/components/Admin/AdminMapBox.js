@@ -39,6 +39,12 @@ const AdminMapBox = () => {
   const [newTagLocation, setNewTagLocation] = useState(null);
   const [isTagging, setIsTagging] = useState(false);
   const [taggedData, setTaggedData] = useState([]);
+  const [sidebarCrops, setSidebarCrops] = useState([]); 
+  const [selectedCrop, setSelectedCrop] = useState(null);
+  
+
+
+
 
   const mapStyles = {
     Default: { url: "mapbox://styles/wompwomp-69/cm900xa91008j01t14w8u8i9d", thumbnail: DefaultThumbnail },
@@ -85,6 +91,8 @@ const AdminMapBox = () => {
     try {
       const response = await axios.get("http://localhost:5000/api/crops");
       const crops = response.data;
+      setSidebarCrops(crops); 
+
   
       crops.forEach((crop) => {
         let coords = crop.coordinates;
@@ -108,29 +116,34 @@ const AdminMapBox = () => {
   
           const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
   
-          new mapboxgl.Marker({ color: "#10B981" })
-            .setLngLat(center)
-            .setPopup(
-              new mapboxgl.Popup({ offset: 15 }).setHTML(`
-                <div class="text-sm">
-                  <h3 class='font-bold text-green-600'>${crop.crop}</h3>
-                  <p><strong>Variety:</strong> ${crop.variety || "N/A"}</p>
-                  <p><strong>Notes:</strong> ${crop.note || "None"}</p>
-                  <p><strong>Harvest Date:</strong> ${
-                    crop.estimated_harvest
-                      ? new Date(crop.estimated_harvest).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric"
-                        })
-                      : "N/A"
-                  }</p>
-                  <p><strong>Volume:</strong> ${crop.estimated_volume || "N/A"} sacks</p>
-                  <p><strong>Land Area:</strong> ${crop.estimated_hectares || "N/A"} ha</p>
-                </div>
-              `)
-            )
-            .addTo(map.current);
+          const marker = new mapboxgl.Marker({ color: "#10B981" })  // ✅ added const
+          .setLngLat(center)
+          .setPopup(
+            new mapboxgl.Popup({ offset: 15 }).setHTML(`
+              <div class="text-sm">
+                <h3 class='font-bold text-green-600'>${crop.crop}</h3>
+                <p><strong>Variety:</strong> ${crop.variety || "N/A"}</p>
+                <p><strong>Notes:</strong> ${crop.note || "None"}</p>
+                <p><strong>Harvest Date:</strong> ${
+                  crop.estimated_harvest
+                    ? new Date(crop.estimated_harvest).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric"
+                      })
+                    : "N/A"
+                }</p>
+                <p><strong>Volume:</strong> ${crop.estimated_volume || "N/A"} sacks</p>
+                <p><strong>Land Area:</strong> ${crop.estimated_hectares || "N/A"} ha</p>
+              </div>
+            `)
+          )
+          .addTo(map.current);
+        
+        marker.getElement().addEventListener("click", () => {
+          setSelectedCrop(crop); // ✅ this will show photos in the sidebar
+        });
+        
         }
       });
     } catch (error) {
@@ -233,6 +246,19 @@ const AdminMapBox = () => {
       
         await renderSavedMarkers();
       });
+
+      map.current.on("click", "crop-polygons-layer", (e) => {
+        const feature = e.features[0];
+        const cropId = feature.properties?.id;
+      
+        if (!cropId) return;
+      
+        const cropData = sidebarCrops.find((c) => c.id === cropId);
+        if (cropData) {
+          setSelectedCrop(cropData); // 👈 This should be declared in useState
+        }
+      });
+      
       
 
       if (isDirectionsVisible) {
@@ -309,35 +335,33 @@ const AdminMapBox = () => {
 
       {isTagging && newTagLocation && (
         <TagCropForm
-          defaultLocation={{ ...newTagLocation, hectares: newTagLocation.hectares }}
-          onCancel={() => {
-            setIsTagging(false);
-            setNewTagLocation(null);
-            drawRef.current?.deleteAll();
-          }}
-
-          onSave={async (formData) => {
-            try {
-              await axios.post("http://localhost:5000/api/crops", formData, {
-                headers: { "Content-Type": "multipart/form-data" }
-              });
-          
-              alert("Crop saved!");
-              await loadPolygons();
-              await renderSavedMarkers();
-            } catch (error) {
-              console.error("Error saving crop:", error);
-              alert("Failed to save crop.");
-            }
-          
-            setIsTagging(false);
-            setNewTagLocation(null);
-            drawRef.current?.deleteAll();
-          }}
-          
-          
-
-        />
+        defaultLocation={{ ...newTagLocation, hectares: newTagLocation.hectares }}
+        selectedBarangay={selectedBarangay?.name}  // 👈 Pass name of selected barangay
+        onCancel={() => {
+          setIsTagging(false);
+          setNewTagLocation(null);
+          drawRef.current?.deleteAll();
+        }}
+        onSave={async (formData) => {
+          try {
+            await axios.post("http://localhost:5000/api/crops", formData, {
+              headers: { "Content-Type": "multipart/form-data" },
+            });
+      
+            alert("Crop saved!");
+            await loadPolygons();
+            await renderSavedMarkers();
+          } catch (error) {
+            console.error("Error saving crop:", error);
+            alert("Failed to save crop.");
+          }
+      
+          setIsTagging(false);
+          setNewTagLocation(null);
+          drawRef.current?.deleteAll();
+        }}
+      />
+      
       )}
 
       <SidebarToggleButton onClick={() => setIsSidebarVisible(!isSidebarVisible)} />
@@ -417,6 +441,8 @@ const AdminMapBox = () => {
           zoomToBarangay={zoomToBarangay}
           onBarangaySelect={handleBarangaySelect}
           selectedBarangay={selectedBarangay}
+          crops={sidebarCrops}
+          selectedCrop={selectedCrop}
         />
       </div>
     </div>  

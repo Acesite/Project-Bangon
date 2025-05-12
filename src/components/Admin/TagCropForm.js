@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { XIcon, SaveIcon } from "lucide-react";
 
-const TagCropForm = ({ onCancel, onSave, defaultLocation }) => {
+const TagCropForm = ({ onCancel, onSave, defaultLocation, selectedBarangay }) => {
+
   const formRef = useRef(null);
   const [hectares, setHectares] = useState("");
 
@@ -24,6 +25,8 @@ const TagCropForm = ({ onCancel, onSave, defaultLocation }) => {
     formData.append("estimatedHectares", hectares);
     formData.append("note", form.note.value);
     formData.append("coordinates", JSON.stringify(defaultLocation.coordinates));
+    formData.append("barangay", selectedBarangay || ""); 
+
   
     // 🔁 Append photos
     const files = form.photos.files;
