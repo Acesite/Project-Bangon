@@ -24,17 +24,21 @@ const Login = () => {
     try {
       const response = await axios.post("http://localhost:5000/users/login", { email, password });
   
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-  
-        if (response.data.role === "super_admin") {
-          navigate("/SuperAdminLandingPage");
-        } else if (response.data.role === "admin") {
-          navigate("/AdminLanding");
-        } else {
-          navigate("/UserLandingPage");
-        }
-      }
+     if (response.data.token) {
+  localStorage.setItem("token", response.data.token);
+  localStorage.setItem("role", response.data.role);
+  localStorage.setItem("first_name", response.data.first_name);
+  localStorage.setItem("last_name", response.data.last_name);
+
+  if (response.data.role === "super_admin") {
+    navigate("/SuperAdminLandingPage");
+  } else if (response.data.role === "admin") {
+    navigate("/AdminLanding");
+  } else {
+    navigate("/UserLandingPage");
+  }
+}
+
     } catch (error) {
       setError(error.response?.data?.message || "An error occurred");
     }
