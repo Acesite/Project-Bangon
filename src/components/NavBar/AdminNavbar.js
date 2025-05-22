@@ -34,34 +34,6 @@ const AdminNavBar = () => {
         {/* Navigation + Logout */}
         <div className="flex items-center space-x-6 ml-auto">
 
-          {/* Avatar with Dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setShowDropdown(!showDropdown)}
-              className="w-10 h-10 rounded-full bg-green-600 text-white flex items-center justify-center font-semibold text-lg focus:outline-none"
-              aria-label="User menu"
-            >
-              {initials || "U"}
-            </button>
-
-            {showDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-md z-50">
-                <Link
-                  to="/profile"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Profile
-                </Link>
-                <Link
-                  to="/change-password"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Change Password
-                </Link>
-              </div>
-            )}
-          </div>
-
           {/* Navigation Links */}
           <nav className="hidden md:flex space-x-6">
             <a
@@ -88,7 +60,7 @@ const AdminNavBar = () => {
           </nav>
 
           {/* Logout Button (unchanged) */}
-          <Link to="/Login" onClick={() => localStorage.clear()}>
+          {/* <Link to="/Login" onClick={() => localStorage.clear()}>
             <button className="relative inline-block group">
               <span className="relative z-10 px-3.5 py-2 overflow-hidden font-medium leading-tight flex items-centrer justify-center text-green-600 transition-colors duration-300 ease-out border-2 border-green-600 rounded-lg group-hover:text-white">
                 <span className="absolute inset-0 w-full h-full px-5 py-3 rounded-lg bg-gray-50"></span>
@@ -97,8 +69,44 @@ const AdminNavBar = () => {
               </span>
               <span className="absolute bottom-0 right-0 w-full h-9 -mb-1 -mr-1 transition-all duration-200 ease-linear bg-green-600 rounded-lg group-hover:mb-0 group-hover:mr-0 group-hover:mb-2" />
             </button>
-          </Link>
+          </Link> */}
         </div>
+
+
+         {/* Avatar with Dropdown */}
+          <div className="relative ml-6" ref={dropdownRef}>
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="w-10 h-10 rounded-full bg-green-600 text-white flex items-center justify-center font-semibold text-lg focus:outline-none"
+              aria-label="User menu"
+            >
+              {initials || "U"}
+            </button>
+
+            {showDropdown && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-md z-50">
+                <Link
+                  to="/profile"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Profile
+                </Link>
+                <Link
+                  to="/change-password"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Change Password
+                </Link>
+
+                <Link
+                  to="/"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Logout
+                </Link>
+              </div>
+            )}
+          </div>
       </div>
     </header>
   );
