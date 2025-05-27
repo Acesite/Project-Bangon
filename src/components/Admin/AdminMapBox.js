@@ -185,7 +185,7 @@ const AdminMapBox = () => {
         });
       }
     } catch (err) {
-      console.error("❌ Failed to load polygons:", err);
+      console.error(" Failed to load polygons:", err);
     }
   };
   
