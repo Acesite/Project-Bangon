@@ -23,12 +23,14 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await axios.post("http://localhost:5000/users/login", { email, password });
-  
+      console.log("Login response:", response.data);
      if (response.data.token) {
-  localStorage.setItem("token", response.data.token);
-  localStorage.setItem("role", response.data.role);
-  localStorage.setItem("first_name", response.data.first_name);
-  localStorage.setItem("last_name", response.data.last_name);
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("role", response.data.role);
+      localStorage.setItem("first_name", response.data.first_name);
+      localStorage.setItem("last_name", response.data.last_name);
+      localStorage.setItem("user_id", response.data.id); // ✅ Store user id
+      
 
   if (response.data.role === "super_admin") {
     navigate("/SuperAdminLandingPage");

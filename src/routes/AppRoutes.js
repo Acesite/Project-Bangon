@@ -11,6 +11,7 @@ import UserMap from "../components/User/UserMap";
 import AdminLanding from "../components/Admin/AdminLanding";
 import AdminMap from "../components/Admin/AdminMapBox";
 import ManageCrop from "../components/Admin/ManageCrop";
+import SuperAdminManageCrop from "../components/SuperAdmin/SuperManageCrop";
 
 const AppRoutes = () => {
   return (
@@ -24,6 +25,7 @@ const AppRoutes = () => {
 
       <Route path="/SuperAdminLandingPage" element={<SuperAdminLandingPage />} />
       <Route path="/ManageAccount" element={<ManageAccount />} />
+      <Route path="/SuperAdminManageCrop" element={<SuperAdminManageCrop />} />
       {/*User*/}
 
       <Route path="/UserMap" element={<UserMap />} />

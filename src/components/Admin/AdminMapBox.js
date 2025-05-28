@@ -344,10 +344,14 @@ const AdminMapBox = () => {
         }}
         onSave={async (formData) => {
           try {
+            const adminId = localStorage.getItem("user_id"); // ✅ Get admin ID from storage
+        
+            formData.append("admin_id", adminId); // ✅ Attach admin ID
+        
             await axios.post("http://localhost:5000/api/crops", formData, {
               headers: { "Content-Type": "multipart/form-data" },
             });
-      
+        
             alert("Crop saved!");
             await loadPolygons();
             await renderSavedMarkers();
@@ -355,11 +359,12 @@ const AdminMapBox = () => {
             console.error("Error saving crop:", error);
             alert("Failed to save crop.");
           }
-      
+        
           setIsTagging(false);
           setNewTagLocation(null);
           drawRef.current?.deleteAll();
         }}
+        
       />
       
       )}
