@@ -84,7 +84,7 @@ const SuperManageCrop = () => {
                 <th className="px-4 py-2">Volume</th>
                 <th className="px-4 py-2">Hectares</th>
                 <th className="px-4 py-2">Notes</th>
-                <th className="px-4 py-2">Admin ID</th> {/* Added Admin ID Column */}
+                <th className="px-4 py-2">Tagged By</th>
                 <th className="px-4 py-2">Actions</th>
               </tr>
             </thead>
@@ -98,7 +98,11 @@ const SuperManageCrop = () => {
                   <td className="px-4 py-2">{crop.estimated_volume}</td>
                   <td className="px-4 py-2">{crop.estimated_hectares}</td>
                   <td className="px-4 py-2">{crop.note}</td>
-                  <td className="px-4 py-2">{crop.admin_id}</td> {/* Display Admin ID */}
+                  <td className="px-4 py-2">
+                    {crop.first_name && crop.last_name
+                      ? `${crop.first_name} ${crop.last_name}`
+                      : "N/A"}
+                  </td>
                   <td className="px-4 py-2 relative">
                     <div className="flex justify-center">
                       <button
