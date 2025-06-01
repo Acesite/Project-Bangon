@@ -31,11 +31,11 @@ const SuperAdminNavBar = () => {
           <img src="/images/AgriGIS.png" alt="Lander Logo" className="h-[50px] w-auto" />
         </div>
 
-        {/* Navigation Links */}
+       
         <nav className="hidden md:flex space-x-6 ml-auto">
           <a
             href="/SuperAdminLandingPage"
-            className={`tracking-wide font-light hover:text-green-700 ${
+            className={`tracking-wide font-medium hover:text-green-700 ${
               location.pathname === "/SuperAdminLandingPage"
                 ? "text-green-700 font-medium"
                 : "text-black-600"
@@ -45,23 +45,23 @@ const SuperAdminNavBar = () => {
           </a>
           <a
             href="/ManageAccount"
-            className={`tracking-wide font-light hover:text-green-700 ${
+            className={`tracking-wide font-medium hover:text-green-700 ${
               location.pathname === "/ManageAccount"
                 ? "text-green-700 font-medium"
                 : "text-black-600"
             }`}
           >
-            Manage Account
+            Accounts
           </a>
           <a
             href="/SuperAdminManageCrop"
-            className={`tracking-wide font-light hover:text-green-700 ${
+            className={`tracking-wide font-medium hover:text-green-700 ${
               location.pathname === "/SuperAdminManageCrop"
                 ? "text-green-700 font-medium"
                 : "text-black-600"
             }`}
           >
-            Manage Crop
+            Crops
           </a>
         </nav>
 

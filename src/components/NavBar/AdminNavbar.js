@@ -55,7 +55,7 @@ const AdminNavBar = () => {
                   : "text-black-600"
               }`}
             >
-              Manage Crops
+              Crops
             </a>
           </nav>
 
