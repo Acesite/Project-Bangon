@@ -41,6 +41,9 @@ const AdminMapBox = () => {
   const [taggedData, setTaggedData] = useState([]);
   const [sidebarCrops, setSidebarCrops] = useState([]); 
   const [selectedCrop, setSelectedCrop] = useState(null);
+  const [selectedCropType, setSelectedCropType] = useState("All");
+const [cropTypes, setCropTypes] = useState([]);
+
   
 
 
@@ -92,6 +95,9 @@ const AdminMapBox = () => {
       const response = await axios.get("http://localhost:5000/api/crops");
       const crops = response.data;
       setSidebarCrops(crops); 
+      const filtered = selectedCropType === "All"
+  ? crops
+  : crops.filter(crop => crop.crop_name === selectedCropType);
 
   
       crops.forEach((crop) => {
@@ -197,6 +203,11 @@ const AdminMapBox = () => {
         center: [lng, lat],
         zoom,
       });
+
+      axios.get("http://localhost:5000/api/crops/types").then((res) => {
+  setCropTypes(res.data);
+});
+
 
       map.current.addControl(new mapboxgl.NavigationControl(), "bottom-right");
 
@@ -446,9 +457,13 @@ const AdminMapBox = () => {
           zoomToBarangay={zoomToBarangay}
           onBarangaySelect={handleBarangaySelect}
           selectedBarangay={selectedBarangay}
-          crops={sidebarCrops}
-          selectedCrop={selectedCrop}
-        />
+          cropTypes={cropTypes}
+          selectedCropType={selectedCropType}
+          setSelectedCropType={setSelectedCropType}
+          crops={sidebarCrops}              
+          selectedCrop={selectedCrop}      
+          />
+
       </div>
     </div>  
   );

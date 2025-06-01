@@ -3,9 +3,15 @@ import { useNavigate } from "react-router-dom";
 import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
 import Button from "./MapControls/Button";
 
-const AdminSideBar = ({ zoomToBarangay, onBarangaySelect, crops = [], selectedCrop }) => {
-
-
+const AdminSideBar = ({
+  zoomToBarangay,
+  onBarangaySelect,
+  crops = [],
+  selectedCrop,
+  cropTypes = [],
+  selectedCropType,
+  setSelectedCropType,
+}) => {
   const [selectedBarangay, setSelectedBarangay] = useState("");
   const [barangayDetails, setBarangayDetails] = useState(null);
   const [showCropDropdown, setShowCropDropdown] = useState(false);
@@ -40,30 +46,30 @@ const AdminSideBar = ({ zoomToBarangay, onBarangaySelect, crops = [], selectedCr
   };
 
   const barangayInfo = {
-    Abuanan: { population: 1200, crops: ["Banana", "Rice"], iconUrl: "" },
-    Alianza: { population: 1100, crops: ["Sugarcane", "Corn"], iconUrl: "" },
-    Atipuluan: { population: 1000, crops: ["Banana", "Rice"], iconUrl: "" },
-    Bacong: { population: 950, crops: ["Rice", "Sugarcane"], iconUrl: "" },
-    Bagroy: { population: 900, crops: ["Corn", "Cassava"], iconUrl: "" },
-    Balingasag: { population: 1050, crops: ["Rice", "Banana"], iconUrl: "" },
-    Binubuhan: { population: 1150, crops: ["Sugarcane", "Corn"], iconUrl: "" },
-    Busay: { population: 800, crops: ["Rice", "Vegetables"], iconUrl: "" },
-    Calumangan: { population: 950, crops: ["Banana", "Sugarcane"], iconUrl: "" },
-    Caridad: { population: 1100, crops: ["Cassava", "Sugarcane"], iconUrl: "" },
-    Dulao: { population: 900, crops: ["Rice", "Banana"], iconUrl: "" },
-    Ilijan: { population: 1200, crops: ["Sugarcane", "Rice"], iconUrl: "" },
-    "Lag-asan": { population: 1050, crops: ["Banana", "Corn"], iconUrl: "" },
-    Mailum: { population: 980, crops: ["Cassava", "Sugarcane"], iconUrl: "" },
-    "Ma-ao": { population: 1100, crops: ["Rice", "Corn"], iconUrl: "" },
-    Malingin: { population: 1200, crops: ["Sugarcane", "Rice"], iconUrl: "" },
-    Napoles: { population: 950, crops: ["Corn", "Banana"], iconUrl: "" },
-    Pacol: { population: 980, crops: ["Rice", "Vegetables"], iconUrl: "" },
-    Poblacion: { population: 1300, crops: ["Rice", "Sugarcane"], iconUrl: "" },
-    Sagasa: { population: 1100, crops: ["Cassava", "Rice"], iconUrl: "" },
-    Tabunan: { population: 900, crops: ["Banana", "Cassava"], iconUrl: "" },
-    Taloc: { population: 1050, crops: ["Sugarcane", "Rice"], iconUrl: "" },
-    Talon: { population: 950, crops: ["Rice", "Banana"], iconUrl: "" },
-    Tinongan: { population: 1000, crops: ["Cassava", "Rice"], iconUrl: "" },
+    Abuanan: { population: 1200, crops: ["Banana", "Rice"] },
+    Alianza: { population: 1100, crops: ["Sugarcane", "Corn"] },
+    Atipuluan: { population: 1000, crops: ["Banana", "Rice"] },
+    Bacong: { population: 950, crops: ["Rice", "Sugarcane"] },
+    Bagroy: { population: 900, crops: ["Corn", "Cassava"] },
+    Balingasag: { population: 1050, crops: ["Rice", "Banana"] },
+    Binubuhan: { population: 1150, crops: ["Sugarcane", "Corn"] },
+    Busay: { population: 800, crops: ["Rice", "Vegetables"] },
+    Calumangan: { population: 950, crops: ["Banana", "Sugarcane"] },
+    Caridad: { population: 1100, crops: ["Cassava", "Sugarcane"] },
+    Dulao: { population: 900, crops: ["Rice", "Banana"] },
+    Ilijan: { population: 1200, crops: ["Sugarcane", "Rice"] },
+    "Lag-asan": { population: 1050, crops: ["Banana", "Corn"] },
+    Mailum: { population: 980, crops: ["Cassava", "Sugarcane"] },
+    "Ma-ao": { population: 1100, crops: ["Rice", "Corn"] },
+    Malingin: { population: 1200, crops: ["Sugarcane", "Rice"] },
+    Napoles: { population: 950, crops: ["Corn", "Banana"] },
+    Pacol: { population: 980, crops: ["Rice", "Vegetables"] },
+    Poblacion: { population: 1300, crops: ["Rice", "Sugarcane"] },
+    Sagasa: { population: 1100, crops: ["Cassava", "Rice"] },
+    Tabunan: { population: 900, crops: ["Banana", "Cassava"] },
+    Taloc: { population: 1050, crops: ["Sugarcane", "Rice"] },
+    Talon: { population: 950, crops: ["Rice", "Banana"] },
+    Tinongan: { population: 1000, crops: ["Cassava", "Rice"] },
   };
 
   const handleBarangayChange = (e) => {
@@ -88,20 +94,15 @@ const AdminSideBar = ({ zoomToBarangay, onBarangaySelect, crops = [], selectedCr
 
   return (
     <div className="absolute top-0 left-0 h-full w-80 bg-white shadow-xl z-20 px-6 py-8 overflow-y-auto border-r border-gray-200 transition-all duration-300">
-      {/* Logo */}
       <div className="mb-8 flex justify-center">
         <img src={AgriGISLogo} alt="AgriGIS Logo" className="h-[60px] object-contain" />
       </div>
 
-      {/* Section Title */}
       <h2 className="text-xl font-semibold text-gray-800 mb-6 border-b pb-3"> Location Info</h2>
 
-      {/* Static Info Fields */}
-      {[
-        { label: "Region", value: "Western Visayas" },
+      {[{ label: "Region", value: "Western Visayas" },
         { label: "Province", value: "Negros Occidental" },
-        { label: "Municipality", value: "Bago City" },
-      ].map((item) => (
+        { label: "Municipality", value: "Bago City" }].map((item) => (
         <div className="mb-4" key={item.label}>
           <label className="block text-sm text-gray-600 mb-1">{item.label}</label>
           <input
@@ -112,6 +113,21 @@ const AdminSideBar = ({ zoomToBarangay, onBarangaySelect, crops = [], selectedCr
           />
         </div>
       ))}
+
+      {/* Crop Type Filter */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Crop Type</label>
+        <select
+          className="w-full border border-gray-300 rounded-md p-2 text-sm"
+          value={selectedCropType}
+          onChange={(e) => setSelectedCropType(e.target.value)}
+        >
+          <option value="All">All</option>
+          {cropTypes.map((type) => (
+            <option key={type.id} value={type.name}>{type.name}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Barangay Dropdown */}
       <div className="mb-4">
@@ -130,82 +146,71 @@ const AdminSideBar = ({ zoomToBarangay, onBarangaySelect, crops = [], selectedCr
         </select>
       </div>
 
-      {/* Barangay Details */}
       {barangayDetails && (
-  <div className="mt-4 bg-green-50 border-l-4 border-green-400 p-4 rounded">
-    <h3 className="text-green-700 font-semibold text-lg">{barangayDetails.name}</h3>
-    <p className="text-sm text-gray-800">
-      <strong>Population:</strong> {barangayDetails.population}
-    </p>
-    <p className="text-sm text-gray-800">
-      <strong>Crops:</strong> {barangayDetails.crops.join(", ")}
-    </p>
-  </div>
-)}
+        <div className="mt-4 bg-green-50 border-l-4 border-green-400 p-4 rounded">
+          <h3 className="text-green-700 font-semibold text-lg">{barangayDetails.name}</h3>
+          <p className="text-sm text-gray-800">
+            <strong>Population:</strong> {barangayDetails.population}
+          </p>
+          <p className="text-sm text-gray-800">
+            <strong>Crops:</strong> {barangayDetails.crops.join(", ")}
+          </p>
+        </div>
+      )}
 
-{/* Photos of selected crop area */}
-{selectedCrop && selectedCrop.photos && (
-  <div className="mt-6">
-    <h4 className="text-sm font-semibold text-gray-700 mb-2">
-      Photos of: {selectedCrop.crop}
-    </h4>
-    <div className="grid grid-cols-2 gap-2">
-      {JSON.parse(selectedCrop.photos).map((url, i) => (
-        <img
-          key={i}
-          src={`http://localhost:5000${url}`}
-          alt={`Crop photo ${i + 1}`}
-          className="w-full h-24 object-cover rounded-md border"
-        />
-      ))}
-    </div>
-  </div>
-)}
+      {/* Photos of selected crop */}
+      {selectedCrop && selectedCrop.photos && (
+        <div className="mt-6">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">
+            Photos of: {selectedCrop.crop_name || "Unnamed Crop"}
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
+            {JSON.parse(selectedCrop.photos).map((url, i) => (
+              <img
+                key={i}
+                src={`http://localhost:5000${url}`}
+                alt={`Crop photo ${i + 1}`}
+                className="w-full h-24 object-cover rounded-md border"
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
+      {/* Photos by Barangay */}
+      {barangayDetails && crops.length > 0 && (
+        <div className="mt-6">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">
+            Photos from {barangayDetails.name}
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
+            {crops
+              .filter((crop) => crop.barangay?.toLowerCase() === barangayDetails.name.toLowerCase())
+              .flatMap((crop, idx) => {
+                const photoArray = crop.photos ? JSON.parse(crop.photos) : [];
+                return photoArray.map((url, i) => (
+                  <img
+                    key={`${idx}-${i}`}
+                    src={`http://localhost:5000${url}`}
+                    alt={`Crop ${idx}`}
+                    className="w-full h-24 object-cover rounded-md border"
+                  />
+                ));
+              })}
+          </div>
+        </div>
+      )}
 
-
-{barangayDetails && crops.length > 0 && (
-  <div className="mt-6">
-    <h4 className="text-sm font-semibold text-gray-700 mb-2">
-      Photos from {barangayDetails.name}
-    </h4>
-    <div className="grid grid-cols-2 gap-2">
-      {crops
-        .filter((crop) =>
-          crop.barangay?.toLowerCase() === barangayDetails.name.toLowerCase()
-        )
-        .flatMap((crop, idx) => {
-          const photoArray = crop.photos ? JSON.parse(crop.photos) : [];
-          return photoArray.map((url, i) => (
-            <img
-              key={`${idx}-${i}`}
-              src={`http://localhost:5000${url}`}
-              alt={`Crop ${idx}`}
-              className="w-full h-24 object-cover rounded-md border"
-            />
-          ));
-        })}
-    </div>
-  </div>
-)}
-
-
-
-      {/* Crop Suitability Dropdown */}
+      {/* Crop Suitability UI */}
       <div className="mt-6 mb-4">
         <button
           onClick={() => setShowCropDropdown(!showCropDropdown)}
           className="w-full flex justify-between items-center bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           Crop Suitability
-          <svg
-            className={`w-4 h-4 transform transition-transform duration-200 ${
-              showCropDropdown ? "rotate-180" : "rotate-0"
-            }`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className={`w-4 h-4 transform transition-transform duration-200 ${
+            showCropDropdown ? "rotate-180" : "rotate-0"
+          }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
@@ -222,7 +227,6 @@ const AdminSideBar = ({ zoomToBarangay, onBarangaySelect, crops = [], selectedCr
         )}
       </div>
 
-      {/* Home Button */}
       <Button to="/AdminLanding" label="Home" />
     </div>
   );

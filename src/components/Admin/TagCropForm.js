@@ -5,6 +5,14 @@ const TagCropForm = ({ onCancel, onSave, defaultLocation, selectedBarangay }) =>
 
   const formRef = useRef(null);
   const [hectares, setHectares] = useState("");
+  const [cropTypes, setCropTypes] = useState([]);
+
+useEffect(() => {
+  fetch("http://localhost:5000/api/crops/types")
+    .then((res) => res.json())
+    .then((data) => setCropTypes(data))
+    .catch((err) => console.error("Failed to load crop types:", err));
+}, []);
 
   useEffect(() => {
     if (defaultLocation?.hectares) {
@@ -12,12 +20,14 @@ const TagCropForm = ({ onCancel, onSave, defaultLocation, selectedBarangay }) =>
     }
   }, [defaultLocation]);
 
+  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.target;
     const formData = new FormData();
   
-    formData.append("crop", form.crop.value);
+    formData.append("crop_type_id", form.crop_type_id.value); 
     formData.append("variety", form.variety.value);
     formData.append("plantedDate", form.plantedDate.value);
     formData.append("estimatedHarvest", form.estimatedHarvest.value);
@@ -25,10 +35,8 @@ const TagCropForm = ({ onCancel, onSave, defaultLocation, selectedBarangay }) =>
     formData.append("estimatedHectares", hectares);
     formData.append("note", form.note.value);
     formData.append("coordinates", JSON.stringify(defaultLocation.coordinates));
-    formData.append("barangay", selectedBarangay || ""); 
-
+    formData.append("barangay", selectedBarangay || "");
   
-    // 🔁 Append photos
     const files = form.photos.files;
     for (let i = 0; i < files.length; i++) {
       formData.append("photos", files[i]);
@@ -40,6 +48,7 @@ const TagCropForm = ({ onCancel, onSave, defaultLocation, selectedBarangay }) =>
   };
   
   
+  
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -48,10 +57,25 @@ const TagCropForm = ({ onCancel, onSave, defaultLocation, selectedBarangay }) =>
           📍 Tag Crop at Location
         </h2>
         <form onSubmit={handleSubmit} ref={formRef} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">🌾 Crop Type</label>
-            <input name="crop" required className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-green-500" />
-          </div>
+        
+        <div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">🌾 Crop Type</label>
+  <select
+    name="crop_type_id"
+    required
+    defaultValue=""
+    className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-green-500"
+  >
+    <option value="" disabled>Select Crop Type</option>
+    {cropTypes.map((type) => (
+      <option key={type.id} value={type.id}>{type.name}</option>
+    ))}
+  </select>
+</div>
+
+
+
+
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">🌱 Crop Variety <span className="text-xs text-gray-400">(optional)</span></label>
