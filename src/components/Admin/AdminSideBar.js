@@ -227,6 +227,30 @@ const AdminSideBar = ({
         )}
       </div>
 
+      {/* Legend */}
+<div className="mt-6">
+  <h4 className="text-sm font-semibold text-gray-700 mb-2">Legend</h4>
+  <ul className="space-y-1 text-sm">
+    {Object.entries({
+      Rice: "#facc15",
+      Corn: "#fb923c",
+      Banana: "#a3e635",
+      Sugarcane: "#34d399",
+      Cassava: "#60a5fa",
+      Vegetables: "#f472b6",
+    }).map(([label, color]) => (
+      <li key={label} className="flex items-center">
+        <span
+          className="inline-block w-4 h-4 rounded-full mr-2"
+          style={{ backgroundColor: color }}
+        ></span>
+        {label}
+      </li>
+    ))}
+  </ul>
+</div>
+
+
       <Button to="/AdminLanding" label="Home" />
     </div>
   );

@@ -44,10 +44,14 @@ const AdminMapBox = () => {
   const [selectedCropType, setSelectedCropType] = useState("All");
 const [cropTypes, setCropTypes] = useState([]);
 
-  
-
-
-
+const cropColorMap = {
+  Rice: "#facc15",        // Yellow
+  Corn: "#fb923c",        // Orange
+  Banana: "#a3e635",      // Lime Green
+  Sugarcane: "#34d399",   // Teal
+  Cassava: "#60a5fa",     // Blue
+  Vegetables: "#f472b6"   // Pink
+};
 
   const mapStyles = {
     Default: { url: "mapbox://styles/wompwomp-69/cm900xa91008j01t14w8u8i9d", thumbnail: DefaultThumbnail },
@@ -127,8 +131,8 @@ const [cropTypes, setCropTypes] = useState([]);
           .setPopup(
             new mapboxgl.Popup({ offset: 15 }).setHTML(`
               <div class="text-sm">
-                <h3 class='font-bold text-green-600'>${crop.crop}</h3>
-                <p><strong>Variety:</strong> ${crop.variety || "N/A"}</p>
+              <h3 class='font-bold text-green-600'>${crop.crop_name}</h3>
+              <p><strong>Variety:</strong> ${crop.variety || "N/A"}</p>
                 <p><strong>Notes:</strong> ${crop.note || "None"}</p>
                 <p><strong>Harvest Date:</strong> ${
                   crop.estimated_harvest
@@ -157,43 +161,58 @@ const [cropTypes, setCropTypes] = useState([]);
     }
   };
   
-  const loadPolygons = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/api/crops/polygons");
-      const geojson = res.data;
+  const loadPolygons = async (geojsonData = null, isFiltered = false) => {
+    const res = await axios.get("http://localhost:5000/api/crops/polygons");
+    const fullData = geojsonData || res.data;
   
-      if (map.current.getSource("crop-polygons")) {
-        map.current.getSource("crop-polygons").setData(geojson);
-      } else {
-        map.current.addSource("crop-polygons", {
-          type: "geojson",
-          data: geojson,
-        });
+    const paintStyle = isFiltered
+      ? {
+          "fill-color": [
+            "match",
+            ["get", "crop_name"],
+            "Rice", "#facc15",
+            "Corn", "#fb923c",
+            "Banana", "#a3e635",
+            "Sugarcane", "#34d399",
+            "Cassava", "#60a5fa",
+            "Vegetables", "#f472b6",
+            "#10B981" // fallback
+          ],
+          "fill-opacity": 0.4,
+        }
+      : {
+          "fill-color": "#10B981", // 🔰 all green initially
+          "fill-opacity": 0.4,
+        };
   
-        map.current.addLayer({
-          id: "crop-polygons-layer",
-          type: "fill",
-          source: "crop-polygons",
-          paint: {
-            "fill-color": "#10B981",
-            "fill-opacity": 0.4,
-          },
-        });
+    if (map.current.getSource("crop-polygons")) {
+      map.current.getSource("crop-polygons").setData(fullData);
+      map.current.setPaintProperty("crop-polygons-layer", "fill-color", paintStyle["fill-color"]);
+    } else {
+      map.current.addSource("crop-polygons", {
+        type: "geojson",
+        data: fullData,
+      });
   
-        map.current.addLayer({
-          id: "crop-polygons-outline",
-          type: "line",
-          source: "crop-polygons",
-          paint: {
-            "line-color": "#065F46",
-            "line-width": 2,
-          },
-        });
-      }
-    } catch (err) {
-      console.error(" Failed to load polygons:", err);
+      map.current.addLayer({
+        id: "crop-polygons-layer",
+        type: "fill",
+        source: "crop-polygons",
+        paint: paintStyle,
+      });
+  
+      map.current.addLayer({
+        id: "crop-polygons-outline",
+        type: "line",
+        source: "crop-polygons",
+        paint: {
+          "line-color": "#065F46",
+          "line-width": 2,
+        },
+      });
     }
   };
+  
   
   useEffect(() => {
     if (!map.current) {
@@ -337,6 +356,31 @@ const [cropTypes, setCropTypes] = useState([]);
       });
     }
   }, [taggedData]);
+
+  useEffect(() => {
+    const filterPolygonsByCrop = async () => {
+      const res = await axios.get("http://localhost:5000/api/crops/polygons");
+      const geojson = res.data;
+  
+      if (selectedCropType === "All") {
+        await loadPolygons(geojson, true); 
+      } else {
+        const filtered = {
+          ...geojson,
+          features: geojson.features.filter(
+            (feature) => feature.properties.crop_name === selectedCropType
+          ),
+        };
+        await loadPolygons(filtered, true); // show filtered with color
+      }
+    };
+  
+    if (map.current?.getSource("crop-polygons")) {
+      filterPolygonsByCrop();
+    }
+  }, [selectedCropType]);
+  
+  
   
   
   
