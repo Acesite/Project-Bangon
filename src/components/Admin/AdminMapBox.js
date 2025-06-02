@@ -34,8 +34,7 @@ const AdminMapBox = () => {
   const [isSwitcherVisible, setIsSwitcherVisible] = useState(false);
   const [selectedBarangay, setSelectedBarangay] = useState(null);
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
-  const [isDirectionsVisible, setIsDirectionsVisible] = useState(true);
-
+  const [isDirectionsVisible, setIsDirectionsVisible] = useState(false);  
   const [newTagLocation, setNewTagLocation] = useState(null);
   const [isTagging, setIsTagging] = useState(false);
   const [taggedData, setTaggedData] = useState([]);
@@ -150,9 +149,12 @@ const cropColorMap = {
           )
           .addTo(map.current);
         
-        marker.getElement().addEventListener("click", () => {
-          setSelectedCrop(crop); // ✅ this will show photos in the sidebar
-        });
+       marker.getElement().addEventListener("click", () => {
+  console.log("Crop marker clicked!");
+  setSelectedCrop(crop);
+  setIsSidebarVisible(true); // ✅ this makes sure the sidebar opens
+});
+
         
         }
       });
@@ -285,23 +287,11 @@ const cropColorMap = {
       
         const cropData = sidebarCrops.find((c) => c.id === cropId);
         if (cropData) {
-          setSelectedCrop(cropData); // 👈 This should be declared in useState
+          setSelectedCrop(cropData); 
+          
         }
       });
       
-      
-
-      if (isDirectionsVisible) {
-        const directions = new MapboxDirections({
-          accessToken: mapboxgl.accessToken,
-          unit: "metric",
-          profile: "mapbox/driving",
-          controls: { inputs: true, instructions: true },
-        });
-        map.current.addControl(directions, "top-right");
-        directionsRef.current = directions;
-      }
-
       map.current.on("draw.create", (e) => {
         const feature = e.features[0];
         if (feature.geometry.type === "Polygon") {
@@ -316,7 +306,6 @@ const cropColorMap = {
     } else {
       map.current.setStyle(mapStyle);
     
-      // Wait until new style is loaded, then re-add data
       map.current.once("style.load", async () => {
         await loadPolygons();
         await renderSavedMarkers();

@@ -15,6 +15,10 @@ const AdminSideBar = ({
   const [selectedBarangay, setSelectedBarangay] = useState("");
   const [barangayDetails, setBarangayDetails] = useState(null);
   const [showCropDropdown, setShowCropDropdown] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState(null);
+  
+
+
 
   const navigate = useNavigate();
 
@@ -94,11 +98,26 @@ const AdminSideBar = ({
 
   return (
     <div className="absolute top-0 left-0 h-full w-80 bg-white shadow-xl z-20 px-6 py-8 overflow-y-auto border-r border-gray-200 transition-all duration-300">
-      <div className="mb-8 flex justify-center">
-        <img src={AgriGISLogo} alt="AgriGIS Logo" className="h-[60px] object-contain" />
-      </div>
+    <div className="mb-6 w-full flex justify-center items-center">
+        {selectedCrop?.photos ? (
+          <img
+            src={`http://localhost:5000${JSON.parse(selectedCrop.photos)[0]}`}
+            alt="Selected Crop"
+            className="w-full h-full object-cover rounded-md border cursor-pointer"
+            onClick={() =>
+              setEnlargedImage(`http://localhost:5000${JSON.parse(selectedCrop.photos)[0]}`)
+            }
+          />
+        ) : (
+          <img
+            src={AgriGISLogo}
+            alt="AgriGIS Logo"
+            className="w-[200px] h-[70px] ml-5 object-contain transition duration-500 ease-in-out"
+          />
+        )}
+</div>
 
-      <h2 className="text-xl font-semibold text-gray-800 mb-6 border-b pb-3"> Location Info</h2>
+      <h2 className="text-xl font-base text-gray-800 mb-6 border-b pb-3"> Location Info</h2>
 
       {[{ label: "Region", value: "Western Visayas" },
         { label: "Province", value: "Negros Occidental" },
@@ -116,7 +135,7 @@ const AdminSideBar = ({
 
       {/* Crop Type Filter */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Crop Type</label>
+        <label className="block text-sm font-base text-gray-700 mb-1">Filter Crop</label>
         <select
           className="w-full border border-gray-300 rounded-md p-2 text-sm"
           value={selectedCropType}
@@ -161,18 +180,20 @@ const AdminSideBar = ({
       {/* Photos of selected crop */}
       {selectedCrop && selectedCrop.photos && (
         <div className="mt-6">
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">
+          <h4 className="text-sm font-base text-gray-700 mb-2">
             Photos of: {selectedCrop.crop_name || "Unnamed Crop"}
           </h4>
           <div className="grid grid-cols-2 gap-2">
-            {JSON.parse(selectedCrop.photos).map((url, i) => (
-              <img
-                key={i}
-                src={`http://localhost:5000${url}`}
-                alt={`Crop photo ${i + 1}`}
-                className="w-full h-24 object-cover rounded-md border"
-              />
-            ))}
+           {JSON.parse(selectedCrop.photos).map((url, i) => (
+  <img
+    key={i}
+    src={`http://localhost:5000${url}`}
+    alt={`Crop photo ${i + 1}`}
+    className="w-full h-24 object-cover rounded-md border cursor-pointer"
+    onClick={() => setEnlargedImage(`http://localhost:5000${url}`)}
+  />
+))}
+
           </div>
         </div>
       )}
@@ -185,24 +206,26 @@ const AdminSideBar = ({
           </h4>
           <div className="grid grid-cols-2 gap-2">
             {crops
-              .filter((crop) => crop.barangay?.toLowerCase() === barangayDetails.name.toLowerCase())
-              .flatMap((crop, idx) => {
-                const photoArray = crop.photos ? JSON.parse(crop.photos) : [];
-                return photoArray.map((url, i) => (
-                  <img
-                    key={`${idx}-${i}`}
-                    src={`http://localhost:5000${url}`}
-                    alt={`Crop ${idx}`}
-                    className="w-full h-24 object-cover rounded-md border"
-                  />
-                ));
-              })}
+  .filter((crop) => crop.barangay?.toLowerCase() === barangayDetails.name.toLowerCase())
+  .flatMap((crop, idx) => {
+    const photoArray = crop.photos ? JSON.parse(crop.photos) : [];
+    return photoArray.map((url, i) => (
+      <img
+        key={`${idx}-${i}`}
+        src={`http://localhost:5000${url}`}
+        alt={`Crop ${idx}`}
+        className="w-full h-24 object-cover rounded-md border cursor-pointer"
+        onClick={() => setEnlargedImage(`http://localhost:5000${url}`)}
+      />
+    ));
+  })}
+
           </div>
         </div>
       )}
 
       {/* Crop Suitability UI */}
-      <div className="mt-6 mb-4">
+      {/* <div className="mt-6 mb-4">
         <button
           onClick={() => setShowCropDropdown(!showCropDropdown)}
           className="w-full flex justify-between items-center bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -225,33 +248,67 @@ const AdminSideBar = ({
             ))}
           </div>
         )}
-      </div>
+      </div> */}
 
-      {/* Legend */}
+      {/* Legend as Dropdown */}
 <div className="mt-6">
-  <h4 className="text-sm font-semibold text-gray-700 mb-2">Legend</h4>
-  <ul className="space-y-1 text-sm">
-    {Object.entries({
-      Rice: "#facc15",
-      Corn: "#fb923c",
-      Banana: "#a3e635",
-      Sugarcane: "#34d399",
-      Cassava: "#60a5fa",
-      Vegetables: "#f472b6",
-    }).map(([label, color]) => (
-      <li key={label} className="flex items-center">
-        <span
-          className="inline-block w-4 h-4 rounded-full mr-2"
-          style={{ backgroundColor: color }}
-        ></span>
-        {label}
-      </li>
-    ))}
-  </ul>
+  <button
+    onClick={() => setShowCropDropdown(!showCropDropdown)}
+    className="w-full flex justify-between items-center bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-base text-gray-700 hover:bg-gray-50"
+  >
+    Legend
+    <svg
+      className={`w-4 h-4 transform transition-transform duration-200 ${
+        showCropDropdown ? "rotate-180" : "rotate-0"
+      }`}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  </button>
+
+  {showCropDropdown && (
+    <ul className="mt-2 space-y-1 text-sm">
+      {Object.entries({
+        Rice: "#facc15",
+        Corn: "#fb923c",
+        Banana: "#a3e635",
+        Sugarcane: "#34d399",
+        Cassava: "#60a5fa",
+        Vegetables: "#f472b6",
+      }).map(([label, color]) => (
+        <li key={label} className="flex items-center">
+          <span
+            className="inline-block w-4 h-4 rounded-full mr-2"
+            style={{ backgroundColor: color }}
+          ></span>
+          {label}
+        </li>
+      ))}
+    </ul>
+  )}
 </div>
 
 
-      <Button to="/AdminLanding" label="Home" />
+    <div className="mt-5">
+      <Button to="/AdminLanding" label="Home" /></div>
+{enlargedImage && (
+  <div
+    className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center"
+    onClick={() => setEnlargedImage(null)}
+  >
+    <div className="bg-white p-4 rounded-lg shadow-lg max-w-3xl max-h-[90vh] overflow-auto">
+      <img
+        src={enlargedImage}
+        alt="Enlarged"
+        className="w-full h-auto object-contain"
+      />
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
