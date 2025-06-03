@@ -74,7 +74,7 @@ const AdminNavBar = () => {
 
 
          {/* Avatar with Dropdown */}
-          <div className="relative ml-6" ref={dropdownRef}>
+          <div className="relative mr-[130px] ml-6" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
               className="w-10 h-10 rounded-full bg-green-600 text-white flex items-center justify-center font-semibold text-lg focus:outline-none"

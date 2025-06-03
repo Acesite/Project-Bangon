@@ -76,13 +76,14 @@ const ManageCrop = () => {
     <div className="flex flex-col min-h-screen bg-white font-poppins">
       <AdminNav />
 
-      <aside className="fixed top-[90px] left-[350px] w-[200px] p-6 z-50">
-        <nav className="space-y-4 font-medium">
-          <a href="/SuperAdminLandingPage" className="flex items-center gap-2 hover:text-green-600">Sugar Cane</a>
-          <a href="/ManageAccount" className="flex items-center gap-2 hover:text-green-600">Rice</a>
-          <a href="/SuperAdminManageCrop" className="flex items-center gap-2 text-green-700 font-bold">Corn</a>
-        </nav>
-      </aside>
+     <aside className="fixed top-[100px] left-[100px] w-[200px] p-6 bg-white border-r border-gray-200 shadow-md rounded-lg z-40 ml-[90px]">
+  <nav className="space-y-4 font-medium text-gray-700">
+    <a href="/SuperAdminLandingPage" className="block hover:text-green-600">Sugar Cane</a>
+    <a href="/ManageAccount" className="block hover:text-green-600">Rice</a>
+    <a href="/SuperAdminManageCrop" className="block text-green-700 font-semibold">Corn</a>
+  </nav>
+</aside>
+
 
       <main className="ml-[400px] pt-[100px] pr-8 flex-grow">
         <div className="mb-6 ml-[160px]">
@@ -90,7 +91,7 @@ const ManageCrop = () => {
           <p className="text-gray-600">View, edit, or delete crop data tagged by field officers.</p>
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="w-full max-w-3xl mx-auto bg-white border border-gray-200 rounded-xl p-6 shadow-sm relative transition hover:shadow-md">
           {crops.length > 0 ? crops.map((crop) => (
             <div key={crop.id} className="w-full max-w-3xl relative mx-auto mr-[560px]">
               <div className="absolute top-3 right-3">
