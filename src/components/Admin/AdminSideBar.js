@@ -50,30 +50,30 @@ const AdminSideBar = ({
   };
 
   const barangayInfo = {
-    Abuanan: { population: 1200, crops: ["Banana", "Rice"] },
-    Alianza: { population: 1100, crops: ["Sugarcane", "Corn"] },
-    Atipuluan: { population: 1000, crops: ["Banana", "Rice"] },
-    Bacong: { population: 950, crops: ["Rice", "Sugarcane"] },
-    Bagroy: { population: 900, crops: ["Corn", "Cassava"] },
-    Balingasag: { population: 1050, crops: ["Rice", "Banana"] },
-    Binubuhan: { population: 1150, crops: ["Sugarcane", "Corn"] },
-    Busay: { population: 800, crops: ["Rice", "Vegetables"] },
-    Calumangan: { population: 950, crops: ["Banana", "Sugarcane"] },
-    Caridad: { population: 1100, crops: ["Cassava", "Sugarcane"] },
-    Dulao: { population: 900, crops: ["Rice", "Banana"] },
-    Ilijan: { population: 1200, crops: ["Sugarcane", "Rice"] },
-    "Lag-asan": { population: 1050, crops: ["Banana", "Corn"] },
-    Mailum: { population: 980, crops: ["Cassava", "Sugarcane"] },
-    "Ma-ao": { population: 1100, crops: ["Rice", "Corn"] },
-    Malingin: { population: 1200, crops: ["Sugarcane", "Rice"] },
-    Napoles: { population: 950, crops: ["Corn", "Banana"] },
-    Pacol: { population: 980, crops: ["Rice", "Vegetables"] },
-    Poblacion: { population: 1300, crops: ["Rice", "Sugarcane"] },
-    Sagasa: { population: 1100, crops: ["Cassava", "Rice"] },
-    Tabunan: { population: 900, crops: ["Banana", "Cassava"] },
-    Taloc: { population: 1050, crops: ["Sugarcane", "Rice"] },
-    Talon: { population: 950, crops: ["Rice", "Banana"] },
-    Tinongan: { population: 1000, crops: ["Cassava", "Rice"] },
+    Abuanan: { crops: ["Banana", "Rice"] },
+  Alianza: { crops: ["Sugarcane", "Corn"] },
+  Atipuluan: { crops: ["Banana", "Rice"] },
+  Bacong: { crops: ["Rice", "Sugarcane"] },
+  Bagroy: { crops: ["Corn", "Cassava"] },
+  Balingasag: { crops: ["Rice", "Banana"] },
+  Binubuhan: { crops: ["Sugarcane", "Corn"] },
+  Busay: { crops: ["Rice", "Vegetables"] },
+  Calumangan: { crops: ["Banana", "Sugarcane"] },
+  Caridad: { crops: ["Cassava", "Sugarcane"] },
+  Dulao: { crops: ["Rice", "Banana"] },
+  Ilijan: { crops: ["Sugarcane", "Rice"] },
+  "Lag-asan": { crops: ["Banana", "Corn"] },
+  Mailum: { crops: ["Cassava", "Sugarcane"] },
+  "Ma-ao": { crops: ["Rice", "Corn"] },
+  Malingin: { crops: ["Sugarcane", "Rice"] },
+  Napoles: { crops: ["Corn", "Banana"] },
+  Pacol: { crops: ["Rice", "Vegetables"] },
+  Poblacion: { crops: ["Rice", "Sugarcane"] },
+  Sagasa: { crops: ["Cassava", "Rice"] },
+  Tabunan: { crops: ["Banana", "Cassava"] },
+  Taloc: { crops: ["Sugarcane", "Rice"] },
+  Talon: { crops: ["Rice", "Banana"] },
+  Tinongan: { crops: ["Cassava", "Rice"] },
   };
 
   const handleBarangayChange = (e) => {
@@ -88,7 +88,6 @@ const AdminSideBar = ({
       setBarangayDetails({
         name: barangay,
         coordinates,
-        population: details.population || "N/A",
         crops: details.crops || [],
       });
 
@@ -169,13 +168,21 @@ const AdminSideBar = ({
         <div className="mt-4 bg-green-50 border-l-4 border-green-400 p-4 rounded">
           <h3 className="text-green-700 font-semibold text-lg">{barangayDetails.name}</h3>
           <p className="text-sm text-gray-800">
-            <strong>Population:</strong> {barangayDetails.population}
-          </p>
-          <p className="text-sm text-gray-800">
             <strong>Crops:</strong> {barangayDetails.crops.join(", ")}
           </p>
         </div>
       )}
+{selectedCrop && (
+  <div className="mt-6 ">
+    <h4 className="text-lg font-semibold text-green-700 mb-2">{selectedCrop.crop_name || "Unnamed Crop"}</h4>
+    <p className="text-sm text-gray-700"><strong>Variety:</strong> {selectedCrop.variety || "N/A"}</p>
+    <p className="text-sm text-gray-700"><strong>Planted Date:</strong> {selectedCrop.planted_date?.split("T")[0] || "N/A"}</p>
+    <p className="text-sm text-gray-700"><strong>Est. Harvest:</strong> {selectedCrop.estimated_harvest?.split("T")[0] || "N/A"}</p>
+    <p className="text-sm text-gray-700"><strong>Volume:</strong> {selectedCrop.estimated_volume || "N/A"}</p>
+    <p className="text-sm text-gray-700"><strong>Hectares:</strong> {selectedCrop.estimated_hectares || "N/A"}</p>
+    <p className="text-sm text-gray-700 italic mt-2">{selectedCrop.note || "No note provided."}</p>
+  </div>
+)}
 
       {/* Photos of selected crop */}
       {selectedCrop && selectedCrop.photos && (

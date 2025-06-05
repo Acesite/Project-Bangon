@@ -41,7 +41,10 @@ const AdminMapBox = () => {
   const [sidebarCrops, setSidebarCrops] = useState([]); 
   const [selectedCrop, setSelectedCrop] = useState(null);
   const [selectedCropType, setSelectedCropType] = useState("All");
-const [cropTypes, setCropTypes] = useState([]);
+  const [cropTypes, setCropTypes] = useState([]);
+  const [areMarkersVisible, setAreMarkersVisible] = useState(true);
+const savedMarkersRef = useRef([]); // store markers so we can remove them later
+
 
 const cropColorMap = {
   Rice: "#facc15",        // Yellow
@@ -94,74 +97,61 @@ const cropColorMap = {
   };
 
   const renderSavedMarkers = async () => {
-    try {
-      const response = await axios.get("http://localhost:5000/api/crops");
-      const crops = response.data;
-      setSidebarCrops(crops); 
-      const filtered = selectedCropType === "All"
-  ? crops
-  : crops.filter(crop => crop.crop_name === selectedCropType);
+  try {
+    const response = await axios.get("http://localhost:5000/api/crops");
+    const crops = response.data;
+    setSidebarCrops(crops);
 
-  
-      crops.forEach((crop) => {
-        let coords = crop.coordinates;
-  
-        if (typeof coords === "string") {
-          try {
-            coords = JSON.parse(coords);
-          } catch (err) {
-            console.error("Invalid coordinates format:", crop.coordinates);
-            return;
-          }
+    savedMarkersRef.current.forEach((marker) => marker.remove()); // remove old markers
+    savedMarkersRef.current = [];
+
+    const filtered = selectedCropType === "All"
+      ? crops
+      : crops.filter(crop => crop.crop_name === selectedCropType);
+
+    filtered.forEach((crop) => {
+      let coords = crop.coordinates;
+      if (typeof coords === "string") {
+        try {
+          coords = JSON.parse(coords);
+        } catch (err) {
+          console.error("Invalid coordinates format:", crop.coordinates);
+          return;
         }
-  
-        if (Array.isArray(coords) && coords.length > 2) {
-          const first = coords[0];
-          const last = coords[coords.length - 1];
-  
-          if (JSON.stringify(first) !== JSON.stringify(last)) {
-            coords = [...coords, first];
-          }
-  
-          const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
-  
-          const marker = new mapboxgl.Marker({ color: "#10B981" })  // ✅ added const
+      }
+
+      if (Array.isArray(coords) && coords.length > 2) {
+        const first = coords[0];
+        const last = coords[coords.length - 1];
+        if (JSON.stringify(first) !== JSON.stringify(last)) coords.push(first);
+
+        const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
+
+        const marker = new mapboxgl.Marker({ color: "#10B981" })
           .setLngLat(center)
           .setPopup(
             new mapboxgl.Popup({ offset: 15 }).setHTML(`
               <div class="text-sm">
-              <h3 class='font-bold text-green-600'>${crop.crop_name}</h3>
-              <p><strong>Variety:</strong> ${crop.variety || "N/A"}</p>
-                <p><strong>Notes:</strong> ${crop.note || "None"}</p>
-                <p><strong>Harvest Date:</strong> ${
-                  crop.estimated_harvest
-                    ? new Date(crop.estimated_harvest).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric"
-                      })
-                    : "N/A"
-                }</p>
-                <p><strong>Volume:</strong> ${crop.estimated_volume || "N/A"} sacks</p>
-                <p><strong>Land Area:</strong> ${crop.estimated_hectares || "N/A"} ha</p>
+                <h3 class='font-bold text-green-600'>${crop.crop_name}</h3>
+                <p><strong>Variety:</strong> ${crop.variety || "N/A"}</p>
               </div>
             `)
           )
           .addTo(map.current);
-        
-       marker.getElement().addEventListener("click", () => {
-  console.log("Crop marker clicked!");
-  setSelectedCrop(crop);
-  setIsSidebarVisible(true); // ✅ this makes sure the sidebar opens
-});
 
-        
-        }
-      });
-    } catch (error) {
-      console.error("Failed to load saved markers:", error);
-    }
-  };
+        marker.getElement().addEventListener("click", () => {
+          setSelectedCrop(crop);
+          setIsSidebarVisible(true);
+        });
+
+        savedMarkersRef.current.push(marker); // ✅ store
+      }
+    });
+  } catch (error) {
+    console.error("Failed to load saved markers:", error);
+  }
+};
+
   
   const loadPolygons = async (geojsonData = null, isFiltered = false) => {
     const res = await axios.get("http://localhost:5000/api/crops/polygons");
@@ -315,36 +305,25 @@ const cropColorMap = {
   }, [mapStyle]);
 
   useEffect(() => {
-    if (map.current) {
-      taggedData.forEach((entry) => {
-        const center = turf.centerOfMass(turf.polygon([entry.coordinates])).geometry.coordinates;
-        new mapboxgl.Marker({ color: "#f59e0b" })
-          .setLngLat(center)
-          .setPopup(
-            new mapboxgl.Popup({ offset: 15 }).setHTML(`
-              <div class="text-sm">
-                <h3 class='font-bold text-green-600'>${entry.crop}</h3>
-                <p><strong>Variety:</strong> ${entry.variety || "N/A"}</p>
-                <p><strong>Notes:</strong> ${entry.note || "None"}</p>
-                <p><strong>Harvest Date:</strong> ${
-                  entry.estimated_harvest
-                    ? new Date(entry.estimated_harvest).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric"
-                      })
-                    : "N/A"
-                }</p>
-                <p><strong>Volume:</strong> ${entry.estimated_volume || "N/A"} sacks</p>
-                <p><strong>Land Area:</strong> ${entry.estimated_hectares || "N/A"} ha</p>
-              </div>
-            `)
-          )
-          
-          .addTo(map.current);
-      });
-    }
-  }, [taggedData]);
+  if (map.current) {
+    taggedData.forEach((entry) => {
+      const center = turf.centerOfMass(turf.polygon([entry.coordinates])).geometry.coordinates;
+
+      new mapboxgl.Marker({ color: "#f59e0b" })
+        .setLngLat(center)
+        .setPopup(
+          new mapboxgl.Popup({ offset: 15 }).setHTML(`
+            <div class="text-sm">
+              <h3 class='font-bold text-green-600'>${entry.crop_name}</h3>
+              <p><strong>Variety:</strong> ${entry.variety || "N/A"}</p>            
+            </div>
+          `)
+        )
+        .addTo(map.current);
+    });
+  }
+}, [taggedData]);
+
 
   useEffect(() => {
     const filterPolygonsByCrop = async () => {
@@ -368,11 +347,7 @@ const cropColorMap = {
       filterPolygonsByCrop();
     }
   }, [selectedCropType]);
-  
-  
-  
-  
-  
+
   return (
     <div className="relative h-screen w-screen">
       <div ref={mapContainer} className="h-full w-full" />
@@ -412,8 +387,8 @@ const cropColorMap = {
       />
       
       )}
-
-      <SidebarToggleButton onClick={() => setIsSidebarVisible(!isSidebarVisible)} />
+{!isTagging && (
+      <SidebarToggleButton onClick={() => setIsSidebarVisible(!isSidebarVisible)} />)}
 
       {!isSidebarVisible && (
         <button
@@ -476,7 +451,35 @@ const cropColorMap = {
           )}
         </>
       )}
-
+    {!isTagging && (
+<button
+  onClick={() => {
+    if (areMarkersVisible) {
+      savedMarkersRef.current.forEach(marker => marker.remove());
+    } else {
+      renderSavedMarkers();
+    }
+    setAreMarkersVisible(!areMarkersVisible);
+  }}
+  className="absolute bottom-[194px] right-[9px] z-50 bg-white border border-gray-300 rounded-[5px] w-8 h-8 flex items-center justify-center shadow-[0_0_8px_2px_rgba(0,0,0,0.15)] "
+  title={areMarkersVisible ? "Hide Markers" : "Show Markers"}
+>
+  <svg
+    className="w-5 h-5 text-black"
+    fill={!areMarkersVisible ? "currentColor" : "none"}
+    stroke="currentColor"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 21s6-5.686 6-10a6 6 0 10-12 0c0 4.314 6 10 6 10z"
+    />
+    <circle cx="12" cy="11" r="2" fill="white" />
+  </svg>
+</button>
+)}
       <div
         className={`absolute top-0 left-0 h-full w-80 transition-transform duration-500 ease-in-out z-40 ${
           isSidebarVisible ? "translate-x-0" : "-translate-x-full"

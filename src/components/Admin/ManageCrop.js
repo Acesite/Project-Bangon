@@ -83,8 +83,6 @@ const ManageCrop = () => {
     <a href="/SuperAdminManageCrop" className="block text-green-700 font-semibold">Corn</a>
   </nav>
 </aside>
-
-
       <main className="ml-[400px] pt-[100px] pr-8 flex-grow">
         <div className="mb-6 ml-[160px]">
           <h2 className="text-3xl font-bold text-green-700">Crop Management Panel</h2>
