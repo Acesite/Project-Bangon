@@ -412,8 +412,8 @@ useEffect(() => {
       />
       
       )}
-{!isTagging && (
-      <SidebarToggleButton onClick={() => setIsSidebarVisible(!isSidebarVisible)} />)}
+
+<SidebarToggleButton onClick={() => setIsSidebarVisible(!isSidebarVisible)} isSidebarVisible={isSidebarVisible} />
 
       {!isSidebarVisible && (
         <button

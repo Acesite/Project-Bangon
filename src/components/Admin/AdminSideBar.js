@@ -16,9 +16,6 @@ const AdminSideBar = ({
   const [barangayDetails, setBarangayDetails] = useState(null);
   const [showCropDropdown, setShowCropDropdown] = useState(false);
   const [enlargedImage, setEnlargedImage] = useState(null);
-  
-
-
 
   const navigate = useNavigate();
 
@@ -96,7 +93,7 @@ const AdminSideBar = ({
   };
 
   return (
-    <div className="absolute top-0 left-0 h-full w-80 bg-white shadow-xl z-20 px-6 py-8 overflow-y-auto border-r border-gray-200 transition-all duration-300">
+    <div className="absolute top-0 left-0 h-full w-95 bg-white shadow-xl z-20 px-6 py-8 overflow-y-auto border-r border-gray-200 transition-all duration-300">
     <div className="mb-6 w-full flex justify-center items-center">
         {selectedCrop?.photos ? (
           <img
@@ -116,7 +113,7 @@ const AdminSideBar = ({
         )}
 </div>
 
-      <h2 className="text-xl font-base text-gray-800 mb-6 border-b pb-3"> Location Info</h2>
+      <h2 className="text-xl font-medium text-gray-800 mb-6 border-b pb-3"> Crop Information</h2>
 
       {[{ label: "Region", value: "Western Visayas" },
         { label: "Province", value: "Negros Occidental" },
@@ -231,32 +228,6 @@ const AdminSideBar = ({
           </div>
         </div>
       )}
-
-      {/* Crop Suitability UI */}
-      {/* <div className="mt-6 mb-4">
-        <button
-          onClick={() => setShowCropDropdown(!showCropDropdown)}
-          className="w-full flex justify-between items-center bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Crop Suitability
-          <svg className={`w-4 h-4 transform transition-transform duration-200 ${
-            showCropDropdown ? "rotate-180" : "rotate-0"
-          }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {showCropDropdown && (
-          <div className="mt-2 pl-2 space-y-2">
-            {["Banana", "Cassava", "Corn", "Sugarcane", "Rice", "Vegetables"].map((crop) => (
-              <div key={crop} className="flex items-center text-sm text-gray-700">
-                <input type="checkbox" id={crop} className="mr-2 accent-green-600" />
-                <label htmlFor={crop}>{crop}</label>
-              </div>
-            ))}
-          </div>
-        )}
-      </div> */}
 
       {/* Legend as Dropdown */}
 <div className="mt-6">

@@ -1,11 +1,22 @@
-// src/components/UserSideBar.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
+import Button from "./MapControls/Button";
 
-const UserSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
+const UserSidebar = ({
+  zoomToBarangay,
+  onBarangaySelect,
+  crops = [],
+  selectedCrop,
+  cropTypes = [],
+  selectedCropType,
+  setSelectedCropType,
+}) => {
   const [selectedBarangay, setSelectedBarangay] = useState("");
   const [barangayDetails, setBarangayDetails] = useState(null);
+  const [showCropDropdown, setShowCropDropdown] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState(null);
+
   const navigate = useNavigate();
 
   const barangayCoordinates = {
@@ -35,206 +46,111 @@ const UserSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
     Tinongan: [122.939491, 10.49741],
   };
 
-  // Define the barangay details
   const barangayInfo = {
-    Abuanan: {
-      population: 1200,
-      crops: ["Banana", "Rice"],
-      iconUrl: "path/to/icon1.png", // Replace with actual icon path
-    },
-    Alianza: {
-      population: 1100,
-      crops: ["Sugarcane", "Corn"],
-      iconUrl: "path/to/icon2.png", // Replace with actual icon path
-    },
-    Atipuluan: {
-      population: 1000,
-      crops: ["Banana", "Rice"],
-      iconUrl: "path/to/icon3.png", // Replace with actual icon path
-    },
-    Bacong: {
-      population: 950,
-      crops: ["Rice", "Sugarcane"],
-      iconUrl: "path/to/icon4.png", // Replace with actual icon path
-    },
-    Bagroy: {
-      population: 900,
-      crops: ["Corn", "Cassava"],
-      iconUrl: "path/to/icon5.png", // Replace with actual icon path
-    },
-    Balingasag: {
-      population: 1050,
-      crops: ["Rice", "Banana"],
-      iconUrl: "path/to/icon6.png", // Replace with actual icon path
-    },
-    Binubuhan: {
-      population: 1150,
-      crops: ["Sugarcane", "Corn"],
-      iconUrl: "path/to/icon7.png", // Replace with actual icon path
-    },
-    Busay: {
-      population: 800,
-      crops: ["Rice", "Vegetables"],
-      iconUrl: "path/to/icon8.png", // Replace with actual icon path
-    },
-    Calumangan: {
-      population: 950,
-      crops: ["Banana", "Sugarcane"],
-      iconUrl: "path/to/icon9.png", // Replace with actual icon path
-    },
-    Caridad: {
-      population: 1100,
-      crops: ["Cassava", "Sugarcane"],
-      iconUrl: "path/to/icon10.png", // Replace with actual icon path
-    },
-    Dulao: {
-      population: 900,
-      crops: ["Rice", "Banana"],
-      iconUrl: "path/to/icon11.png", // Replace with actual icon path
-    },
-    Ilijan: {
-      population: 1200,
-      crops: ["Sugarcane", "Rice"],
-      iconUrl: "path/to/icon12.png", // Replace with actual icon path
-    },
-    "Lag-asan": {
-      population: 1050,
-      crops: ["Banana", "Corn"],
-      iconUrl: "path/to/icon13.png", // Replace with actual icon path
-    },
-    Mailum: {
-      population: 980,
-      crops: ["Cassava", "Sugarcane"],
-      iconUrl: "path/to/icon14.png", // Replace with actual icon path
-    },
-    "Ma-ao": {
-      population: 1100,
-      crops: ["Rice", "Corn"],
-      iconUrl: "path/to/icon15.png", // Replace with actual icon path
-    },
-    Malingin: {
-      population: 1200,
-      crops: ["Sugarcane", "Rice"],
-      iconUrl: "path/to/icon16.png", // Replace with actual icon path
-    },
-    Napoles: {
-      population: 950,
-      crops: ["Corn", "Banana"],
-      iconUrl: "path/to/icon17.png", // Replace with actual icon path
-    },
-    Pacol: {
-      population: 980,
-      crops: ["Rice", "Vegetables"],
-      iconUrl: "path/to/icon18.png", // Replace with actual icon path
-    },
-    Poblacion: {
-      population: 1300,
-      crops: ["Rice", "Sugarcane"],
-      iconUrl: "path/to/icon19.png", // Replace with actual icon path
-    },
-    Sagasa: {
-      population: 1100,
-      crops: ["Cassava", "Rice"],
-      iconUrl: "path/to/icon20.png", // Replace with actual icon path
-    },
-    Tabunan: {
-      population: 900,
-      crops: ["Banana", "Cassava"],
-      iconUrl: "path/to/icon21.png", // Replace with actual icon path
-    },
-    Taloc: {
-      population: 1050,
-      crops: ["Sugarcane", "Rice"],
-      iconUrl: "path/to/icon22.png", // Replace with actual icon path
-    },
-    Talon: {
-      population: 950,
-      crops: ["Rice", "Banana"],
-      iconUrl: "path/to/icon23.png", // Replace with actual icon path
-    },
-    Tinongan: {
-      population: 1000,
-      crops: ["Cassava", "Rice"],
-      iconUrl: "path/to/icon24.png", // Replace with actual icon path
-    },
+    Abuanan: { crops: ["Banana", "Rice"] },
+  Alianza: { crops: ["Sugarcane", "Corn"] },
+  Atipuluan: { crops: ["Banana", "Rice"] },
+  Bacong: { crops: ["Rice", "Sugarcane"] },
+  Bagroy: { crops: ["Corn", "Cassava"] },
+  Balingasag: { crops: ["Rice", "Banana"] },
+  Binubuhan: { crops: ["Sugarcane", "Corn"] },
+  Busay: { crops: ["Rice", "Vegetables"] },
+  Calumangan: { crops: ["Banana", "Sugarcane"] },
+  Caridad: { crops: ["Cassava", "Sugarcane"] },
+  Dulao: { crops: ["Rice", "Banana"] },
+  Ilijan: { crops: ["Sugarcane", "Rice"] },
+  "Lag-asan": { crops: ["Banana", "Corn"] },
+  Mailum: { crops: ["Cassava", "Sugarcane"] },
+  "Ma-ao": { crops: ["Rice", "Corn"] },
+  Malingin: { crops: ["Sugarcane", "Rice"] },
+  Napoles: { crops: ["Corn", "Banana"] },
+  Pacol: { crops: ["Rice", "Vegetables"] },
+  Poblacion: { crops: ["Rice", "Sugarcane"] },
+  Sagasa: { crops: ["Cassava", "Rice"] },
+  Tabunan: { crops: ["Banana", "Cassava"] },
+  Taloc: { crops: ["Sugarcane", "Rice"] },
+  Talon: { crops: ["Rice", "Banana"] },
+  Tinongan: { crops: ["Cassava", "Rice"] },
   };
-  
+
   const handleBarangayChange = (e) => {
     const barangay = e.target.value;
     setSelectedBarangay(barangay);
-  
+
     if (barangayCoordinates[barangay]) {
       const coordinates = barangayCoordinates[barangay];
       zoomToBarangay(coordinates);
-  
-      // Check if barangay exists in barangayInfo, then set its details
-      const details = barangayInfo[barangay] || {}; // Default to empty object if no details exist
+
+      const details = barangayInfo[barangay] || {};
       setBarangayDetails({
         name: barangay,
-        coordinates: coordinates,
-        population: details.population || "N/A", // Default to 'N/A' if population is not available
-        crops: details.crops || [], // Default to an empty array if crops are not available
-        iconUrl: details.iconUrl || "", // Default to empty string if no icon URL is available
+        coordinates,
+        crops: details.crops || [],
       });
-  
-      onBarangaySelect({
-        name: barangay,
-        coordinates: coordinates,
-      });
+
+      onBarangaySelect({ name: barangay, coordinates });
     }
   };
-  
 
   return (
-    <div className="absolute top-0 left-0 h-full w-80 bg-white shadow-2xl z-20 p-6 overflow-y-auto border-r border-gray-200">
-      {/* Logo */}
-      <div className="mb-8 flex justify-center">
-        <img src={AgriGISLogo} alt="AgriGIS Logo" className="h-[75px] object-contain" />
-      </div>
+    <div className="absolute top-0 left-0 h-full w-95 bg-white shadow-xl z-20 px-6 py-8 overflow-y-auto border-r border-gray-200 transition-all duration-300">
+    <div className="mb-6 w-full flex justify-center items-center">
+        {selectedCrop?.photos ? (
+          <img
+            src={`http://localhost:5000${JSON.parse(selectedCrop.photos)[0]}`}
+            alt="Selected Crop"
+            className="w-full h-full object-cover rounded-md border cursor-pointer"
+            onClick={() =>
+              setEnlargedImage(`http://localhost:5000${JSON.parse(selectedCrop.photos)[0]}`)
+            }
+          />
+        ) : (
+          <img
+            src={AgriGISLogo}
+            alt="AgriGIS Logo"
+            className="w-[200px] h-[70px] ml-5 object-contain transition duration-500 ease-in-out"
+          />
+        )}
+</div>
 
-      {/* Section Title */}
-      <h2 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Location Information</h2>
+      <h2 className="text-xl font-medium text-gray-800 mb-6 border-b pb-3"> Crop Information</h2>
 
-      {/* Region */}
+      {[{ label: "Region", value: "Western Visayas" },
+        { label: "Province", value: "Negros Occidental" },
+        { label: "Municipality", value: "Bago City" }].map((item) => (
+        <div className="mb-4" key={item.label}>
+          <label className="block text-sm text-gray-600 mb-1">{item.label}</label>
+          <input
+            type="text"
+            readOnly
+            value={item.value}
+            className="w-full bg-gray-100 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 cursor-not-allowed"
+          />
+        </div>
+      ))}
+
+      {/* Crop Type Filter */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-600 mb-1">Region</label>
-        <input
-          type="text"
-          value="Western Visayas"
-          readOnly
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed"
-        />
-      </div>
-
-      {/* Province */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-600 mb-1">Province</label>
-        <input
-          type="text"
-          value="Negros Occidental"
-          readOnly
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed"
-        />
-      </div>
-
-      {/* Municipality */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-600 mb-1">Municipality</label>
-        <input
-          type="text"
-          value="Bago City"
-          readOnly
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed"
-        />
-      </div>
-
-      {/* Barangay */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-600 mb-1">Barangay</label>
+        <label className="block text-sm font-base text-gray-700 mb-1">Filter Crop</label>
         <select
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+          className="w-full border border-gray-300 rounded-md p-2 text-sm"
+          value={selectedCropType}
+          onChange={(e) => setSelectedCropType(e.target.value)}
+        >
+          <option value="All">All</option>
+          {cropTypes.map((type) => (
+            <option key={type.id} value={type.name}>{type.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Barangay Dropdown */}
+      <div className="mb-4">
+        <label className="block text-sm text-gray-600 mb-1">Barangay</label>
+        <select
           value={selectedBarangay}
           onChange={handleBarangayChange}
+          className="w-full bg-white border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 shadow-sm focus:ring-green-500 focus:border-green-500"
         >
           <option value="">Select a barangay</option>
           {Object.keys(barangayCoordinates).map((brgy) => (
@@ -245,40 +161,135 @@ const UserSideBar = ({ zoomToBarangay, onBarangaySelect }) => {
         </select>
       </div>
 
-      {/* Display selected barangay details */}
       {barangayDetails && (
-        <div className="mt-4">
-          <h3 className="font-bold text-green-600">{barangayDetails.name}</h3>
-          <p><strong>Population:</strong> {barangayDetails.population}</p>
-          <p><strong>Crops:</strong> {barangayDetails.crops.join(", ")}</p>
-          {barangayDetails.iconUrl && (
-            <img src={barangayDetails.iconUrl} alt="Barangay Icon" className="mt-2 w-8 h-8" />
-          )}
+        <div className="mt-4 bg-green-50 border-l-4 border-green-400 p-4 rounded">
+          <h3 className="text-green-700 font-semibold text-lg">{barangayDetails.name}</h3>
+          <p className="text-sm text-gray-800">
+            <strong>Crops:</strong> {barangayDetails.crops.join(", ")}
+          </p>
+        </div>
+      )}
+{selectedCrop && (
+  <div className="mt-6 ">
+    <h4 className="text-lg font-semibold text-green-700 mb-2">{selectedCrop.crop_name || "Unnamed Crop"}</h4>
+    <p className="text-sm text-gray-700">
+    <strong>Variety:</strong> {selectedCrop.variety_name || "N/A"}</p>
+    <p className="text-sm text-gray-700"><strong>Planted Date:</strong> {selectedCrop.planted_date?.split("T")[0] || "N/A"}</p>
+    <p className="text-sm text-gray-700"><strong>Est. Harvest:</strong> {selectedCrop.estimated_harvest?.split("T")[0] || "N/A"}</p>
+    <p className="text-sm text-gray-700"><strong>Volume:</strong> {selectedCrop.estimated_volume || "N/A"}</p>
+    <p className="text-sm text-gray-700"><strong>Hectares:</strong> {selectedCrop.estimated_hectares || "N/A"}</p>
+    <p className="text-sm text-gray-700 italic mt-2">{selectedCrop.note || "No note provided."}</p>
+  </div>
+)}
+
+      {/* Photos of selected crop */}
+      {selectedCrop && selectedCrop.photos && (
+        <div className="mt-6">
+          <h4 className="text-sm font-base text-gray-700 mb-2">
+            Photos of: {selectedCrop.crop_name || "Unnamed Crop"}
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
+           {JSON.parse(selectedCrop.photos).map((url, i) => (
+  <img
+    key={i}
+    src={`http://localhost:5000${url}`}
+    alt={`Crop photo ${i + 1}`}
+    className="w-full h-24 object-cover rounded-md border cursor-pointer"
+    onClick={() => setEnlargedImage(`http://localhost:5000${url}`)}
+  />
+))}
+
+          </div>
         </div>
       )}
 
-      {/* Crop Filter */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-600 mb-1">Crop Suitability</label>
-        {["Banana", "Cassava", "Corn", "Sugarcane", "Rice", "Vegetables"].map((crop) => (
-          <div className="flex items-center mb-1" key={crop}>
-            <input type="checkbox" id={crop} className="mr-5 accent-green-600" />
-            <label htmlFor={crop} className="text-sm text-gray-700">{crop}</label>
-          </div>
-        ))}
-      </div>
+      {/* Photos by Barangay */}
+      {barangayDetails && crops.length > 0 && (
+        <div className="mt-6">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">
+            Photos from {barangayDetails.name}
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
+            {crops
+  .filter((crop) => crop.barangay?.toLowerCase() === barangayDetails.name.toLowerCase())
+  .flatMap((crop, idx) => {
+    const photoArray = crop.photos ? JSON.parse(crop.photos) : [];
+    return photoArray.map((url, i) => (
+      <img
+        key={`${idx}-${i}`}
+        src={`http://localhost:5000${url}`}
+        alt={`Crop ${idx}`}
+        className="w-full h-24 object-cover rounded-md border cursor-pointer"
+        onClick={() => setEnlargedImage(`http://localhost:5000${url}`)}
+      />
+    ));
+  })}
 
-      {/* Back to Home Button */}
-      <div className="mt-6">
-        <button
-          onClick={() => navigate("/")}
-          className="w-auto bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300"
-        >
-          Back to Home
-        </button>
-      </div>
+          </div>
+        </div>
+      )}
+
+      {/* Legend as Dropdown */}
+<div className="mt-6">
+  <button
+    onClick={() => setShowCropDropdown(!showCropDropdown)}
+    className="w-full flex justify-between items-center bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-base text-gray-700 hover:bg-gray-50"
+  >
+    Legend
+    <svg
+      className={`w-4 h-4 transform transition-transform duration-200 ${
+        showCropDropdown ? "rotate-180" : "rotate-0"
+      }`}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  </button>
+
+  {showCropDropdown && (
+    <ul className="mt-2 space-y-1 text-sm">
+      {Object.entries({
+        Rice: "#facc15",
+        Corn: "#fb923c",
+        Banana: "#a3e635",
+        Sugarcane: "#34d399",
+        Cassava: "#60a5fa",
+        Vegetables: "#f472b6",
+      }).map(([label, color]) => (
+        <li key={label} className="flex items-center">
+          <span
+            className="inline-block w-4 h-4 rounded-full mr-2"
+            style={{ backgroundColor: color }}
+          ></span>
+          {label}
+        </li>
+      ))}
+    </ul>
+  )}
+</div>
+
+
+    <div className="mt-5">
+      <Button to="/AdminLanding" label="Home" /></div>
+{enlargedImage && (
+  <div
+    className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center"
+    onClick={() => setEnlargedImage(null)}
+  >
+    <div className="bg-white p-4 rounded-lg shadow-lg max-w-3xl max-h-[90vh] overflow-auto">
+      <img
+        src={enlargedImage}
+        alt="Enlarged"
+        className="w-full h-auto object-contain"
+      />
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
 
-export default UserSideBar;
+export default UserSidebar;
