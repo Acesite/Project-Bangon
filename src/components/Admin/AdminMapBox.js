@@ -8,7 +8,8 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import * as turf from "@turf/turf";
 import axios from "axios";
-
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import AdminSidebar from "./AdminSideBar";
 import DefaultThumbnail from "../MapboxImages/map-default.png";
 import SatelliteThumbnail from "../MapboxImages/map-satellite.png";
@@ -97,60 +98,76 @@ const cropColorMap = {
   };
 
   const renderSavedMarkers = async () => {
-  try {
-    const response = await axios.get("http://localhost:5000/api/crops");
-    const crops = response.data;
-    setSidebarCrops(crops);
-
-    savedMarkersRef.current.forEach((marker) => marker.remove()); // remove old markers
-    savedMarkersRef.current = [];
-
-    const filtered = selectedCropType === "All"
-      ? crops
-      : crops.filter(crop => crop.crop_name === selectedCropType);
-
-    filtered.forEach((crop) => {
-      let coords = crop.coordinates;
-      if (typeof coords === "string") {
-        try {
-          coords = JSON.parse(coords);
-        } catch (err) {
-          console.error("Invalid coordinates format:", crop.coordinates);
+    try {
+      const response = await axios.get("http://localhost:5000/api/crops");
+      const crops = response.data;
+      setSidebarCrops(crops);
+  
+     
+      savedMarkersRef.current.forEach((marker) => marker.remove());
+      savedMarkersRef.current = [];
+  
+      const filtered = selectedCropType === "All"
+        ? crops
+        : crops.filter(crop => crop.crop_name === selectedCropType);
+        if (filtered.length === 0) {
+          toast.info("No Crops Found .", {
+            position: "top-center",
+            autoClose: 3000,
+            hideProgressBar: true,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: false,
+            theme: "light",
+          });
           return;
         }
-      }
-
-      if (Array.isArray(coords) && coords.length > 2) {
-        const first = coords[0];
-        const last = coords[coords.length - 1];
-        if (JSON.stringify(first) !== JSON.stringify(last)) coords.push(first);
-
-        const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
-
-        const marker = new mapboxgl.Marker({ color: "#10B981" })
-          .setLngLat(center)
-          .setPopup(
-            new mapboxgl.Popup({ offset: 15 }).setHTML(`
-              <div class="text-sm">
-                <h3 class='font-bold text-green-600'>${crop.crop_name}</h3>
-                <p><strong>Variety:</strong> ${crop.variety || "N/A"}</p>
-              </div>
-            `)
-          )
-          .addTo(map.current);
-
-        marker.getElement().addEventListener("click", () => {
-          setSelectedCrop(crop);
-          setIsSidebarVisible(true);
-        });
-
-        savedMarkersRef.current.push(marker); // ✅ store
-      }
-    });
-  } catch (error) {
-    console.error("Failed to load saved markers:", error);
-  }
-};
+         
+      if (filtered.length === 0) return;
+  
+      filtered.forEach((crop) => {
+        let coords = crop.coordinates;
+        if (typeof coords === "string") {
+          try {
+            coords = JSON.parse(coords);
+          } catch (err) {
+            console.error("Invalid coordinates format:", crop.coordinates);
+            return;
+          }
+        }
+  
+        if (Array.isArray(coords) && coords.length > 2) {
+          const first = coords[0];
+          const last = coords[coords.length - 1];
+          if (JSON.stringify(first) !== JSON.stringify(last)) coords.push(first);
+  
+          const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
+  
+          const marker = new mapboxgl.Marker({ color: "#10B981" })
+            .setLngLat(center)
+            .setPopup(
+              new mapboxgl.Popup({ offset: 15 }).setHTML(`
+                <div class="text-sm">
+                  <h3 class='font-bold text-green-600'>${crop.crop_name}</h3>
+                  <p><strong>Variety:</strong> ${crop.variety_name || "N/A"}</p>
+                </div>
+              `)
+            )
+            .addTo(map.current);
+  
+          marker.getElement().addEventListener("click", () => {
+            setSelectedCrop(crop);
+            setIsSidebarVisible(true);
+          });
+  
+          savedMarkersRef.current.push(marker);
+        }
+      });
+    } catch (error) {
+      console.error("Failed to load saved markers:", error);
+    }
+  };
+  
 
   
   const loadPolygons = async (geojsonData = null, isFiltered = false) => {
@@ -324,6 +341,12 @@ const cropColorMap = {
   }
 }, [taggedData]);
 
+useEffect(() => {
+  if (map.current) {
+    renderSavedMarkers();
+  }
+}, [selectedCropType]);
+
 
   useEffect(() => {
     const filterPolygonsByCrop = async () => {
@@ -350,6 +373,8 @@ const cropColorMap = {
 
   return (
     <div className="relative h-screen w-screen">
+     
+
       <div ref={mapContainer} className="h-full w-full" />
 
       {isTagging && newTagLocation && (
@@ -499,8 +524,21 @@ const cropColorMap = {
           crops={sidebarCrops}              
           selectedCrop={selectedCrop}      
           />
-
       </div>
+
+      <ToastContainer
+        position="top-center"
+        autoClose={3000}
+        hideProgressBar
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable={false}
+        pauseOnHover
+        theme="light"
+        style={{ zIndex: 9999 }} 
+        />
     </div>  
   );
 };

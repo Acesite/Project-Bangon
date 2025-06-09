@@ -175,7 +175,8 @@ const AdminSideBar = ({
 {selectedCrop && (
   <div className="mt-6 ">
     <h4 className="text-lg font-semibold text-green-700 mb-2">{selectedCrop.crop_name || "Unnamed Crop"}</h4>
-    <p className="text-sm text-gray-700"><strong>Variety:</strong> {selectedCrop.variety || "N/A"}</p>
+    <p className="text-sm text-gray-700">
+    <strong>Variety:</strong> {selectedCrop.variety_name || "N/A"}</p>
     <p className="text-sm text-gray-700"><strong>Planted Date:</strong> {selectedCrop.planted_date?.split("T")[0] || "N/A"}</p>
     <p className="text-sm text-gray-700"><strong>Est. Harvest:</strong> {selectedCrop.estimated_harvest?.split("T")[0] || "N/A"}</p>
     <p className="text-sm text-gray-700"><strong>Volume:</strong> {selectedCrop.estimated_volume || "N/A"}</p>

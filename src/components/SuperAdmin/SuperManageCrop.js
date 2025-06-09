@@ -11,12 +11,24 @@ const SuperManageCrop = () => {
   const [editForm, setEditForm] = useState({});
   const [activeActionId, setActiveActionId] = useState(null);
   const [cropTypes, setCropTypes] = useState([]); // ✅ Crop types for dropdown
+  const [varieties, setVarieties] = useState([]);
+
 
   useEffect(() => {
     AOS.init({ duration: 1000, once: true });
     fetchCrops();
     fetchCropTypes(); // ✅ fetch crop type names
   }, []);
+
+  useEffect(() => {
+    if (editForm.crop_type_id) {
+      axios
+        .get(`http://localhost:5000/api/crops/varieties/${editForm.crop_type_id}`)
+        .then((res) => setVarieties(res.data))
+        .catch((err) => console.error("Failed to load varieties:", err));
+    }
+  }, [editForm.crop_type_id]);
+  
 
   const fetchCrops = () => {
     axios.get("http://localhost:5000/api/managecrops")
@@ -43,8 +55,13 @@ const SuperManageCrop = () => {
 
   const handleEdit = (crop) => {
     setEditingCrop(crop);
-    setEditForm({ ...crop, crop_type_id: crop.crop_type_id || "" }); // ✅ ensure crop_type_id is included
+    setEditForm({
+      ...crop,
+      crop_type_id: crop.crop_type_id || "",
+      variety_id: crop.variety_id || "",
+    });
   };
+  
 
   const handleEditChange = (e) => {
     const { name, value } = e.target;
@@ -72,25 +89,33 @@ const SuperManageCrop = () => {
     });
   };
 
+  const yieldUnitMap = {
+    1: "sacks",       // Corn
+    2: "sacks",       // Rice
+    3: "bunches",     // Banana
+    4: "tons",        // Sugarcane
+    5: "tons",        // Cassava
+    6: "kg",          // Vegetables
+  };
+  
   return (
     <div className="flex flex-col min-h-screen bg-white font-poppins">
       <SuperAdminNav />
 
-      <aside className="fixed top-[90px] left-[350px] w-[200px] p-6 z-50">
-        <nav className="space-y-4 font-medium">
-          <a href="/SuperAdminLandingPage" className="flex items-center gap-2 hover:text-green-600">Sugar Cane</a>
-          <a href="/ManageAccount" className="flex items-center gap-2 hover:text-green-600">Rice</a>
-          <a href="/SuperAdminManageCrop" className="flex items-center gap-2 text-green-700 font-bold">Corn</a>
-        </nav>
-      </aside>
-
+     <aside className="fixed top-[100px] left-[100px] w-[200px] p-6 bg-white border-r border-gray-200 shadow-md rounded-lg z-40 ml-[90px]">
+  <nav className="space-y-4 font-medium text-gray-700">
+    <a href="/SuperAdminLandingPage" className="block hover:text-green-600">Sugar Cane</a>
+    <a href="/ManageAccount" className="block hover:text-green-600">Rice</a>
+    <a href="/SuperAdminManageCrop" className="block text-green-700 font-semibold">Corn</a>
+  </nav>
+</aside>
       <main className="ml-[400px] pt-[100px] pr-8 flex-grow">
         <div className="mb-6 ml-[160px]">
           <h2 className="text-3xl font-bold text-green-700">Crop Management Panel</h2>
           <p className="text-gray-600">View, edit, or delete crop data tagged by field officers.</p>
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="w-full max-w-3xl mx-auto bg-white border border-gray-200 rounded-xl p-6 shadow-sm relative transition hover:shadow-md">
           {crops.length > 0 ? crops.map((crop) => (
             <div key={crop.id} className="w-full max-w-3xl relative mx-auto mr-[560px]">
               <div className="absolute top-3 right-3">
@@ -109,10 +134,11 @@ const SuperManageCrop = () => {
               </div>
 
               <h3 className="text-lg font-bold text-green-700 mb-2">{crop.crop_name}</h3>
-              <p className="text-sm text-gray-700 mb-1">Variety: {crop.variety}</p>
+              <p className="text-sm text-gray-700 mb-1">Variety: {crop.variety_name || "N/A"}</p>
               <p className="text-sm text-gray-700 mb-1">Planted: {formatDate(crop.planted_date)}</p>
               <p className="text-sm text-gray-700 mb-1">Harvest: {formatDate(crop.estimated_harvest)}</p>
-              <p className="text-sm text-gray-700 mb-1">Volume: {crop.estimated_volume}</p>
+              <p className="text-sm text-gray-700 mb-1">
+              Volume: {crop.estimated_volume} {yieldUnitMap[crop.crop_type_id] || "units"}</p>
               <p className="text-sm text-gray-700 mb-1">Hectares: {crop.estimated_hectares}</p>
               <div className="mt-4 text-sm italic text-gray-600 border-t pt-3">{crop.note || "No description provided."}</div>
               <div className="mt-2 text-xs text-gray-500">Tagged by: {crop.first_name && crop.last_name ? `${crop.first_name} ${crop.last_name}` : "N/A"}</div>
@@ -141,12 +167,18 @@ const SuperManageCrop = () => {
                 ))}
               </select>
 
-              <input
-                name="variety"
-                value={editForm.variety}
-                onChange={handleEditChange}
-                className="border px-3 py-2 rounded"
-              />
+              <select
+  name="variety_id"
+  value={editForm.variety_id || ""}
+  onChange={handleEditChange}
+  className="border px-3 py-2 rounded"
+>
+  <option value="">-- Select Variety --</option>
+  {varieties.map((v) => (
+    <option key={v.id} value={v.id}>{v.name}</option>
+  ))}
+</select>
+
 
               <input
                 type="date"

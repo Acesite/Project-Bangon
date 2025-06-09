@@ -11,12 +11,24 @@ const ManageCrop = () => {
   const [editForm, setEditForm] = useState({});
   const [activeActionId, setActiveActionId] = useState(null);
   const [cropTypes, setCropTypes] = useState([]); // ✅ Crop types for dropdown
+  const [varieties, setVarieties] = useState([]);
+
 
   useEffect(() => {
     AOS.init({ duration: 1000, once: true });
     fetchCrops();
     fetchCropTypes(); // ✅ fetch crop type names
   }, []);
+
+  useEffect(() => {
+    if (editForm.crop_type_id) {
+      axios
+        .get(`http://localhost:5000/api/crops/varieties/${editForm.crop_type_id}`)
+        .then((res) => setVarieties(res.data))
+        .catch((err) => console.error("Failed to load varieties:", err));
+    }
+  }, [editForm.crop_type_id]);
+  
 
   const fetchCrops = () => {
     axios.get("http://localhost:5000/api/managecrops")
@@ -43,8 +55,13 @@ const ManageCrop = () => {
 
   const handleEdit = (crop) => {
     setEditingCrop(crop);
-    setEditForm({ ...crop, crop_type_id: crop.crop_type_id || "" }); // ✅ ensure crop_type_id is included
+    setEditForm({
+      ...crop,
+      crop_type_id: crop.crop_type_id || "",
+      variety_id: crop.variety_id || "",
+    });
   };
+  
 
   const handleEditChange = (e) => {
     const { name, value } = e.target;
@@ -72,6 +89,15 @@ const ManageCrop = () => {
     });
   };
 
+  const yieldUnitMap = {
+    1: "sacks",       // Corn
+    2: "sacks",       // Rice
+    3: "bunches",     // Banana
+    4: "tons",        // Sugarcane
+    5: "tons",        // Cassava
+    6: "kg",          // Vegetables
+  };
+  
   return (
     <div className="flex flex-col min-h-screen bg-white font-poppins">
       <AdminNav />
@@ -108,10 +134,11 @@ const ManageCrop = () => {
               </div>
 
               <h3 className="text-lg font-bold text-green-700 mb-2">{crop.crop_name}</h3>
-              <p className="text-sm text-gray-700 mb-1">Variety: {crop.variety}</p>
+              <p className="text-sm text-gray-700 mb-1">Variety: {crop.variety_name || "N/A"}</p>
               <p className="text-sm text-gray-700 mb-1">Planted: {formatDate(crop.planted_date)}</p>
               <p className="text-sm text-gray-700 mb-1">Harvest: {formatDate(crop.estimated_harvest)}</p>
-              <p className="text-sm text-gray-700 mb-1">Volume: {crop.estimated_volume}</p>
+              <p className="text-sm text-gray-700 mb-1">
+              Volume: {crop.estimated_volume} {yieldUnitMap[crop.crop_type_id] || "units"}</p>
               <p className="text-sm text-gray-700 mb-1">Hectares: {crop.estimated_hectares}</p>
               <div className="mt-4 text-sm italic text-gray-600 border-t pt-3">{crop.note || "No description provided."}</div>
               <div className="mt-2 text-xs text-gray-500">Tagged by: {crop.first_name && crop.last_name ? `${crop.first_name} ${crop.last_name}` : "N/A"}</div>
@@ -140,12 +167,18 @@ const ManageCrop = () => {
                 ))}
               </select>
 
-              <input
-                name="variety"
-                value={editForm.variety}
-                onChange={handleEditChange}
-                className="border px-3 py-2 rounded"
-              />
+              <select
+  name="variety_id"
+  value={editForm.variety_id || ""}
+  onChange={handleEditChange}
+  className="border px-3 py-2 rounded"
+>
+  <option value="">-- Select Variety --</option>
+  {varieties.map((v) => (
+    <option key={v.id} value={v.id}>{v.name}</option>
+  ))}
+</select>
+
 
               <input
                 type="date"
