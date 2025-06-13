@@ -22,7 +22,7 @@ const KeyFeatures = () => {
     {
       icon: Database,
       title: "Data-Driven Farming",
-      description: "Make informed agricultural decisions with real-time insights.",
+      description: "Make informed agricultural decisions.",
     },
   ];
 
