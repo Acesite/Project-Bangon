@@ -227,20 +227,17 @@ import Footer from "../LandingPage/Footer";
                   <option key={type.id} value={type.id}>{type.name}</option>
                 ))}
               </select>
-
-              <select
-  name="variety_id"
-  value={editForm.variety_id || ""}
-  onChange={handleEditChange}
-  className="border px-3 py-2 rounded"
->
-  <option value="">-- Select Variety --</option>
-  {varieties.map((v) => (
-    <option key={v.id} value={v.id}>{v.name}</option>
-  ))}
-</select>
-
-
+                    <select
+        name="variety_id"
+        value={editForm.variety_id || ""}
+        onChange={handleEditChange}
+        className="border px-3 py-2 rounded"
+      >
+        <option value="">-- Select Variety --</option>
+        {varieties.map((v) => (
+          <option key={v.id} value={v.id}>{v.name}</option>
+        ))}
+      </select>
               <input
                 type="date"
                 name="planted_date"
