@@ -2,17 +2,17 @@ import React, { useEffect, useState } from "react";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import axios from "axios";
-import SuperAdminNav from "../NavBar/SuperAdminNav";
+import AdminNav from "../NavBar/AdminNavbar";
 import Footer from "../LandingPage/Footer";
 
-const SuperManageCrop = () => {
+  const SuperManageCrop = () => {
   const [crops, setCrops] = useState([]);
   const [editingCrop, setEditingCrop] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [activeActionId, setActiveActionId] = useState(null);
   const [cropTypes, setCropTypes] = useState([]); // ✅ Crop types for dropdown
   const [varieties, setVarieties] = useState([]);
-
+  const [selectedCropTypeId, setSelectedCropTypeId] = useState(null);
 
   useEffect(() => {
     AOS.init({ duration: 1000, once: true });
@@ -89,6 +89,8 @@ const SuperManageCrop = () => {
     });
   };
 
+  
+
   const yieldUnitMap = {
     1: "sacks",       // Corn
     2: "sacks",       // Rice
@@ -100,52 +102,111 @@ const SuperManageCrop = () => {
   
   return (
     <div className="flex flex-col min-h-screen bg-white font-poppins">
-      <SuperAdminNav />
+      <AdminNav />  
 
-     <aside className="fixed top-[100px] left-[100px] w-[200px] p-6 bg-white border-r border-gray-200 shadow-md rounded-lg z-40 ml-[90px]">
-  <nav className="space-y-4 font-medium text-gray-700">
-    <a href="/SuperAdminLandingPage" className="block hover:text-green-600">Sugar Cane</a>
-    <a href="/ManageAccount" className="block hover:text-green-600">Rice</a>
-    <a href="/SuperAdminManageCrop" className="block text-green-700 font-semibold">Corn</a>
-  </nav>
-</aside>
-      <main className="ml-[400px] pt-[100px] pr-8 flex-grow">
-        <div className="mb-6 ml-[160px]">
-          <h2 className="text-3xl font-bold text-green-700">Crop Management Panel</h2>
-          <p className="text-gray-600">View, edit, or delete crop data tagged by field officers.</p>
+      <main className="ml-[170px] pt-[100px] pr-8 flex-grow">
+
+        <div className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between px-4 gap-4">
+  <div>
+    <h2 className="text-3xl font-bold text-green-700">Crop Management Panel</h2>
+    <p className="text-gray-600">View, edit, or delete crop data tagged by field officers.</p>
+  </div>
+
+  <div className="mr-[110px]">
+    <label htmlFor="cropFilter" className="block text-sm font-medium text-gray-700  mb-1">
+      Filter by Crop Type:
+    </label>
+    <select
+      id="cropFilter"
+      className="border border-gray-300 px-4 py-2 rounded  w-64"
+      value={selectedCropTypeId || ""}
+      onChange={(e) =>
+        setSelectedCropTypeId(e.target.value ? Number(e.target.value) : null)
+      }
+    >
+      <option value="">Show All Crop Types </option>
+      {cropTypes.map((type) => (
+        <option key={type.id} value={type.id}>
+          {type.name}
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4 max-w-screen-xl mr-[100px] mb-6 mx-auto">
+         {(() => {
+        const filteredCrops = crops.filter(
+        (crop) => !selectedCropTypeId || crop.crop_type_id === selectedCropTypeId);
+
+      return filteredCrops.length > 0 ? (
+      filteredCrops.map((crop) => (
+      <div key={crop.id} className="w-full max-w-3xl relative mx-auto mr-[560px]">
+        <div className="absolute top-3 right-3">
+          <button
+            onClick={() =>
+              setActiveActionId(activeActionId === crop.id ? null : crop.id)
+            }
+            className="text-gray-600 hover:text-black text-xl"
+          >
+            ⋯
+          </button>
+          {activeActionId === crop.id && (
+            <div className="absolute right-0 mt-2 w-28 bg-white border rounded-lg shadow-xl z-50">
+              <button
+                onClick={() => {
+                  handleEdit(crop);
+                  setActiveActionId(null);
+                }}
+                className="block w-full px-4 py-2 text-sm text-left hover:bg-gray-100"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => {
+                  handleDelete(crop.id);
+                  setActiveActionId(null);
+                }}
+                className="block w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-100"
+              >
+                Delete
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="w-full max-w-3xl mx-auto bg-white border border-gray-200 rounded-xl p-6 shadow-sm relative transition hover:shadow-md">
-          {crops.length > 0 ? crops.map((crop) => (
-            <div key={crop.id} className="w-full max-w-3xl relative mx-auto mr-[560px]">
-              <div className="absolute top-3 right-3">
-                <button
-                  onClick={() => setActiveActionId(activeActionId === crop.id ? null : crop.id)}
-                  className="text-gray-600 hover:text-black text-xl"
-                >⋯</button>
-                {activeActionId === crop.id && (
-                  <div className="absolute right-0 mt-2 w-28 bg-white border rounded-lg shadow-xl z-50">
-                    <button onClick={() => { handleEdit(crop); setActiveActionId(null); }}
-                      className="block w-full px-4 py-2 text-sm text-left hover:bg-gray-100">Edit</button>
-                    <button onClick={() => { handleDelete(crop.id); setActiveActionId(null); }}
-                      className="block w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-100">Delete</button>
-                  </div>
-                )}
-              </div>
+        <h3 className="text-lg font-bold text-green-700 mb-2">{crop.crop_name}</h3>
+        <p className="text-sm text-gray-700 mb-1">
+          Variety: {crop.variety_name || "N/A"}
+        </p>
+        <p className="text-sm text-gray-700 mb-1">
+          Planted: {formatDate(crop.planted_date)}
+        </p>
+        <p className="text-sm text-gray-700 mb-1">
+          Harvest: {formatDate(crop.estimated_harvest)}
+        </p>
+        <p className="text-sm text-gray-700 mb-1">
+          Volume: {crop.estimated_volume} {yieldUnitMap[crop.crop_type_id] || "units"}
+        </p>
+        <p className="text-sm text-gray-700 mb-1">
+          Hectares: {crop.estimated_hectares}
+        </p>
+        <div className="mt-4 text-sm italic text-gray-600 border-t pt-3">
+          {crop.note || "No description provided."}
+        </div>
+        <div className="mt-2 text-xs text-gray-500">
+          Tagged by:{" "}
+          {crop.first_name && crop.last_name
+            ? `${crop.first_name} ${crop.last_name}`
+            : "N/A"}
+        </div>
+      </div>
+    ))
+  ) : (
+    <p className="text-center text-gray-500 italic">No crops found for this crop type.</p>
+  );
+})()}
 
-              <h3 className="text-lg font-bold text-green-700 mb-2">{crop.crop_name}</h3>
-              <p className="text-sm text-gray-700 mb-1">Variety: {crop.variety_name || "N/A"}</p>
-              <p className="text-sm text-gray-700 mb-1">Planted: {formatDate(crop.planted_date)}</p>
-              <p className="text-sm text-gray-700 mb-1">Harvest: {formatDate(crop.estimated_harvest)}</p>
-              <p className="text-sm text-gray-700 mb-1">
-              Volume: {crop.estimated_volume} {yieldUnitMap[crop.crop_type_id] || "units"}</p>
-              <p className="text-sm text-gray-700 mb-1">Hectares: {crop.estimated_hectares}</p>
-              <div className="mt-4 text-sm italic text-gray-600 border-t pt-3">{crop.note || "No description provided."}</div>
-              <div className="mt-2 text-xs text-gray-500">Tagged by: {crop.first_name && crop.last_name ? `${crop.first_name} ${crop.last_name}` : "N/A"}</div>
-            </div>
-          )) : (
-            <p className="text-center text-gray-500">No crop records found.</p>
-          )}
         </div>
       </main>
 

@@ -15,7 +15,7 @@ const teamMembers = [
   {
     name: "Jerryl Perez",
     role: "Back-End Developer",
-    image: "https://pagedone.io/asset/uploads/1696238396.png",
+    image: "./images/sssss.jpg",
     socials: {
       facebook: "https://facebook.com/jerrylperez",
       linkedin: "https://linkedin.com/in/jerrylperez",

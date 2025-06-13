@@ -1,14 +1,21 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
+import axios from "axios";
 
-const AdminNavBar = () => {
+  const AdminNavBar = () => {
   const location = useLocation();
-
   const firstName = localStorage.getItem("first_name") || "";
   const lastName = localStorage.getItem("last_name") || "";
-
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef();
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [adminProfile, setAdminProfile] = useState({
+  first_name: firstName,
+  last_name: lastName,
+  email: localStorage.getItem("email") || "",
+});
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -58,18 +65,6 @@ const AdminNavBar = () => {
               Crops
             </a>
           </nav>
-
-          {/* Logout Button (unchanged) */}
-          {/* <Link to="/Login" onClick={() => localStorage.clear()}>
-            <button className="relative inline-block group">
-              <span className="relative z-10 px-3.5 py-2 overflow-hidden font-medium leading-tight flex items-centrer justify-center text-green-600 transition-colors duration-300 ease-out border-2 border-green-600 rounded-lg group-hover:text-white">
-                <span className="absolute inset-0 w-full h-full px-5 py-3 rounded-lg bg-gray-50"></span>
-                <span className="absolute left-0 w-40 h-40 -ml-2 transition-all duration-300 origin-top-right -rotate-90 -translate-x-full translate-y-12 bg-green-600 group-hover:-rotate-180 ease"></span>
-                <span className="relative text-base font-poppins"> Logout</span>
-              </span>
-              <span className="absolute bottom-0 right-0 w-full h-9 -mb-1 -mr-1 transition-all duration-200 ease-linear bg-green-600 rounded-lg group-hover:mb-0 group-hover:mr-0 group-hover:mb-2" />
-            </button>
-          </Link> */}
         </div>
 
 
@@ -85,19 +80,15 @@ const AdminNavBar = () => {
 
             {showDropdown && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-md z-50">
-                <Link
-                  to="/profile"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Profile
-                </Link>
-                <Link
-                  to="/change-password"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Change Password
-                </Link>
-
+               <button
+              onClick={() => {
+                setShowDropdown(false);
+                setShowProfileModal(true);
+              }}
+              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              Profile
+            </button>
                 <Link
                   to="/"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -108,6 +99,123 @@ const AdminNavBar = () => {
             )}
           </div>
       </div>
+
+      {showProfileModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex justify-center items-center z-50">
+    <div className="bg-white p-6 rounded-xl w-full max-w-lg shadow-lg relative">
+      <button
+        onClick={() => setShowProfileModal(false)}
+        className="absolute top-2 right-3 text-gray-500 hover:text-black text-xl"
+      >
+        &times;
+      </button>
+      <h2 className="text-xl font-semibold text-green-700 mb-4">Admin Profile</h2>
+      <div className="space-y-3">
+              <input
+          type="text"
+          name="first_name"
+          value={adminProfile.first_name}
+          onChange={(e) =>
+            setAdminProfile((prev) => ({ ...prev, first_name: e.target.value }))
+          }
+          className="w-full border px-4 py-2 rounded"
+          placeholder="Enter your first name"
+        />
+
+        <input
+          type="text"
+          name="last_name"
+          value={adminProfile.last_name}
+          onChange={(e) =>
+            setAdminProfile((prev) => ({ ...prev, last_name: e.target.value }))
+          }
+          className="w-full border px-4 py-2 rounded"
+          placeholder="Enter your last name"
+        />
+
+        <input
+          type="email"
+          name="email"
+          value={adminProfile.email}
+          onChange={(e) =>
+            setAdminProfile((prev) => ({ ...prev, email: e.target.value }))
+          }
+          className="w-full border px-4 py-2 rounded"
+          placeholder="Enter your email address"
+        />
+
+        <input
+          type="password"
+          name="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full border px-4 py-2 rounded"
+          placeholder="New password (leave blank to keep current)"
+        />
+
+        <input
+          type="password"
+          name="confirm_password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          className="w-full border px-4 py-2 rounded"
+          placeholder="Confirm new password"
+        />
+
+      </div>
+      <div className="flex justify-end gap-3 mt-4">
+        <button
+          onClick={() => setShowProfileModal(false)}
+          className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+        >
+          Cancel
+        </button>
+        <button
+      onClick={async () => {
+      try {
+        const id = localStorage.getItem("user_id");
+
+        if (password && password !== confirmPassword) {
+          alert("Passwords do not match.");
+          return;
+        }
+
+        const payload = {
+          first_name: adminProfile.first_name,
+          last_name: adminProfile.last_name,
+          email: adminProfile.email,
+        };
+
+        if (password.trim()) {
+          payload.password = password;
+        }
+
+        await axios.put(`http://localhost:5000/api/profile/${id}`, payload);
+
+        localStorage.setItem("first_name", adminProfile.first_name);
+        localStorage.setItem("last_name", adminProfile.last_name);
+        localStorage.setItem("email", adminProfile.email);
+
+        alert("Profile updated successfully.");
+        setShowProfileModal(false);
+        setPassword("");
+        setConfirmPassword("");
+      } catch (error) {
+        console.error("Error updating profile:", error);
+        alert("Failed to update profile.");
+      }
+    }}
+
+  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+>
+  Save
+</button>
+
+      </div>
+    </div>
+  </div>
+)}
+
     </header>
   );
 };
