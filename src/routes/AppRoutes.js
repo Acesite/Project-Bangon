@@ -13,6 +13,8 @@ import AdminMap from "../components/Admin/AdminMapBox";
 import ManageCrop from "../components/Admin/ManageCrop";
 import SuperAdminManageCrop from "../components/SuperAdmin/SuperManageCrop";
 import SuperAdminMap from "../components/SuperAdmin/SuperAdminMap";
+import Graphs from "../components/SuperAdmin/Graphs";
+
 
 const AppRoutes = () => {
   return (
@@ -28,6 +30,8 @@ const AppRoutes = () => {
       <Route path="/ManageAccount" element={<ManageAccount />} />
       <Route path="/SuperAdminManageCrop" element={<SuperAdminManageCrop />} />
       <Route path="/SuperAdminMap" element={<SuperAdminMap />} />
+      <Route path="/Graphs" element={<Graphs/>} />
+
       
       {/*User*/}
       <Route path="/UserMap" element={<UserMap />} />

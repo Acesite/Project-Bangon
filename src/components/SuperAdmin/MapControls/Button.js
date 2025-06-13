@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 const FancyButtonLink = ({ to, label = "Click Me" }) => {
   return (
-    <Link to="/AdminLanding">
+    <Link to="/SuperAdminLandingPage">
             <button class="relative inline-block group">
             <span
             class="relative z-10 px-3.5 py-2 overflow-hidden font-medium leading-tight flex items-centrer justify-center text-green-600 transition-colors duration-300 ease-out border-2 border-green-600 rounded-lg group-hover:text-white">

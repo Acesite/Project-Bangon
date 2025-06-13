@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
 import Button from "./MapControls/Button";
 
-const AdminSideBar = ({
+const SuperAdminSideBar = ({
   zoomToBarangay,
   onBarangaySelect,
   crops = [],
@@ -20,30 +20,28 @@ const AdminSideBar = ({
   const navigate = useNavigate();
 
   const barangayCoordinates = {
-    Abuanan: [122.984389, 10.527456],
-    Alianza: [122.969238, 10.516775],
-    Atipuluan: [122.973444, 10.506088],
-    Bacong: [122.962773, 10.503245],
-    Bagroy: [122.980745, 10.490189],
-    Balingasag: [122.97685, 10.499741],
-    Binubuhan: [122.964209, 10.497236],
-    Busay: [122.959844, 10.491632],
-    Calumangan: [122.937321, 10.486274],
-    Caridad: [122.940823, 10.486633],
-    Dulao: [122.958018, 10.490659],
-    Ilijan: [122.97104, 10.498089],
-    "Lag-asan": [122.951085, 10.511455],
-    Mailum: [122.977706, 10.522196],
-    "Ma-ao": [122.939712, 10.528344],
-    Malingin: [122.931746, 10.536495],
-    Napoles: [122.926812, 10.519978],
-    Pacol: [122.92825, 10.505916],
-    Poblacion: [122.960903, 10.507042],
-    Sagasa: [122.954496, 10.518531],
-    Tabunan: [122.973885, 10.506478],
-    Taloc: [122.947307, 10.531319],
-    Talon: [122.943887, 10.520805],
-    Tinongan: [122.939491, 10.49741],
+     Abuanan: [122.9844, 10.5275],
+    Alianza: [122.92424927088227, 10.471876805354725],
+    Atipuluan: [122.94997254227323, 10.51054338526979],
+    Bacong: [123.03026270744279, 10.520037893339277],
+    Bagroy: [122.87467558102158, 10.47702885963125],
+    Balingasag: [122.84330579876998, 10.528672212250575],
+    Binubuhan: [122.98236293756698, 10.457428765280468],
+    Busay: [122.8936085581886, 10.536447801424544],
+    Calumangan: [122.8857773056537, 10.55943773159997],
+    Caridad: [122.89676017560787, 10.484855427956782],
+    Dulao: [122.94775786836688, 10.549767917490168],
+    Ilijan: [123.04567999131407, 10.44537414453059],
+    "Lag-asan": [122.84543167453091, 10.519843756585255],
+   Mailum: [123.05148249170527, 10.469013722796765],
+    "Ma-ao": [123.018102985426, 10.508962844307234],
+    Malingin: [122.92533490443519, 10.51102316577104],
+    Napoles: [122.86024955431672, 10.510195807139885],
+    Pacol: [122.86326134780008, 10.48966963268301],
+    Poblacion: [122.83378471878187, 10.535871883140523],
+   Sagasa: [122.89592554988106, 10.465232192594353],
+   Tabunan: [122.93868999567334, 10.570304584775227],
+    Taloc: [122.9100707275183, 10.57850192116514],
   };
 
   const barangayInfo = {
@@ -178,6 +176,9 @@ const AdminSideBar = ({
     <p className="text-sm text-gray-700"><strong>Est. Harvest:</strong> {selectedCrop.estimated_harvest?.split("T")[0] || "N/A"}</p>
     <p className="text-sm text-gray-700"><strong>Volume:</strong> {selectedCrop.estimated_volume || "N/A"}</p>
     <p className="text-sm text-gray-700"><strong>Hectares:</strong> {selectedCrop.estimated_hectares || "N/A"}</p>
+    <p className="text-sm text-gray-700">
+  <strong>Barangay:</strong> {selectedCrop.barangay || "N/A"}
+</p>
     <p className="text-sm text-gray-700 italic mt-2">{selectedCrop.note || "No note provided."}</p>
   </div>
 )}
@@ -272,7 +273,7 @@ const AdminSideBar = ({
 
 
     <div className="mt-5">
-      <Button to="/AdminLanding" label="Home" /></div>
+      <Button to="/SuperAdminLandingPage" label="Home" /></div>
 {enlargedImage && (
   <div
     className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center"
@@ -292,4 +293,4 @@ const AdminSideBar = ({
   );
 };
 
-export default AdminSideBar;
+export default SuperAdminSideBar;

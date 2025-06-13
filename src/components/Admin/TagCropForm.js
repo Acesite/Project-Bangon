@@ -9,6 +9,14 @@ const TagCropForm = ({ onCancel, onSave, defaultLocation, selectedBarangay }) =>
   const [dynamicVarieties, setDynamicVarieties] = useState([]);
   const [selectedVarietyId, setSelectedVarietyId] = useState("");
   const [autoVolume, setAutoVolume] = useState("");
+const [manualBarangay, setManualBarangay] = useState("");
+
+const barangayList = [
+  "Abuanan", "Alianza", "Atipuluan", "Bacong", "Bagroy", "Balingasag",
+  "Binubuhan", "Busay", "Calumangan", "Caridad", "Dulao", "Ilijan",
+  "Lag-asan", "Mailum", "Ma-ao", "Malingin", "Napoles", "Pacol",
+  "Poblacion", "Sagasa", "Tabunan", "Taloc"
+];
 
 
   useEffect(() => {
@@ -35,6 +43,12 @@ const TagCropForm = ({ onCancel, onSave, defaultLocation, selectedBarangay }) =>
       .catch((err) => console.error("Failed to load varieties:", err));
   }, [selectedCropType]);
 
+  useEffect(() => {
+  if (selectedBarangay) {
+    setManualBarangay(selectedBarangay);
+  }
+}, [selectedBarangay]);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,7 +63,8 @@ const TagCropForm = ({ onCancel, onSave, defaultLocation, selectedBarangay }) =>
     formData.append("estimatedHectares", hectares);
     formData.append("note", form.note.value);
     formData.append("coordinates", JSON.stringify(defaultLocation.coordinates));
-    formData.append("barangay", selectedBarangay || "");
+    formData.append("barangay", manualBarangay || selectedBarangay || "");
+
 
     const files = form.photos.files;
     for (let i = 0; i < files.length; i++) {
@@ -191,6 +206,22 @@ const TagCropForm = ({ onCancel, onSave, defaultLocation, selectedBarangay }) =>
               className="w-full border border-gray-300 px-3 py-2 rounded-lg bg-gray-100"
             />
           </div>
+
+         <div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Barangay</label>
+  <select
+    name="barangay"
+    required
+    value={manualBarangay}
+    onChange={(e) => setManualBarangay(e.target.value)}
+    className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-green-500"
+  >
+    <option value="">Select Barangay</option>
+    {barangayList.map((bgy) => (
+      <option key={bgy} value={bgy}>{bgy}</option>
+    ))}
+  </select>
+</div>
 
           {/* Notes */}
           <div className="md:col-span-2">

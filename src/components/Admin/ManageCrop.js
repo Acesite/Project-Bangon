@@ -180,6 +180,10 @@ import Footer from "../LandingPage/Footer";
           Variety: {crop.variety_name || "N/A"}
         </p>
         <p className="text-sm text-gray-700 mb-1">
+  Barangay: {crop.barangay || "N/A"}
+</p>
+
+        <p className="text-sm text-gray-700 mb-1">
           Planted: {formatDate(crop.planted_date)}
         </p>
         <p className="text-sm text-gray-700 mb-1">

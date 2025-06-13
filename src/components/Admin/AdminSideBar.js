@@ -178,6 +178,9 @@ const AdminSideBar = ({
     <p className="text-sm text-gray-700"><strong>Est. Harvest:</strong> {selectedCrop.estimated_harvest?.split("T")[0] || "N/A"}</p>
     <p className="text-sm text-gray-700"><strong>Volume:</strong> {selectedCrop.estimated_volume || "N/A"}</p>
     <p className="text-sm text-gray-700"><strong>Hectares:</strong> {selectedCrop.estimated_hectares || "N/A"}</p>
+    <p className="text-sm text-gray-700">
+  <strong>Barangay:</strong> {selectedCrop.barangay || "N/A"}
+</p>
     <p className="text-sm text-gray-700 italic mt-2">{selectedCrop.note || "No note provided."}</p>
   </div>
 )}

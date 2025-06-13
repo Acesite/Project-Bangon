@@ -12,8 +12,8 @@ const benefits = [
       image: "/images/benefit2.jpg"
     },
     { 
-      title: "Real-Time Monitoring & Insights", 
-      description: "Access live updates on soil conditions, weather patterns, and crop health for informed decision-making.",
+      title: "Crop Mapping & Insights", 
+      description: "View detailed records of crop types planted across barangays in Bago City.",
       image: "/images/benefit3.jpg"
     },
     { 

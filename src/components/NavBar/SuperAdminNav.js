@@ -73,6 +73,17 @@ import axios from "axios";
             >
               Crops
             </a>
+
+             <a
+              href="/Graphs"
+              className={`tracking-wide font-light hover:text-green-700 ${
+                location.pathname === "/Graphs"
+                  ? "text-green-700 font-medium"
+                  : "text-black-600"
+              }`}
+            >
+              Graphs
+            </a>
             
           </nav>
         </div>
