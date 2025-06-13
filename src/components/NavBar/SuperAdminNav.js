@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { FaSignOutAlt } from "react-icons/fa";
+
 
 const SuperAdminNavBar = () => {
   const location = useLocation();
@@ -83,18 +83,18 @@ const SuperAdminNavBar = () => {
               >
                 Profile
               </Link>
-              <Link
+              {/* <Link
                 to="/change-password"
                 className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
                 Change Password
-              </Link>
+              </Link> */}
               <Link
                 to="/"
                 onClick={() => localStorage.clear()}
                 className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
               >
-                <FaSignOutAlt className="mr-2" />
+                
                 Logout
               </Link>
             </div>

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import axios from "axios";
-import AdminNav from "../NavBar/AdminNavbar";
+import SuperAdminNav from "../NavBar/SuperAdminNav";
 import Footer from "../LandingPage/Footer";
 
   const SuperManageCrop = () => {
@@ -102,7 +102,7 @@ import Footer from "../LandingPage/Footer";
   
   return (
     <div className="flex flex-col min-h-screen bg-white font-poppins">
-      <AdminNav />  
+      <SuperAdminNav />  
 
       <main className="ml-[170px] pt-[100px] pr-8 flex-grow">
 
