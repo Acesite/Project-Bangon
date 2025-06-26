@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
 import Button from "./MapControls/Button";
 
-const AdminSideBar = ({
+const CalamitySideBar = ({
   zoomToBarangay,
   onBarangaySelect,
   crops = [],
@@ -11,13 +11,11 @@ const AdminSideBar = ({
   cropTypes = [],
   selectedCropType,
   setSelectedCropType,
-  setEnlargedImage
 }) => {
   const [selectedBarangay, setSelectedBarangay] = useState("");
   const [barangayDetails, setBarangayDetails] = useState(null);
   const [showCropDropdown, setShowCropDropdown] = useState(false);
-  
-  
+  const [enlargedImage, setEnlargedImage] = useState(null);
 
   const navigate = useNavigate();
 
@@ -97,13 +95,14 @@ const AdminSideBar = ({
     <div className="mb-6 w-full flex justify-center items-center">
         {selectedCrop?.photos ? (
           <img
-            src={`http://localhost:5000${JSON.parse(selectedCrop.photos)[0]}`}
-            alt="Selected Crop"
-            className="w-full h-full object-cover rounded-md border cursor-pointer"
-            onClick={() =>
-              setEnlargedImage(`http://localhost:5000${JSON.parse(selectedCrop.photos)[0]}`)
-            }
-          />
+  src={`http://${window.location.hostname}:5000${JSON.parse(selectedCrop.photos)[0]}`}
+  alt="Selected Crop"
+  className="w-full h-full object-cover rounded-md border cursor-pointer"
+  onClick={() =>
+    setEnlargedImage(`http://${window.location.hostname}:5000${JSON.parse(selectedCrop.photos)[0]}`)
+  }
+/>
+
         ) : (
           <img
             src={AgriGISLogo}
@@ -178,9 +177,6 @@ const AdminSideBar = ({
     <p className="text-sm text-gray-700"><strong>Est. Harvest:</strong> {selectedCrop.estimated_harvest?.split("T")[0] || "N/A"}</p>
     <p className="text-sm text-gray-700"><strong>Volume:</strong> {selectedCrop.estimated_volume || "N/A"}</p>
     <p className="text-sm text-gray-700"><strong>Hectares:</strong> {selectedCrop.estimated_hectares || "N/A"}</p>
-    <p className="text-sm text-gray-700">
-  <strong>Barangay:</strong> {selectedCrop.barangay || "N/A"}
-</p>
     <p className="text-sm text-gray-700 italic mt-2">{selectedCrop.note || "No note provided."}</p>
   </div>
 )}
@@ -195,10 +191,11 @@ const AdminSideBar = ({
            {JSON.parse(selectedCrop.photos).map((url, i) => (
   <img
     key={i}
-    src={`http://localhost:5000${url}`}
+    src={`http://${window.location.hostname}:5000${url}`}
     alt={`Crop photo ${i + 1}`}
     className="w-full h-24 object-cover rounded-md border cursor-pointer"
-    onClick={() => setEnlargedImage(`http://localhost:5000${url}`)}
+    onClick={() => setEnlargedImage(`http://${window.location.hostname}:5000${url}`)}
+
   />
 ))}
 
@@ -219,12 +216,13 @@ const AdminSideBar = ({
     const photoArray = crop.photos ? JSON.parse(crop.photos) : [];
     return photoArray.map((url, i) => (
       <img
-        key={`${idx}-${i}`}
-        src={`http://localhost:5000${url}`}
-        alt={`Crop ${idx}`}
-        className="w-full h-24 object-cover rounded-md border cursor-pointer"
-        onClick={() => setEnlargedImage(`http://localhost:5000${url}`)}
-      />
+  key={`${idx}-${i}`}
+  src={`http://${window.location.hostname}:5000${url}`}
+  alt={`Crop ${idx}`}
+  className="w-full h-24 object-cover rounded-md border cursor-pointer"
+  onClick={() => setEnlargedImage(`http://${window.location.hostname}:5000${url}`)}
+/>
+
     ));
   })}
 
@@ -276,10 +274,23 @@ const AdminSideBar = ({
 
     <div className="mt-5">
       <Button to="/AdminLanding" label="Home" /></div>
-
+{enlargedImage && (
+  <div
+    className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center"
+    onClick={() => setEnlargedImage(null)}
+  >
+    <div className="bg-white p-4 rounded-lg shadow-lg max-w-3xl max-h-[90vh] overflow-auto">
+      <img
+        src={enlargedImage}
+        alt="Enlarged"
+        className="w-full h-auto object-contain"
+      />
+    </div>
+  </div>
+)}
 
     </div>
   );
 };
 
-export default AdminSideBar;
+export default CalamitySideBar;

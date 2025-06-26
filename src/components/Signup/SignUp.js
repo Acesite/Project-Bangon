@@ -39,21 +39,35 @@ const SignUp = () => {
 
   const onSubmit = async (data) => {
     try {
-      const response = await axios.post("http://localhost:5000/signup", data);
+      const formData = new FormData();
+      formData.append("firstName", data.firstName);
+      formData.append("lastName", data.lastName);
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+      if (profilePic) {
+        formData.append("profile_picture", profilePic);
+      }
+  
+      const response = await axios.post("http://localhost:5000/signup", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+  
       if (response.data.success) {
-        toast.success("Account Created successfully!", {
-          position: "top-center", 
-        });       
-         navigate("/login");
+        toast.success("Account Created successfully!", { position: "top-center" });
+        navigate("/login");
       }
     } catch (error) {
       toast.error("An error occurred. Please try again.");
+      console.error(error);
     }
   };
-
+  
+  const [profilePic, setProfilePic] = useState(null);
   return (
     <div className="flex h-screen items-center justify-center bg-gray-100 font-poppins">
-      <div className="flex w-[1200px] h-[720px] bg-white rounded-xl shadow-lg overflow-hidden">
+      <div className="flex w-[1200px] h-[710px] bg-white rounded-xl shadow-lg overflow-hidden">
         
         {/* Right Side - Sign Up Form */}
         <div className="w-[55%] p-10 flex flex-col justify-center"> 
@@ -67,80 +81,113 @@ const SignUp = () => {
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="flex gap-4">
-              <div className="w-1/2">
-                <label className="block text-green-600 font-medium">First Name</label>
-                <input {...register("firstName")} type="text" className="w-full p-3 border rounded-lg" placeholder="John Doe" />
-                <p className="text-red-500 text-sm">{errors.firstName?.message}</p>
-              </div>
-              <div className="w-1/2">
-                <label className="block text-green-600 font-medium">Last Name</label>
-                <input {...register("lastName")} type="text" className="w-full p-3 border rounded-lg" placeholder="Balagbag" />
-                <p className="text-red-500 text-sm">{errors.lastName?.message}</p>
-              </div>
-            </div>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {/* First Row: First Name & Last Name */}
+    <div>
+      <label className="block text-green-600 font-medium">First Name</label>
+      <input
+        {...register("firstName")}
+        type="text"
+        className="w-full p-3 border rounded-lg"
+        placeholder="John"
+      />
+      <p className="text-red-500 text-sm">{errors.firstName?.message}</p>
+    </div>
 
-            <div className="mb-4 mt-4">
-              <label className="block text-green-600 font-medium">Email address</label>
-              <input {...register("email")} type="email" className="w-full p-3 border rounded-lg" placeholder="example@gmail.com"/>
-              <p className="text-red-500 text-sm">{errors.email?.message}</p>
-            </div>
+    <div>
+      <label className="block text-green-600 font-medium">Last Name</label>
+      <input
+        {...register("lastName")}
+        type="text"
+        className="w-full p-3 border rounded-lg"
+        placeholder="Balagbag"
+      />
+      <p className="text-red-500 text-sm">{errors.lastName?.message}</p>
+    </div>
 
-            <div className="mb-4 relative">
-              <label className="block text-green-600 font-medium">Password</label>
-              <div className="relative">
-                <input
-                  {...register("password")}
-                  type={showPassword ? "text" : "password"}
-                  placeholder="********"
-                  className="w-full p-3 border rounded-lg pr-10"
-                  value={passwordValue}
-                  onChange={(e) => setPasswordValue(e.target.value)} // Update state when typing
-                />
-                {passwordValue && (
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-                    onClick={togglePasswordVisibility}
-                  >
-                    {showPassword ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
-                  </button>
-                )}
-              </div>
-              <p className="text-red-500 text-sm">{errors.password?.message}</p>
-            </div>
+    {/* Second Row: Email & Profile Picture */}
+    <div>
+      <label className="block text-green-600 font-medium">Email address</label>
+      <input
+        {...register("email")}
+        type="email"
+        className="w-full p-3 border rounded-lg"
+        placeholder="example@gmail.com"
+      />
+      <p className="text-red-500 text-sm">{errors.email?.message}</p>
+    </div>
 
-            <div className="mb-4 relative">
-              <label className="block text-green-600 font-medium">Confirm Password</label>
-              <div className="relative">
-                <input
-                  {...register("confirmPassword")}
-                  type={showPassword ? "text" : "password"}
-                  placeholder="********"
-                  className="w-full p-3 border rounded-lg pr-10"
-                  value={passwordValue}
-                  onChange={(e) => setPasswordValue(e.target.value)} // Update state when typing
-                />
-                {passwordValue && (
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-                    onClick={togglePasswordVisibility}
-                  >
-                    {showPassword ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
-                  </button>
-                )}
-              </div>
-              <p className="text-red-500 text-sm">{errors.password?.message}</p>
-            </div>
+   
 
-            <button
-              type="submit"
-              className="w-full bg-green-500 text-white p-3 rounded-lg mb-4 hover:bg-green-800 active:bg-green-500"
-            >
-              Sign up
-            </button>
-          </form>
+    {/* Third Row: Password & Confirm Password */}
+    <div className="relative">
+      <label className="block text-green-600 font-medium">Password</label>
+      <input
+        {...register("password")}
+        type={showPassword ? "text" : "password"}
+        className="w-full p-3 border rounded-lg pr-10"
+        placeholder="********"
+        value={passwordValue}
+        onChange={(e) => setPasswordValue(e.target.value)}
+      />
+      {passwordValue && (
+        <button
+          type="button"
+          className="absolute right-3 top-9 text-gray-500"
+          onClick={togglePasswordVisibility}
+        >
+          {showPassword ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
+        </button>
+      )}
+      <p className="text-red-500 text-sm">{errors.password?.message}</p>
+    </div>
+
+    <div className="relative">
+      <label className="block text-green-600 font-medium">Confirm Password</label>
+      <input
+        {...register("confirmPassword")}
+        type={showPassword ? "text" : "password"}
+        className="w-full p-3 border rounded-lg pr-10"
+        placeholder="********"
+        value={passwordValue}
+        onChange={(e) => setPasswordValue(e.target.value)}
+      />
+      {passwordValue && (
+        <button
+          type="button"
+          className="absolute right-3 top-9 text-gray-500"
+          onClick={togglePasswordVisibility}
+        >
+          {showPassword ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
+        </button>
+      )}
+      <p className="text-red-500 text-sm">{errors.confirmPassword?.message}</p>
+    </div>
+
+    <div>
+      <label className="block text-green-600 font-medium mb-1">Profile Picture</label>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => setProfilePic(e.target.files[0])}
+        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
+          file:rounded-lg file:border-0 file:text-sm file:font-semibold
+          file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+      />
+    </div>
+  </div>
+
+  {/* Submit Button */}
+  <div className="mt-6">
+    <button
+      type="submit"
+      className="w-full bg-green-500 text-white p-3 rounded-lg hover:bg-green-800 active:bg-green-500"
+    >
+      Sign up
+    </button>
+  </div>
+</form>
+
 
           <p className="text-gray-500 text-center mt-4">
             Already have an account? <Link to="/login" className="text-green-600">Log in here</Link>

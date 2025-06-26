@@ -30,6 +30,7 @@ const Login = () => {
       localStorage.setItem("first_name", response.data.first_name);
       localStorage.setItem("last_name", response.data.last_name);
       localStorage.setItem("user_id", response.data.id); // ✅ Store user id
+      localStorage.setItem("profile_picture", response.data.profile_picture);
       
 
   if (response.data.role === "super_admin") {

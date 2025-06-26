@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
 import axios from "axios";
+import AdminProfileForm from "../Admin/AdminProfileForm";
+
 
   const AdminNavBar = () => {
   const location = useLocation();
@@ -13,7 +15,11 @@ import axios from "axios";
   first_name: firstName,
   last_name: lastName,
   email: localStorage.getItem("email") || "",
+  profile_picture: localStorage.getItem("profile_picture") || "",
 });
+const profilePicture = adminProfile.profile_picture;
+console.log("Profile Picture Path:", profilePicture);
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -70,13 +76,24 @@ import axios from "axios";
 
          {/* Avatar with Dropdown */}
           <div className="relative mr-[130px] ml-6" ref={dropdownRef}>
-            <button
-              onClick={() => setShowDropdown(!showDropdown)}
-              className="w-10 h-10 rounded-full bg-green-600 text-white flex items-center justify-center font-semibold text-lg focus:outline-none"
-              aria-label="User menu"
-            >
-              {initials || "U"}
-            </button>
+          <button
+  onClick={() => setShowDropdown(!showDropdown)}
+  className="w-10 h-10 rounded-full overflow-hidden focus:outline-none border border-gray-300"
+  aria-label="User menu"
+>
+  {profilePicture ? (
+    <img
+      src={`http://localhost:5000${profilePicture}`}
+      alt="Profile"
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <div className="bg-green-600 w-full h-full flex items-center justify-center text-white font-semibold text-lg">
+      {initials || "U"}
+    </div>
+  )}
+</button>
+
 
             {showDropdown && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-md z-50">
@@ -99,7 +116,7 @@ import axios from "axios";
             )}
           </div>
       </div>
-
+     
       {showProfileModal && (
   <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex justify-center items-center z-50">
     <div className="bg-white p-6 rounded-xl w-full max-w-lg shadow-lg relative">
@@ -110,111 +127,24 @@ import axios from "axios";
         &times;
       </button>
       <h2 className="text-xl font-semibold text-green-700 mb-4">Admin Profile</h2>
-      <div className="space-y-3">
-              <input
-          type="text"
-          name="first_name"
-          value={adminProfile.first_name}
-          onChange={(e) =>
-            setAdminProfile((prev) => ({ ...prev, first_name: e.target.value }))
-          }
-          className="w-full border px-4 py-2 rounded"
-          placeholder="Enter your first name"
-        />
 
-        <input
-          type="text"
-          name="last_name"
-          value={adminProfile.last_name}
-          onChange={(e) =>
-            setAdminProfile((prev) => ({ ...prev, last_name: e.target.value }))
-          }
-          className="w-full border px-4 py-2 rounded"
-          placeholder="Enter your last name"
-        />
+      {/* Reusable component here */}
+      <AdminProfileForm
+  onClose={() => {
+    setAdminProfile({
+      first_name: localStorage.getItem("first_name") || "",
+      last_name: localStorage.getItem("last_name") || "",
+      email: localStorage.getItem("email") || "",
+      profile_picture: localStorage.getItem("profile_picture") || "",
+    });
+    setShowProfileModal(false);
+  }}
+/>
 
-        <input
-          type="email"
-          name="email"
-          value={adminProfile.email}
-          onChange={(e) =>
-            setAdminProfile((prev) => ({ ...prev, email: e.target.value }))
-          }
-          className="w-full border px-4 py-2 rounded"
-          placeholder="Enter your email address"
-        />
-
-        <input
-          type="password"
-          name="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full border px-4 py-2 rounded"
-          placeholder="New password (leave blank to keep current)"
-        />
-
-        <input
-          type="password"
-          name="confirm_password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          className="w-full border px-4 py-2 rounded"
-          placeholder="Confirm new password"
-        />
-
-      </div>
-      <div className="flex justify-end gap-3 mt-4">
-        <button
-          onClick={() => setShowProfileModal(false)}
-          className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
-        >
-          Cancel
-        </button>
-        <button
-      onClick={async () => {
-      try {
-        const id = localStorage.getItem("user_id");
-
-        if (password && password !== confirmPassword) {
-          alert("Passwords do not match.");
-          return;
-        }
-
-        const payload = {
-          first_name: adminProfile.first_name,
-          last_name: adminProfile.last_name,
-          email: adminProfile.email,
-        };
-
-        if (password.trim()) {
-          payload.password = password;
-        }
-
-        await axios.put(`http://localhost:5000/api/profile/${id}`, payload);
-
-        localStorage.setItem("first_name", adminProfile.first_name);
-        localStorage.setItem("last_name", adminProfile.last_name);
-        localStorage.setItem("email", adminProfile.email);
-
-        alert("Profile updated successfully.");
-        setShowProfileModal(false);
-        setPassword("");
-        setConfirmPassword("");
-      } catch (error) {
-        console.error("Error updating profile:", error);
-        alert("Failed to update profile.");
-      }
-    }}
-
-  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
->
-  Save
-</button>
-
-      </div>
     </div>
   </div>
 )}
+
 
     </header>
   );
