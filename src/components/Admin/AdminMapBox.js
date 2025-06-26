@@ -45,6 +45,7 @@ const AdminMapBox = () => {
   const [cropTypes, setCropTypes] = useState([]);
   const [areMarkersVisible, setAreMarkersVisible] = useState(true);
 const savedMarkersRef = useRef([]); // store markers so we can remove them later
+const [enlargedImage, setEnlargedImage] = useState(null);
 
 
 const cropColorMap = {
@@ -371,6 +372,17 @@ useEffect(() => {
     }
   }, [selectedCropType]);
 
+  useEffect(() => {
+  const handleEsc = (e) => {
+    if (e.key === "Escape") {
+      setEnlargedImage(null);
+    }
+  };
+  window.addEventListener("keydown", handleEsc);
+  return () => window.removeEventListener("keydown", handleEsc);
+}, []);
+
+
   return (
     <div className="relative h-screen w-screen">
      
@@ -522,7 +534,8 @@ useEffect(() => {
           selectedCropType={selectedCropType}
           setSelectedCropType={setSelectedCropType}
           crops={sidebarCrops}              
-          selectedCrop={selectedCrop}      
+          selectedCrop={selectedCrop}  
+          setEnlargedImage={setEnlargedImage}    
           />
       </div>
 
@@ -539,6 +552,33 @@ useEffect(() => {
         theme="light"
         style={{ zIndex: 9999 }} 
         />
+
+       {enlargedImage && (
+  <div
+    className="fixed inset-0 bg-black bg-opacity-90 z-[9999] flex justify-center items-center animate-fadeIn"
+    onClick={() => setEnlargedImage(null)}
+  >
+    {/* Close X Button */}
+    <button
+      onClick={(e) => {
+        e.stopPropagation(); // prevent background click from triggering close
+        setEnlargedImage(null);
+      }}
+      className="absolute top-4 right-4 text-white text-2xl font-bold z-[10000] hover:text-red-400"
+      title="Close"
+    >
+      ×
+    </button>
+
+    <img
+      src={enlargedImage}
+      alt="Fullscreen Crop"
+      className="max-w-full max-h-full object-contain"
+    />
+  </div>
+)}
+
+
     </div>  
   );
 };

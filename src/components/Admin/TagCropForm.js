@@ -87,7 +87,7 @@ const barangayList = [
   };
 
   const yieldPerHectare = {
-    2: 70,   
+    2: 85.4,   
     1: 80,   
     3: 150,
     4: 80,

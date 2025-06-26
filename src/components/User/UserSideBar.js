@@ -97,13 +97,14 @@ const UserSidebar = ({
     <div className="mb-6 w-full flex justify-center items-center">
         {selectedCrop?.photos ? (
           <img
-            src={`http://localhost:5000${JSON.parse(selectedCrop.photos)[0]}`}
-            alt="Selected Crop"
-            className="w-full h-full object-cover rounded-md border cursor-pointer"
-            onClick={() =>
-              setEnlargedImage(`http://localhost:5000${JSON.parse(selectedCrop.photos)[0]}`)
-            }
-          />
+  src={`http://${window.location.hostname}:5000${JSON.parse(selectedCrop.photos)[0]}`}
+  alt="Selected Crop"
+  className="w-full h-full object-cover rounded-md border cursor-pointer"
+  onClick={() =>
+    setEnlargedImage(`http://${window.location.hostname}:5000${JSON.parse(selectedCrop.photos)[0]}`)
+  }
+/>
+
         ) : (
           <img
             src={AgriGISLogo}
@@ -192,10 +193,11 @@ const UserSidebar = ({
            {JSON.parse(selectedCrop.photos).map((url, i) => (
   <img
     key={i}
-    src={`http://localhost:5000${url}`}
+    src={`http://${window.location.hostname}:5000${url}`}
     alt={`Crop photo ${i + 1}`}
     className="w-full h-24 object-cover rounded-md border cursor-pointer"
-    onClick={() => setEnlargedImage(`http://localhost:5000${url}`)}
+    onClick={() => setEnlargedImage(`http://${window.location.hostname}:5000${url}`)}
+
   />
 ))}
 
@@ -216,12 +218,13 @@ const UserSidebar = ({
     const photoArray = crop.photos ? JSON.parse(crop.photos) : [];
     return photoArray.map((url, i) => (
       <img
-        key={`${idx}-${i}`}
-        src={`http://localhost:5000${url}`}
-        alt={`Crop ${idx}`}
-        className="w-full h-24 object-cover rounded-md border cursor-pointer"
-        onClick={() => setEnlargedImage(`http://localhost:5000${url}`)}
-      />
+  key={`${idx}-${i}`}
+  src={`http://${window.location.hostname}:5000${url}`}
+  alt={`Crop ${idx}`}
+  className="w-full h-24 object-cover rounded-md border cursor-pointer"
+  onClick={() => setEnlargedImage(`http://${window.location.hostname}:5000${url}`)}
+/>
+
     ));
   })}
 

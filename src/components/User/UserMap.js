@@ -99,7 +99,7 @@ const cropColorMap = {
 
   const renderSavedMarkers = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/crops");
+      const response = await axios.get(`http://${window.location.hostname}:5000/api/crops`);
       const crops = response.data;
       setSidebarCrops(crops);
   
@@ -171,7 +171,8 @@ const cropColorMap = {
 
   
   const loadPolygons = async (geojsonData = null, isFiltered = false) => {
-    const res = await axios.get("http://localhost:5000/api/crops/polygons");
+    const res = await axios.get(`http://${window.location.hostname}:5000/api/crops/polygons`);
+
     const fullData = geojsonData || res.data;
   
     const paintStyle = isFiltered
@@ -232,9 +233,10 @@ const cropColorMap = {
         zoom,
       });
 
-      axios.get("http://localhost:5000/api/crops/types").then((res) => {
+     axios.get(`http://${window.location.hostname}:5000/api/crops/types`).then((res) => {
   setCropTypes(res.data);
 });
+
 
       map.current.addControl(new mapboxgl.NavigationControl(), "bottom-right");
       map.current.on("load", async () => {

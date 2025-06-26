@@ -11,11 +11,13 @@ const AdminSideBar = ({
   cropTypes = [],
   selectedCropType,
   setSelectedCropType,
+  setEnlargedImage
 }) => {
   const [selectedBarangay, setSelectedBarangay] = useState("");
   const [barangayDetails, setBarangayDetails] = useState(null);
   const [showCropDropdown, setShowCropDropdown] = useState(false);
-  const [enlargedImage, setEnlargedImage] = useState(null);
+  
+  
 
   const navigate = useNavigate();
 
@@ -276,20 +278,7 @@ const AdminSideBar = ({
 
     <div className="mt-5">
       <Button to="/AdminLanding" label="Home" /></div>
-{enlargedImage && (
-  <div
-    className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center"
-    onClick={() => setEnlargedImage(null)}
-  >
-    <div className="bg-white p-4 rounded-lg shadow-lg max-w-3xl max-h-[90vh] overflow-auto">
-      <img
-        src={enlargedImage}
-        alt="Enlarged"
-        className="w-full h-auto object-contain"
-      />
-    </div>
-  </div>
-)}
+
 
     </div>
   );
