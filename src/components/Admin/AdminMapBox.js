@@ -26,7 +26,6 @@ const AdminMapBox = () => {
   const markerRef = useRef(null);
   const directionsRef = useRef(null);
   const drawRef = useRef(null);
-
   const [lng] = useState(122.961602);
   const [lat] = useState(10.507447);
   const [zoom] = useState(13);
@@ -44,8 +43,10 @@ const AdminMapBox = () => {
   const [selectedCropType, setSelectedCropType] = useState("All");
   const [cropTypes, setCropTypes] = useState([]);
   const [areMarkersVisible, setAreMarkersVisible] = useState(true);
-const savedMarkersRef = useRef([]); // store markers so we can remove them later
-const [enlargedImage, setEnlargedImage] = useState(null);
+  const savedMarkersRef = useRef([]); // store markers so we can remove them later
+  const [enlargedImage, setEnlargedImage] = useState(null);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+
 
 
 const cropColorMap = {
@@ -425,7 +426,21 @@ useEffect(() => {
       
       )}
 
-<SidebarToggleButton onClick={() => setIsSidebarVisible(!isSidebarVisible)} isSidebarVisible={isSidebarVisible} />
+<div
+  style={{
+    position: "absolute",
+    left: isSidebarVisible ? "480px" : "0px", // Adjust based on sidebar width
+    top: "50%",
+    transform: "translateY(-50%)",
+    zIndex: 10,
+  }}
+>
+  <SidebarToggleButton
+    onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+    isSidebarVisible={isSidebarVisible}
+  />
+</div>
+
 
       {!isSidebarVisible && (
         <button
@@ -518,26 +533,29 @@ useEffect(() => {
 </button>
 )}
       <div
-        className={`absolute top-0 left-0 h-full w-80 transition-transform duration-500 ease-in-out z-40 ${
-          isSidebarVisible ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <AdminSidebar
-          mapStyles={mapStyles}
-          setMapStyle={setMapStyle}
-          showLayers={showLayers}
-          setShowLayers={setShowLayers}
-          zoomToBarangay={zoomToBarangay}
-          onBarangaySelect={handleBarangaySelect}
-          selectedBarangay={selectedBarangay}
-          cropTypes={cropTypes}
-          selectedCropType={selectedCropType}
-          setSelectedCropType={setSelectedCropType}
-          crops={sidebarCrops}              
-          selectedCrop={selectedCrop}  
-          setEnlargedImage={setEnlargedImage}    
-          />
-      </div>
+  className={`absolute top-0 left-0 h-full z-40 bg-white border-r border-gray-200 transition-all duration-200 ease-in-out overflow-hidden ${
+    isSidebarVisible ? "w-[500px] px-6 py-8" : "w-0 px-0 py-0"
+  }`}
+>
+  {isSidebarVisible && (
+    <AdminSidebar
+      mapStyles={mapStyles}
+      setMapStyle={setMapStyle}
+      showLayers={showLayers}
+      setShowLayers={setShowLayers}
+      zoomToBarangay={zoomToBarangay}
+      onBarangaySelect={handleBarangaySelect}
+      selectedBarangay={selectedBarangay}
+      cropTypes={cropTypes}
+      selectedCropType={selectedCropType}
+      setSelectedCropType={setSelectedCropType}
+      crops={sidebarCrops}
+      selectedCrop={selectedCrop}
+      setEnlargedImage={setEnlargedImage}
+      visible={isSidebarVisible}
+    />
+  )}
+</div>
 
       <ToastContainer
         position="top-center"

@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
 import Button from "./MapControls/Button";
-
-const AdminSideBar = ({
+import clsx from 'clsx';
+const AdminSideBar = ({ 
+  visible,
   zoomToBarangay,
   onBarangaySelect,
   crops = [],
@@ -13,6 +14,7 @@ const AdminSideBar = ({
   setSelectedCropType,
   setEnlargedImage
 }) => {
+
   const [selectedBarangay, setSelectedBarangay] = useState("");
   const [barangayDetails, setBarangayDetails] = useState(null);
   const [showCropDropdown, setShowCropDropdown] = useState(false);
@@ -93,7 +95,15 @@ const AdminSideBar = ({
   };
 
   return (
-    <div className="absolute top-0 left-0 h-full w-95 bg-white shadow-xl z-20 px-6 py-8 overflow-y-auto border-r border-gray-200 transition-all duration-300">
+    <div
+  className={clsx(
+    'absolute top-0 left-0 h-full bg-white shadow-xl z-20 overflow-y-auto border-r border-gray-200',
+    visible
+      ? 'w-[500px] px-6 py-8'
+      : 'w-0 px-0 py-0 overflow-hidden'
+  )}
+>
+
     <div className="mb-6 w-full flex justify-center items-center">
         {selectedCrop?.photos ? (
           <img
