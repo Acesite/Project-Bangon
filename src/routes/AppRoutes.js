@@ -17,6 +17,8 @@ import Graphs from "../components/SuperAdmin/Graphs";
 import CalamityMap from "../components/User/CalamityMap";
 import FarmerSignup from "../components/Signup/SignupFarmer";
 import ChooseRole from "../components/ChooseRole/ChooseRole";
+import ChooseRoleLogin from "../components/ChooseRole/ChooseRoleLogin";
+import LoginFarmer from "../components/Login/LoginFarmer";
 
 
 const AppRoutes = () => {
@@ -29,6 +31,9 @@ const AppRoutes = () => {
       <Route path="/Contact" element={<Contact />} />
       <Route path="/FarmerSignup" element={<FarmerSignup />} />
       <Route path="/ChooseRole" element={<ChooseRole />} />
+      <Route path="/ChooseRoleLogin" element={<ChooseRoleLogin />} />
+      <Route path="/LoginFarmer" element={<LoginFarmer />} />
+
 
      
       {/*Super Admin*/}
