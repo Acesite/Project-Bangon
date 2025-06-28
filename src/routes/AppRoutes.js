@@ -15,7 +15,8 @@ import SuperAdminManageCrop from "../components/SuperAdmin/SuperManageCrop";
 import SuperAdminMap from "../components/SuperAdmin/SuperAdminMap";
 import Graphs from "../components/SuperAdmin/Graphs";
 import CalamityMap from "../components/User/CalamityMap";
-
+import FarmerSignup from "../components/Signup/SignupFarmer";
+import ChooseRole from "../components/ChooseRole/ChooseRole";
 
 
 const AppRoutes = () => {
@@ -26,6 +27,9 @@ const AppRoutes = () => {
       <Route path="/Signup" element={<SignUp />} />
       <Route path="/AboutUs" element={<AboutUs />} />
       <Route path="/Contact" element={<Contact />} />
+      <Route path="/FarmerSignup" element={<FarmerSignup />} />
+      <Route path="/ChooseRole" element={<ChooseRole />} />
+
      
       {/*Super Admin*/}
       <Route path="/SuperAdminLandingPage" element={<SuperAdminLandingPage />} />
@@ -38,6 +42,7 @@ const AppRoutes = () => {
       {/*User*/}
       <Route path="/UserMap" element={<UserMap />} />
       <Route path="/Calamity" element={<CalamityMap />} />
+   
 
       {/*Admin*/}
       <Route path="/AdminLanding" element={<AdminLanding />} />
