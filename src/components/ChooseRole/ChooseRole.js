@@ -29,7 +29,7 @@ const ChooseRole = () => {
           onClick={() => handleSelect("admin")}
           className="w-full border border-green-500 text-green-600 py-3 rounded-lg hover:bg-green-50"
         >
-          I'm an Admin
+          I'm an Field Officer
         </button>
 
         <p className="text-sm text-gray-500 mt-4">
