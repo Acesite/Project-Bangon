@@ -47,7 +47,11 @@ const AdminMapBox = () => {
   const [enlargedImage, setEnlargedImage] = useState(null);
   const [sidebarVisible, setSidebarVisible] = useState(true);
 
-
+// Bounding box for Bago City
+const bagoCityBounds = [
+  [122.770, 10.385], // Southwest corner
+  [123.055, 10.610]  // Northeast corner
+];
 
 const cropColorMap = {
   Rice: "#facc15",        // Yellow
@@ -227,12 +231,14 @@ const cropColorMap = {
   
   useEffect(() => {
     if (!map.current) {
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: mapStyle,
-        center: [lng, lat],
-        zoom,
-      });
+     map.current = new mapboxgl.Map({
+  container: mapContainer.current,
+  style: mapStyle,
+  center: [lng, lat],
+  zoom,
+  maxBounds: bagoCityBounds // ✅ Restrict panning to Bago City
+});
+
 
       axios.get("http://localhost:5000/api/crops/types").then((res) => {
   setCropTypes(res.data);
