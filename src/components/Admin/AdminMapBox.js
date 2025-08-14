@@ -49,9 +49,10 @@ const AdminMapBox = () => {
 
 // Bounding box for Bago City
 const bagoCityBounds = [
-  [122.770, 10.385], // Southwest corner
-  [123.055, 10.610]  // Northeast corner
+  [122.7333, 10.4958],
+  [123.5000, 10.6333]
 ];
+
 
 const cropColorMap = {
   Rice: "#facc15",        // Yellow
@@ -231,12 +232,12 @@ const cropColorMap = {
   
   useEffect(() => {
     if (!map.current) {
-     map.current = new mapboxgl.Map({
+  map.current = new mapboxgl.Map({
   container: mapContainer.current,
   style: mapStyle,
-  center: [lng, lat],
-  zoom,
-  maxBounds: bagoCityBounds // ✅ Restrict panning to Bago City
+  center: [122.9616, 10.5074], // Center point inside Bago City
+  zoom: 7,
+  maxBounds: bagoCityBounds
 });
 
 
