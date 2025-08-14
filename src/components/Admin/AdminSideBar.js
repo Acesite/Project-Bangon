@@ -180,20 +180,48 @@ const AdminSideBar = ({
         </div>
       )}
 {selectedCrop && (
-  <div className="mt-6 ">
-    <h4 className="text-lg font-semibold text-green-700 mb-2">{selectedCrop.crop_name || "Unnamed Crop"}</h4>
-    <p className="text-sm text-gray-700">
-    <strong>Variety:</strong> {selectedCrop.variety_name || "N/A"}</p>
-    <p className="text-sm text-gray-700"><strong>Planted Date:</strong> {selectedCrop.planted_date?.split("T")[0] || "N/A"}</p>
-    <p className="text-sm text-gray-700"><strong>Est. Harvest:</strong> {selectedCrop.estimated_harvest?.split("T")[0] || "N/A"}</p>
-    <p className="text-sm text-gray-700"><strong>Volume:</strong> {selectedCrop.estimated_volume || "N/A"}</p>
-    <p className="text-sm text-gray-700"><strong>Hectares:</strong> {selectedCrop.estimated_hectares || "N/A"}</p>
-    <p className="text-sm text-gray-700">
-  <strong>Barangay:</strong> {selectedCrop.barangay || "N/A"}
-</p>
-    <p className="text-sm text-gray-700 italic mt-2">{selectedCrop.note || "No note provided."}</p>
+  <div className="mt-6">
+    <h4 className="text-lg font-semibold text-green-700 mb-4">
+      {selectedCrop.crop_name || "Unnamed Crop"}
+    </h4>
+
+    {/* Variety and Barangay */}
+    <div className="grid grid-cols-2 gap-4 mb-4">
+      <p className="text-sm text-gray-700">
+        <strong>Variety:</strong> {selectedCrop.variety_name || "N/A"}
+      </p>
+      <p className="text-sm text-gray-700">
+        <strong>Barangay:</strong> {selectedCrop.barangay || "N/A"}
+      </p>
+    </div>
+
+    {/* Dates */}
+    <div className="grid grid-cols-2 gap-4 mb-4">
+      <p className="text-sm text-gray-700">
+        <strong>Planted Date:</strong> {selectedCrop.planted_date?.split("T")[0] || "N/A"}
+      </p>
+      <p className="text-sm text-gray-700">
+        <strong>Est. Harvest:</strong> {selectedCrop.estimated_harvest?.split("T")[0] || "N/A"}
+      </p>
+    </div>
+
+    {/* Volume and Hectares */}
+    <div className="grid grid-cols-2 gap-4 mb-4">
+      <p className="text-sm text-gray-700">
+        <strong>Volume:</strong> {selectedCrop.estimated_volume || "N/A"}
+      </p>
+      <p className="text-sm text-gray-700">
+        <strong>Hectares:</strong> {selectedCrop.estimated_hectares || "N/A"}
+      </p>
+    </div>
+
+    {/* Notes */}
+    <p className="text-sm text-gray-700 italic mt-2">
+      {selectedCrop.note || "No note provided."}
+    </p>
   </div>
 )}
+
 
       {/* Photos of selected crop */}
       {selectedCrop && selectedCrop.photos && (
