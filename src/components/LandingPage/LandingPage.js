@@ -15,7 +15,7 @@ import Footer from "./Footer";
 const images = [
   "/images/Hero.jpeg",
   "/images/Hero2.jpg",
-  "/images/Hero3.jpg",
+  "/images/Hero3.jpg",~
   "/images/Hero4.jpg",
 ];
 
