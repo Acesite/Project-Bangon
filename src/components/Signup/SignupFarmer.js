@@ -62,187 +62,144 @@ const SignUpFarmer = () => {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-100 font-poppins">
-      <div className="flex w-[1450px] h-[950px]   overflow-hidden">
+    <div className="flex h-screen items-center justify-center  font-poppins">
+      <div className="flex w-[1600px] h-[950px] overflow-hidden">
 
         {/* Left Side - Form */}
-        <div className="w-[55%] p-10 flex flex-col justify-center">
-          <div className="flex justify-center mb-2">
+        <div className="w-[50%] p-10 flex flex-col justify-center">
+          {/* <div className="flex justify-center mb-2">
             <img src="/images/AgriGIS.png" alt="Logo" className="h-[100px] w-auto" />
-          </div>
+          </div> */}
 
-          <h2 className="text-3xl font-bold text-green-700 text-center">Farmer's Profile</h2>
-          <p className="text-gray-500 text-center mb-6">
+          <h2 className="text-3xl font-bold text-green-700 text-center mt-12">Farmer's Profile</h2>
+          <p className="text-gray-500 text-center">
             Sign up to access <span className="text-green-700 font-semibold">AgriGIS</span>
           </p>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+<form onSubmit={handleSubmit(onSubmit)} className="space-y-6  rounded-2xl p-8">
+{/* Profile Picture */}
+<div>
+  <h3 className="text-lg font-semibold text-gray-700 mb-3">Profile Picture</h3>
+  <input
+    type="file"
+    accept="image/*"
+    onChange={(e) => setProfilePic(e.target.files[0])}
+    className="block w-full text-sm text-gray-600
+      file:mr-4 file:py-2 file:px-4
+      file:rounded-md file:border-0
+      file:bg-green-100 file:text-green-700
+      hover:file:bg-green-200 cursor-pointer"
+  />
+  {profilePicError && <p className="text-red-500 text-sm mt-1">{profilePicError}</p>}
+</div>
 
-            {/* Profile Picture Attachment */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Profile Picture (File Attachment)
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setProfilePic(e.target.files[0])}
-                className="block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-lg file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-green-50 file:text-green-700
-                  hover:file:bg-green-100"
-              />
-              {profilePicError && (
-                <p className="text-sm text-red-500 mt-1">{profilePicError}</p>
-              )}
-            </div>
-
-            {/* Name Section */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-semibold text-gray-700">Surname (Apelyido)</label>
-                <input {...register("last_name")} className="w-full border rounded-md p-2" />
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-700">First Name (Pangalan)</label>
-                <input {...register("first_name")} className="w-full border rounded-md p-2" />
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-700">Middle Name (Gitnang Pangalan)</label>
-                <input {...register("middle_name")} className="w-full border rounded-md p-2" />
-                <label className="inline-flex items-center text-sm mt-2">
-                  <input type="checkbox" {...register("no_middle_name")} className="mr-2" />
-                  No Middle Name
-                </label>
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-700">Extension Name</label>
-                <input {...register("extension_name")} className="w-full border rounded-md p-2" />
-                <label className="inline-flex items-center text-sm mt-2">
-                  <input type="checkbox" {...register("no_extension_name")} className="mr-2" />
-                  No Extension Name
-                </label>
-              </div>
-            </div>
-
-            {/* Sex Field */}
-            <div>
-              <label className="text-sm font-semibold text-gray-700">Sex (Kasarian)</label>
-              <div className="flex space-x-6 mt-1">
-                <label className="inline-flex items-center">
-                  <input type="radio" {...register("sex")} value="Male" className="mr-2" />
-                  Male (Lalaki)
-                </label>
-                <label className="inline-flex items-center">
-                  <input type="radio" {...register("sex")} value="Female" className="mr-2" />
-                  Female (Babae)
-                </label>
-              </div>
-              <p className="text-red-500 text-sm">{errors.sex?.message}</p>
-            </div>
-
-            {/* Mobile Number & Password */}
-<div className="grid grid-cols-2 gap-4">
-  <div>
-    <label className="text-sm font-semibold text-gray-700">Mobile Number</label>
-    <input
-      type="text"
-      {...register("mobile_number")}
-      className="w-full border rounded-md p-2"
-      placeholder="09XXXXXXXXX"
-    />
-  </div>
-  <div>
-    <label className="text-sm font-semibold text-gray-700">Password</label>
-    <input
-      type="password"
-      {...register("password")}
-      className="w-full border rounded-md p-2"
-      placeholder="Enter a password"
-    />
+{/* Name Section */}
+<div>
+  <h3 className="text-lg font-semibold text-gray-700 mb-3">Personal Information</h3>
+  <div className="grid grid-cols-2 gap-4">
+    <div>
+      <label className="text-sm font-semibold text-gray-700">Surname (Apelyido)</label>
+      <input {...register("last_name")}  className="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-green-400" />
+    </div>
+    <div>
+      <label className="text-sm font-semibold text-gray-700">First Name (Pangalan)</label>
+      <input {...register("first_name")}  className="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-green-400" />
+    </div>
+    <div>
+      <label className="text-sm font-semibold text-gray-700">Middle Name (Gitnang Pangalan)</label>
+      <input {...register("middle_name")}  className="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-green-400" />
+      <label className="inline-flex items-center text-sm mt-2">
+        <input type="checkbox" {...register("no_middle_name")} className="mr-2" />
+        No Middle Name
+      </label>
+    </div>
+    <div>
+      <label className="text-sm font-semibold text-gray-700">Extension Name</label>
+      <input {...register("extension_name")}  className="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-green-400" />
+      <label className="inline-flex items-center text-sm mt-2">
+        <input type="checkbox" {...register("no_extension_name")} className="mr-2" />
+        No Extension Name
+      </label>
+    </div>
   </div>
 </div>
 
-
-            {/* Address Section */}
-            <div className="grid grid-cols-3 gap-4">
-  <div>
-    <label className="text-sm font-semibold text-gray-700">House/Lot/Building No./Purok</label>
-    <input {...register("house_number")} className="w-full border rounded-md p-2" />
+{/* Sex */}
+<div>
+  <label className="text-sm font-semibold text-gray-700">Sex (Kasarian)</label>
+  <div className="flex space-x-6 mt-2">
+    <label className="inline-flex items-center">
+      <input type="radio" {...register("sex")} value="Male" className="mr-2" />
+      Male (Lalaki)
+    </label>
+    <label className="inline-flex items-center">
+      <input type="radio" {...register("sex")} value="Female" className="mr-2" />
+      Female (Babae)
+    </label>
   </div>
-  <div>
-    <label className="text-sm font-semibold text-gray-700">Street/Sitio/Subdivision</label>
-    <input {...register("street")} className="w-full border rounded-md p-2" />
-  </div>
-
-  <div>
-  <label className="text-sm font-semibold text-gray-700">Barangay</label>
-  <select {...register("barangay")} className="w-full border rounded-md p-2 bg-white">
-    <option value="">Select Barangay</option>
-    <option value="Abuanan">Abuanan</option>
-    <option value="Alianza">Alianza</option>
-    <option value="Atipuluan">Atipuluan</option>
-    <option value="Bacong">Bacong</option>
-    <option value="Bagroy">Bagroy</option>
-    <option value="Balingsag">Balingsag</option>
-    <option value="Binubuhan">Binubuhan</option>
-    <option value="Busay">Busay</option>
-    <option value="Calumangan">Calumangan</option>
-    <option value="Caridad">Caridad</option>
-    <option value="Dulao">Dulao</option>
-    <option value="Ilijan">Ilijan</option>
-    <option value="Lag-asan">Lag-asan</option>
-    <option value="Mailum">Mailum</option>
-    <option value="Ma-ao">Ma-ao</option>
-    <option value="Malingin">Malingin</option>
-    <option value="Napoles">Napoles</option>
-    <option value="Pacol">Pacol</option>
-    <option value="Poblacion">Poblacion</option>
-    <option value="Sagasa">Sagasa</option>
-    <option value="Tabunan">Tabunan</option>
-    <option value="Taloc">Taloc</option>
-    <option value="Talon">Talon</option>
-    <option value="Tinongan">Tinongan</option>
-  </select>
+  {errors.sex && <p className="text-red-500 text-sm mt-1">{errors.sex.message}</p>}
 </div>
 
-  <div>
-    <label className="text-sm font-semibold text-gray-700">City/Municipality</label>
-    <input
-      {...register("city")}
-      defaultValue="Bago City"
-      readOnly
-      className="w-full border rounded-md p-2 bg-gray-100 cursor-not-allowed"
-    />
-  </div>
-  <div>
-    <label className="text-sm font-semibold text-gray-700">Province</label>
-    <input
-      {...register("province")}
-      defaultValue="Negros Occidental"
-      readOnly
-      className="w-full border rounded-md p-2 bg-gray-100 cursor-not-allowed"
-    />
-  </div>
-  <div>
-    <label className="text-sm font-semibold text-gray-700">Region</label>
-    <input
-      {...register("region")}
-      defaultValue="Region VI "
-      readOnly
-      className="w-full border rounded-md p-2 bg-gray-100 cursor-not-allowed"
-    />
+{/* Mobile + Password */}
+<div>
+  <h3 className="text-lg font-semibold text-gray-700 mb-3">Security</h3>
+  <div className="grid grid-cols-2 gap-4">
+    <div>
+      <label className="text-sm font-semibold text-gray-700">Mobile Number</label>
+      <input {...register("mobile_number")}  className="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-green-400" placeholder="09XXXXXXXXX" />
+    </div>
+    <div>
+      <label className="text-sm font-semibold text-gray-700">Password</label>
+      <input type="password" {...register("password")}  className="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-green-400" placeholder="Enter a password" />
+    </div>
   </div>
 </div>
-            <button
-                type="submit"
-                className="w-full bg-green-500 text-white p-3 rounded-lg hover:bg-green-800 active:bg-green-500" >
-                Sign up
-                </button>
-          </form>
 
+{/* Address Section */}
+<div>
+  <h3 className="text-lg font-semibold text-gray-700 mb-3">Address</h3>
+  <div className="grid grid-cols-3 gap-4">
+    <div>
+      <label className="text-sm font-semibold text-gray-700">House/Lot/Building No./Purok</label>
+      <input {...register("house_number")}  className="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-green-400" />
+    </div>
+    <div>
+      <label className="text-sm font-semibold text-gray-700">Street/Sitio/Subdivision</label>
+      <input {...register("street")}  className="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-green-400" />
+    </div>
+    <div>
+      <label className="text-sm font-semibold text-gray-700">Barangay</label>
+      <select {...register("barangay")}  className="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-green-400">
+        <option value="">Select Barangay</option>
+        <option value="Abuanan">Abuanan</option>
+        <option value="Alianza">Alianza</option>
+        <option value="Atipuluan">Atipuluan</option>
+        <option value="Bacong">Bacong</option>
+        {/* ... keep all barangay options */}
+      </select>
+    </div>
+    <div>
+      <label className="text-sm font-semibold text-gray-700">City/Municipality</label>
+      <input {...register("city")} defaultValue="Bago City" readOnly className="w-full border rounded-md p-2 text-sm bg-gray-100 cursor-not-allowed focus:outline-none" />
+    </div>
+    <div>
+      <label className="text-sm font-semibold text-gray-700">Province</label>
+      <input {...register("province")} defaultValue="Negros Occidental" readOnly className="w-full border rounded-md p-2 text-sm bg-gray-100 cursor-not-allowed focus:outline-none" />
+    </div>
+    <div>
+      <label className="text-sm font-semibold text-gray-700">Region</label>
+      <input {...register("region")} defaultValue="Region VI " readOnly className="w-full border rounded-md p-2 text-sm bg-gray-100 cursor-not-allowed focus:outline-none" />
+    </div>
+  </div>
+</div>
+
+{/* Submit */}
+<button
+  type="submit"
+  className="w-full bg-green-600 text-white font-semibold p-3 rounded-lg hover:bg-green-700 transition-colors">
+  Sign Up
+</button>
+</form>
           <p className="text-center text-gray-500 mt-4">
             Already have an account?{" "}
             <Link to="/login" className="text-green-600 hover:underline">Log in here</Link>

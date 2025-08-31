@@ -34,8 +34,6 @@ const AppRoutes = () => {
       <Route path="/ChooseRoleLogin" element={<ChooseRoleLogin />} />
       <Route path="/LoginFarmer" element={<LoginFarmer />} />
 
-
-     
       {/*Super Admin*/}
       <Route path="/SuperAdminLandingPage" element={<SuperAdminLandingPage />} />
       <Route path="/ManageAccount" element={<ManageAccount />} />
@@ -43,12 +41,10 @@ const AppRoutes = () => {
       <Route path="/SuperAdminMap" element={<SuperAdminMap />} />
       <Route path="/Graphs" element={<Graphs/>} />
 
-      
       {/*User*/}
       <Route path="/UserMap" element={<UserMap />} />
       <Route path="/Calamity" element={<CalamityMap />} />
    
-
       {/*Admin*/}
       <Route path="/AdminLanding" element={<AdminLanding />} />
       <Route path="/AdminMap" element={<AdminMap />} />
