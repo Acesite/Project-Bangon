@@ -174,20 +174,7 @@ const CalamitySidebar = ({
         </div>
       ))}
 
-      {/* Crop Type Filter */}
-      <div className="mb-4">
-        <label className="block text-sm font-base text-gray-700 mb-1">Filter Crop</label>
-        <select
-          className="w-full border border-gray-300 rounded-md p-2 text-sm"
-          value={selectedCropType}
-          onChange={(e) => setSelectedCropType(e.target.value)}
-        >
-          <option value="All">All</option>
-          {cropTypes.map((type) => (
-            <option key={type.id} value={type.name}>{type.name}</option>
-          ))}
-        </select>
-      </div>
+      
 
       {/* Barangay Dropdown */}
       <div className="mb-4">
