@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
 import Button from "./MapControls/Button";
-
-const CalamitySideBar = ({
+import clsx from 'clsx';
+const CalamitySidebar = ({ 
+  visible,
   zoomToBarangay,
   onBarangaySelect,
   crops = [],
@@ -11,11 +12,14 @@ const CalamitySideBar = ({
   cropTypes = [],
   selectedCropType,
   setSelectedCropType,
+  setEnlargedImage
 }) => {
+
   const [selectedBarangay, setSelectedBarangay] = useState("");
   const [barangayDetails, setBarangayDetails] = useState(null);
   const [showCropDropdown, setShowCropDropdown] = useState(false);
-  const [enlargedImage, setEnlargedImage] = useState(null);
+  
+  
 
   const navigate = useNavigate();
 
@@ -91,18 +95,25 @@ const CalamitySideBar = ({
   };
 
   return (
-    <div className="absolute top-0 left-0 h-full w-95 bg-white shadow-xl z-20 px-6 py-8 overflow-y-auto border-r border-gray-200 transition-all duration-300">
+    <div
+  className={clsx(
+    'absolute top-0 left-0 h-full bg-white shadow-xl z-20 overflow-y-auto border-r border-gray-200',
+    visible
+      ? 'w-[500px] px-6 py-8'
+      : 'w-0 px-0 py-0 overflow-hidden'
+  )}
+>
+
     <div className="mb-6 w-full flex justify-center items-center">
         {selectedCrop?.photos ? (
           <img
-  src={`http://${window.location.hostname}:5000${JSON.parse(selectedCrop.photos)[0]}`}
-  alt="Selected Crop"
-  className="w-full h-full object-cover rounded-md border cursor-pointer"
-  onClick={() =>
-    setEnlargedImage(`http://${window.location.hostname}:5000${JSON.parse(selectedCrop.photos)[0]}`)
-  }
-/>
-
+            src={`http://localhost:5000${JSON.parse(selectedCrop.photos)[0]}`}
+            alt="Selected Crop"
+            className="w-full h-full object-cover rounded-md border cursor-pointer"
+            onClick={() =>
+              setEnlargedImage(`http://localhost:5000${JSON.parse(selectedCrop.photos)[0]}`)
+            }
+          />
         ) : (
           <img
             src={AgriGISLogo}
@@ -169,17 +180,48 @@ const CalamitySideBar = ({
         </div>
       )}
 {selectedCrop && (
-  <div className="mt-6 ">
-    <h4 className="text-lg font-semibold text-green-700 mb-2">{selectedCrop.crop_name || "Unnamed Crop"}</h4>
-    <p className="text-sm text-gray-700">
-    <strong>Variety:</strong> {selectedCrop.variety_name || "N/A"}</p>
-    <p className="text-sm text-gray-700"><strong>Planted Date:</strong> {selectedCrop.planted_date?.split("T")[0] || "N/A"}</p>
-    <p className="text-sm text-gray-700"><strong>Est. Harvest:</strong> {selectedCrop.estimated_harvest?.split("T")[0] || "N/A"}</p>
-    <p className="text-sm text-gray-700"><strong>Volume:</strong> {selectedCrop.estimated_volume || "N/A"}</p>
-    <p className="text-sm text-gray-700"><strong>Hectares:</strong> {selectedCrop.estimated_hectares || "N/A"}</p>
-    <p className="text-sm text-gray-700 italic mt-2">{selectedCrop.note || "No note provided."}</p>
+  <div className="mt-6">
+    <h4 className="text-lg font-semibold text-green-700 mb-4">
+      {selectedCrop.crop_name || "Unnamed Crop"}
+    </h4>
+
+    {/* Variety and Barangay */}
+    <div className="grid grid-cols-2 gap-4 mb-4">
+      <p className="text-sm text-gray-700">
+        <strong>Variety:</strong> {selectedCrop.variety_name || "N/A"}
+      </p>
+      <p className="text-sm text-gray-700">
+        <strong>Barangay:</strong> {selectedCrop.barangay || "N/A"}
+      </p>
+    </div>
+
+    {/* Dates */}
+    <div className="grid grid-cols-2 gap-4 mb-4">
+      <p className="text-sm text-gray-700">
+        <strong>Planted Date:</strong> {selectedCrop.planted_date?.split("T")[0] || "N/A"}
+      </p>
+      <p className="text-sm text-gray-700">
+        <strong>Est. Harvest:</strong> {selectedCrop.estimated_harvest?.split("T")[0] || "N/A"}
+      </p>
+    </div>
+
+    {/* Volume and Hectares */}
+    <div className="grid grid-cols-2 gap-4 mb-4">
+      <p className="text-sm text-gray-700">
+        <strong>Volume:</strong> {selectedCrop.estimated_volume || "N/A"}
+      </p>
+      <p className="text-sm text-gray-700">
+        <strong>Hectares:</strong> {selectedCrop.estimated_hectares || "N/A"}
+      </p>
+    </div>
+
+    {/* Notes */}
+    <p className="text-sm text-gray-700 italic mt-2">
+      {selectedCrop.note || "No note provided."}
+    </p>
   </div>
 )}
+
 
       {/* Photos of selected crop */}
       {selectedCrop && selectedCrop.photos && (
@@ -191,11 +233,10 @@ const CalamitySideBar = ({
            {JSON.parse(selectedCrop.photos).map((url, i) => (
   <img
     key={i}
-    src={`http://${window.location.hostname}:5000${url}`}
+    src={`http://localhost:5000${url}`}
     alt={`Crop photo ${i + 1}`}
     className="w-full h-24 object-cover rounded-md border cursor-pointer"
-    onClick={() => setEnlargedImage(`http://${window.location.hostname}:5000${url}`)}
-
+    onClick={() => setEnlargedImage(`http://localhost:5000${url}`)}
   />
 ))}
 
@@ -216,13 +257,12 @@ const CalamitySideBar = ({
     const photoArray = crop.photos ? JSON.parse(crop.photos) : [];
     return photoArray.map((url, i) => (
       <img
-  key={`${idx}-${i}`}
-  src={`http://${window.location.hostname}:5000${url}`}
-  alt={`Crop ${idx}`}
-  className="w-full h-24 object-cover rounded-md border cursor-pointer"
-  onClick={() => setEnlargedImage(`http://${window.location.hostname}:5000${url}`)}
-/>
-
+        key={`${idx}-${i}`}
+        src={`http://localhost:5000${url}`}
+        alt={`Crop ${idx}`}
+        className="w-full h-24 object-cover rounded-md border cursor-pointer"
+        onClick={() => setEnlargedImage(`http://localhost:5000${url}`)}
+      />
     ));
   })}
 
@@ -274,23 +314,10 @@ const CalamitySideBar = ({
 
     <div className="mt-5">
       <Button to="/AdminLanding" label="Home" /></div>
-{enlargedImage && (
-  <div
-    className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center"
-    onClick={() => setEnlargedImage(null)}
-  >
-    <div className="bg-white p-4 rounded-lg shadow-lg max-w-3xl max-h-[90vh] overflow-auto">
-      <img
-        src={enlargedImage}
-        alt="Enlarged"
-        className="w-full h-auto object-contain"
-      />
-    </div>
-  </div>
-)}
+
 
     </div>
   );
 };
 
-export default CalamitySideBar;
+export default CalamitySidebar;

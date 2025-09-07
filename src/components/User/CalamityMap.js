@@ -10,13 +10,13 @@ import * as turf from "@turf/turf";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import CalamitySideBar from "./CalamitySideBar";
+import CalamitySidebar from "./CalamitySideBar";
 import DefaultThumbnail from "../MapboxImages/map-default.png";
 import SatelliteThumbnail from "../MapboxImages/map-satellite.png";
 import DarkThumbnail from "../MapboxImages/map-dark.png";
 import LightThumbnail from "../MapboxImages/map-light.png";
 import SidebarToggleButton from "./MapControls/SidebarToggleButton";
-
+// import TagCropForm from "./TagCropForm";
 
 mapboxgl.accessToken = "pk.eyJ1Ijoid29tcHdvbXAtNjkiLCJhIjoiY204emxrOHkwMGJsZjJrcjZtZmN4YXdtNSJ9.LIMPvoBNtGuj4O36r3F72w";
 
@@ -26,7 +26,6 @@ const Calamity = () => {
   const markerRef = useRef(null);
   const directionsRef = useRef(null);
   const drawRef = useRef(null);
-
   const [lng] = useState(122.961602);
   const [lat] = useState(10.507447);
   const [zoom] = useState(13);
@@ -44,7 +43,15 @@ const Calamity = () => {
   const [selectedCropType, setSelectedCropType] = useState("All");
   const [cropTypes, setCropTypes] = useState([]);
   const [areMarkersVisible, setAreMarkersVisible] = useState(true);
-const savedMarkersRef = useRef([]); // store markers so we can remove them later
+  const savedMarkersRef = useRef([]); // store markers so we can remove them later
+  const [enlargedImage, setEnlargedImage] = useState(null);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+
+// Bounding box for Bago City
+const bagoCityBounds = [
+  [122.7333, 10.4958],
+  [123.5000, 10.6333]
+];
 
 
 const cropColorMap = {
@@ -99,7 +106,7 @@ const cropColorMap = {
 
   const renderSavedMarkers = async () => {
     try {
-      const response = await axios.get(`http://${window.location.hostname}:5000/api/crops`);
+      const response = await axios.get("http://localhost:5000/api/crops");
       const crops = response.data;
       setSidebarCrops(crops);
   
@@ -171,8 +178,7 @@ const cropColorMap = {
 
   
   const loadPolygons = async (geojsonData = null, isFiltered = false) => {
-    const res = await axios.get(`http://${window.location.hostname}:5000/api/crops/polygons`);
-
+    const res = await axios.get("http://localhost:5000/api/crops/polygons");
     const fullData = geojsonData || res.data;
   
     const paintStyle = isFiltered
@@ -226,19 +232,28 @@ const cropColorMap = {
   
   useEffect(() => {
     if (!map.current) {
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: mapStyle,
-        center: [lng, lat],
-        zoom,
-      });
+  map.current = new mapboxgl.Map({
+  container: mapContainer.current,
+  style: mapStyle,
+  center: [122.9616, 10.5074], // Center point inside Bago City
+  zoom: 7,
+  maxBounds: bagoCityBounds
+});
 
-     axios.get(`http://${window.location.hostname}:5000/api/crops/types`).then((res) => {
+
+      axios.get("http://localhost:5000/api/crops/types").then((res) => {
   setCropTypes(res.data);
 });
 
 
       map.current.addControl(new mapboxgl.NavigationControl(), "bottom-right");
+
+      drawRef.current = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: { polygon: true, trash: true },
+      });
+      map.current.addControl(drawRef.current, "bottom-right");
+
       map.current.on("load", async () => {
         try {
           const res = await axios.get("http://localhost:5000/api/crops/polygons");
@@ -365,15 +380,74 @@ useEffect(() => {
     }
   }, [selectedCropType]);
 
+  useEffect(() => {
+  const handleEsc = (e) => {
+    if (e.key === "Escape") {
+      setEnlargedImage(null);
+    }
+  };
+  window.addEventListener("keydown", handleEsc);
+  return () => window.removeEventListener("keydown", handleEsc);
+}, []);
+
+
   return (
     <div className="relative h-screen w-screen">
      
 
       <div ref={mapContainer} className="h-full w-full" />
 
+      {/* {isTagging && newTagLocation && (
+        <TagCropForm
+        defaultLocation={{ ...newTagLocation, hectares: newTagLocation.hectares }}
+        selectedBarangay={selectedBarangay?.name}  // 👈 Pass name of selected barangay
+        onCancel={() => {
+          setIsTagging(false);
+          setNewTagLocation(null);
+          drawRef.current?.deleteAll();
+        }}
+        onSave={async (formData) => {
+          try {
+            const adminId = localStorage.getItem("user_id"); // ✅ Get admin ID from storage
+        
+            formData.append("admin_id", adminId); // ✅ Attach admin ID
+        
+            await axios.post("http://localhost:5000/api/crops", formData, {
+              headers: { "Content-Type": "multipart/form-data" },
+            });
+        
+            alert("Crop saved!");
+            await loadPolygons();
+            await renderSavedMarkers();
+          } catch (error) {
+            console.error("Error saving crop:", error);
+            alert("Failed to save crop.");
+          }
+        
+          setIsTagging(false);
+          setNewTagLocation(null);
+          drawRef.current?.deleteAll();
+        }}
+        
+      />
+      
+      )} */}
 
+<div
+  style={{
+    position: "absolute",
+    left: isSidebarVisible ? "480px" : "0px", // Adjust based on sidebar width
+    top: "50%",
+    transform: "translateY(-50%)",
+    zIndex: 10,
+  }}
+>
+  <SidebarToggleButton
+    onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+    isSidebarVisible={isSidebarVisible}
+  />
+</div>
 
-<SidebarToggleButton onClick={() => setIsSidebarVisible(!isSidebarVisible)} isSidebarVisible={isSidebarVisible} />
 
       {!isSidebarVisible && (
         <button
@@ -446,7 +520,7 @@ useEffect(() => {
     }
     setAreMarkersVisible(!areMarkersVisible);
   }}
-  className="absolute bottom-[123px] right-[9px] z-50 bg-white border border-gray-300 rounded-[5px] w-8 h-8 flex items-center justify-center shadow-[0_0_8px_2px_rgba(0,0,0,0.15)] "
+  className="absolute bottom-[194px] right-[9px] z-50 bg-white border border-gray-300 rounded-[5px] w-8 h-8 flex items-center justify-center shadow-[0_0_8px_2px_rgba(0,0,0,0.15)] "
   title={areMarkersVisible ? "Hide Markers" : "Show Markers"}
 >
   <svg
@@ -466,25 +540,29 @@ useEffect(() => {
 </button>
 )}
       <div
-        className={`absolute top-0 left-0 h-full w-80 transition-transform duration-500 ease-in-out z-40 ${
-          isSidebarVisible ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <CalamitySideBar
-          mapStyles={mapStyles}
-          setMapStyle={setMapStyle}
-          showLayers={showLayers}
-          setShowLayers={setShowLayers}
-          zoomToBarangay={zoomToBarangay}
-          onBarangaySelect={handleBarangaySelect}
-          selectedBarangay={selectedBarangay}
-          cropTypes={cropTypes}
-          selectedCropType={selectedCropType}
-          setSelectedCropType={setSelectedCropType}
-          crops={sidebarCrops}              
-          selectedCrop={selectedCrop}      
-          />
-      </div>
+  className={`absolute top-0 left-0 h-full z-40 bg-white border-r border-gray-200 transition-all duration-200 ease-in-out overflow-hidden ${
+    isSidebarVisible ? "w-[500px] px-6 py-8" : "w-0 px-0 py-0"
+  }`}
+>
+  {isSidebarVisible && (
+    <CalamitySidebar
+      mapStyles={mapStyles}
+      setMapStyle={setMapStyle}
+      showLayers={showLayers}
+      setShowLayers={setShowLayers}
+      zoomToBarangay={zoomToBarangay}
+      onBarangaySelect={handleBarangaySelect}
+      selectedBarangay={selectedBarangay}
+      cropTypes={cropTypes}
+      selectedCropType={selectedCropType}
+      setSelectedCropType={setSelectedCropType}
+      crops={sidebarCrops}
+      selectedCrop={selectedCrop}
+      setEnlargedImage={setEnlargedImage}
+      visible={isSidebarVisible}
+    />
+  )}
+</div>
 
       <ToastContainer
         position="top-center"
@@ -499,6 +577,33 @@ useEffect(() => {
         theme="light"
         style={{ zIndex: 9999 }} 
         />
+
+       {enlargedImage && (
+  <div
+    className="fixed inset-0 bg-black bg-opacity-90 z-[9999] flex justify-center items-center animate-fadeIn"
+    onClick={() => setEnlargedImage(null)}
+  >
+    {/* Close X Button */}
+    <button
+      onClick={(e) => {
+        e.stopPropagation(); // prevent background click from triggering close
+        setEnlargedImage(null);
+      }}
+      className="absolute top-4 right-4 text-white text-2xl font-bold z-[10000] hover:text-red-400"
+      title="Close"
+    >
+      ×
+    </button>
+
+    <img
+      src={enlargedImage}
+      alt="Fullscreen Crop"
+      className="max-w-full max-h-full object-contain"
+    />
+  </div>
+)}
+
+
     </div>  
   );
 };

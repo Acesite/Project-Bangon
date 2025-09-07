@@ -48,7 +48,7 @@ const SignUpFarmer = () => {
       
       if (response.data.success) {
         toast.success("Farmer account created successfully!", { position: "top-center" });
-        navigate("/login");
+        navigate("/LoginFarmer");
       }
     } catch (error) {
         if (error.response?.status === 409) {

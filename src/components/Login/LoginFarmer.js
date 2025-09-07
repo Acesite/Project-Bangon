@@ -32,15 +32,16 @@ const LoginFarmer = () => {
         localStorage.setItem("last_name", response.data.last_name);
         localStorage.setItem("user_id", response.data.id);
         localStorage.setItem("profile_picture", response.data.profile_picture);
-
+      
         if (response.data.role === "super_admin") {
           navigate("/SuperAdminLandingPage");
         } else if (response.data.role === "admin") {
           navigate("/AdminLanding");
         } else {
-          navigate("/UserLandingPage");
+          navigate("/Calamity");  
         }
       }
+      
     } catch (error) {
       setError(error.response?.data?.message || "An error occurred");
     }
