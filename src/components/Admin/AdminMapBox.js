@@ -235,7 +235,7 @@ const cropColorMap = {
   map.current = new mapboxgl.Map({
   container: mapContainer.current,
   style: mapStyle,
-  center: [122.9616, 10.5074], // Center point inside Bago City
+  center: [122.9616, 10.5074], 
   zoom: 7,
   maxBounds: bagoCityBounds
 });
@@ -259,7 +259,7 @@ const cropColorMap = {
           const res = await axios.get("http://localhost:5000/api/crops/polygons");
           const geojson = res.data;
       
-          // Add or update GeoJSON source
+          
           if (map.current.getSource("crop-polygons")) {
             map.current.getSource("crop-polygons").setData(geojson);
           } else {

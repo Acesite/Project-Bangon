@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -16,7 +15,7 @@ import SatelliteThumbnail from "../MapboxImages/map-satellite.png";
 import DarkThumbnail from "../MapboxImages/map-dark.png";
 import LightThumbnail from "../MapboxImages/map-light.png";
 import SidebarToggleButton from "./MapControls/SidebarToggleButton";
-// import TagCropForm from "./TagCropForm";
+// import TagCalamityForm from "./TagCalamityForm";
 
 mapboxgl.accessToken = "pk.eyJ1Ijoid29tcHdvbXAtNjkiLCJhIjoiY204emxrOHkwMGJsZjJrcjZtZmN4YXdtNSJ9.LIMPvoBNtGuj4O36r3F72w";
 
@@ -38,10 +37,10 @@ const Calamity = () => {
   const [newTagLocation, setNewTagLocation] = useState(null);
   const [isTagging, setIsTagging] = useState(false);
   const [taggedData, setTaggedData] = useState([]);
-  const [sidebarCrops, setSidebarCrops] = useState([]); 
-  const [selectedCrop, setSelectedCrop] = useState(null);
-  const [selectedCropType, setSelectedCropType] = useState("All");
-  const [cropTypes, setCropTypes] = useState([]);
+  const [sidebarCalamities, setSidebarCalamities] = useState([]); 
+  const [selectedCalamity, setSelectedCalamity] = useState(null);
+  const [selectedCalamityType, setSelectedCalamityType] = useState("All");
+  const [calamityTypes, setCalamityTypes] = useState([]);
   const [areMarkersVisible, setAreMarkersVisible] = useState(true);
   const savedMarkersRef = useRef([]); // store markers so we can remove them later
   const [enlargedImage, setEnlargedImage] = useState(null);
@@ -53,14 +52,14 @@ const bagoCityBounds = [
   [123.5000, 10.6333]
 ];
 
-
-const cropColorMap = {
-  Rice: "#facc15",        // Yellow
-  Corn: "#fb923c",        // Orange
-  Banana: "#a3e635",      // Lime Green
-  Sugarcane: "#34d399",   // Teal
-  Cassava: "#60a5fa",     // Blue
-  Vegetables: "#f472b6"   // Pink
+// Calamity color mapping
+const calamityColorMap = {
+  Flood: "#3b82f6",           // Blue
+  Earthquake: "#ef4444",      // Red
+  Typhoon: "#8b5cf6",         // Purple
+  Landslide: "#f59e0b",       // Amber
+  Drought: "#f97316",         // Orange
+  Wildfire: "#dc2626"         // Dark Red
 };
 
   const mapStyles = {
@@ -86,16 +85,16 @@ const cropColorMap = {
       el.style.width = "18px";
       el.style.height = "18px";
       el.style.borderRadius = "50%";
-      el.style.backgroundColor = "#10B981";
+      el.style.backgroundColor = "#ef4444";
       el.style.border = "3px solid white";
       el.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.3)";
 
       const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
         <div class="text-sm">
-          <h3 class="font-bold text-green-600 text-base">${barangayData.name}</h3>
+          <h3 class="font-bold text-red-600 text-base">${barangayData.name}</h3>
           <p><strong>Coordinates:</strong> ${barangayData.coordinates[1].toFixed(6)}, ${barangayData.coordinates[0].toFixed(6)}</p>
           ${barangayData.population ? `<p><strong>Population:</strong> ${barangayData.population}</p>` : ""}
-          ${barangayData.crops ? `<p><strong>Crops:</strong> ${barangayData.crops.join(", ")}</p>` : ""}
+          ${barangayData.hazards ? `<p><strong>Hazards:</strong> ${barangayData.hazards.join(", ")}</p>` : ""}
         </div>
       `);
 
@@ -106,19 +105,19 @@ const cropColorMap = {
 
   const renderSavedMarkers = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/crops");
-      const crops = response.data;
-      setSidebarCrops(crops);
+      const response = await axios.get("http://localhost:5000/api/calamities");
+      const calamities = response.data;
+      setSidebarCalamities(calamities);
   
      
       savedMarkersRef.current.forEach((marker) => marker.remove());
       savedMarkersRef.current = [];
   
-      const filtered = selectedCropType === "All"
-        ? crops
-        : crops.filter(crop => crop.crop_name === selectedCropType);
+      const filtered = selectedCalamityType === "All"
+        ? calamities
+        : calamities.filter(calamity => calamity.calamity_type === selectedCalamityType);
         if (filtered.length === 0) {
-          toast.info("No Crops Found .", {
+          toast.info("No Calamities Found .", {
             position: "top-center",
             autoClose: 3000,
             hideProgressBar: true,
@@ -132,13 +131,13 @@ const cropColorMap = {
          
       if (filtered.length === 0) return;
   
-      filtered.forEach((crop) => {
-        let coords = crop.coordinates;
+      filtered.forEach((calamity) => {
+        let coords = calamity.coordinates;
         if (typeof coords === "string") {
           try {
             coords = JSON.parse(coords);
           } catch (err) {
-            console.error("Invalid coordinates format:", crop.coordinates);
+            console.error("Invalid coordinates format:", calamity.coordinates);
             return;
           }
         }
@@ -150,20 +149,20 @@ const cropColorMap = {
   
           const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
   
-          const marker = new mapboxgl.Marker({ color: "#10B981" })
+          const marker = new mapboxgl.Marker({ color: "#ef4444" })
             .setLngLat(center)
             .setPopup(
               new mapboxgl.Popup({ offset: 15 }).setHTML(`
                 <div class="text-sm">
-                  <h3 class='font-bold text-green-600'>${crop.crop_name}</h3>
-                  <p><strong>Variety:</strong> ${crop.variety_name || "N/A"}</p>
+                  <h3 class='font-bold text-red-600'>${calamity.calamity_type}</h3>
+                  <p><strong>Severity:</strong> ${calamity.severity_level || "N/A"}</p>
                 </div>
               `)
             )
             .addTo(map.current);
   
           marker.getElement().addEventListener("click", () => {
-            setSelectedCrop(crop);
+            setSelectedCalamity(calamity);
             setIsSidebarVisible(true);
           });
   
@@ -178,51 +177,51 @@ const cropColorMap = {
 
   
   const loadPolygons = async (geojsonData = null, isFiltered = false) => {
-    const res = await axios.get("http://localhost:5000/api/crops/polygons");
+    const res = await axios.get("http://localhost:5000/api/calamities/polygons");
     const fullData = geojsonData || res.data;
   
     const paintStyle = isFiltered
       ? {
           "fill-color": [
             "match",
-            ["get", "crop_name"],
-            "Rice", "#facc15",
-            "Corn", "#fb923c",
-            "Banana", "#a3e635",
-            "Sugarcane", "#34d399",
-            "Cassava", "#60a5fa",
-            "Vegetables", "#f472b6",
-            "#10B981" // fallback
+            ["get", "calamity_type"],
+            "Flood", "#3b82f6",
+            "Earthquake", "#ef4444",
+            "Typhoon", "#8b5cf6",
+            "Landslide", "#f59e0b",
+            "Drought", "#f97316",
+            "Wildfire", "#dc2626",
+            "#ef4444" // fallback red
           ],
           "fill-opacity": 0.4,
         }
       : {
-          "fill-color": "#10B981", // 🔰 all green initially
+          "fill-color": "#ef4444", // 🔰 all red initially
           "fill-opacity": 0.4,
         };
   
-    if (map.current.getSource("crop-polygons")) {
-      map.current.getSource("crop-polygons").setData(fullData);
-      map.current.setPaintProperty("crop-polygons-layer", "fill-color", paintStyle["fill-color"]);
+    if (map.current.getSource("calamity-polygons")) {
+      map.current.getSource("calamity-polygons").setData(fullData);
+      map.current.setPaintProperty("calamity-polygons-layer", "fill-color", paintStyle["fill-color"]);
     } else {
-      map.current.addSource("crop-polygons", {
+      map.current.addSource("calamity-polygons", {
         type: "geojson",
         data: fullData,
       });
   
       map.current.addLayer({
-        id: "crop-polygons-layer",
+        id: "calamity-polygons-layer",
         type: "fill",
-        source: "crop-polygons",
+        source: "calamity-polygons",
         paint: paintStyle,
       });
   
       map.current.addLayer({
-        id: "crop-polygons-outline",
+        id: "calamity-polygons-outline",
         type: "line",
-        source: "crop-polygons",
+        source: "calamity-polygons",
         paint: {
-          "line-color": "#065F46",
+          "line-color": "#7f1d1d",
           "line-width": 2,
         },
       });
@@ -241,8 +240,8 @@ const cropColorMap = {
 });
 
 
-      axios.get("http://localhost:5000/api/crops/types").then((res) => {
-  setCropTypes(res.data);
+      axios.get("http://localhost:5000/api/calamities/types").then((res) => {
+  setCalamityTypes(res.data);
 });
 
 
@@ -256,34 +255,34 @@ const cropColorMap = {
 
       map.current.on("load", async () => {
         try {
-          const res = await axios.get("http://localhost:5000/api/crops/polygons");
+          const res = await axios.get("http://localhost:5000/api/calamities/polygons");
           const geojson = res.data;
       
           // Add or update GeoJSON source
-          if (map.current.getSource("crop-polygons")) {
-            map.current.getSource("crop-polygons").setData(geojson);
+          if (map.current.getSource("calamity-polygons")) {
+            map.current.getSource("calamity-polygons").setData(geojson);
           } else {
-            map.current.addSource("crop-polygons", {
+            map.current.addSource("calamity-polygons", {
               type: "geojson",
               data: geojson,
             });
       
             map.current.addLayer({
-              id: "crop-polygons-layer",
+              id: "calamity-polygons-layer",
               type: "fill",
-              source: "crop-polygons",
+              source: "calamity-polygons",
               paint: {
-                "fill-color": "#10B981",
+                "fill-color": "#ef4444",
                 "fill-opacity": 0.4,
               },
             });
       
             map.current.addLayer({
-              id: "crop-polygons-outline",
+              id: "calamity-polygons-outline",
               type: "line",
-              source: "crop-polygons",
+              source: "calamity-polygons",
               paint: {
-                "line-color": "#065F46",
+                "line-color": "#7f1d1d",
                 "line-width": 2,
               },
             });
@@ -295,15 +294,15 @@ const cropColorMap = {
         await renderSavedMarkers();
       });
 
-      map.current.on("click", "crop-polygons-layer", (e) => {
+      map.current.on("click", "calamity-polygons-layer", (e) => {
         const feature = e.features[0];
-        const cropId = feature.properties?.id;
+        const calamityId = feature.properties?.id;
       
-        if (!cropId) return;
+        if (!calamityId) return;
       
-        const cropData = sidebarCrops.find((c) => c.id === cropId);
-        if (cropData) {
-          setSelectedCrop(cropData); 
+        const calamityData = sidebarCalamities.find((c) => c.id === calamityId);
+        if (calamityData) {
+          setSelectedCalamity(calamityData); 
           
         }
       });
@@ -340,8 +339,8 @@ const cropColorMap = {
         .setPopup(
           new mapboxgl.Popup({ offset: 15 }).setHTML(`
             <div class="text-sm">
-              <h3 class='font-bold text-green-600'>${entry.crop_name}</h3>
-              <p><strong>Variety:</strong> ${entry.variety || "N/A"}</p>            
+              <h3 class='font-bold text-red-600'>${entry.calamity_type}</h3>
+              <p><strong>Severity:</strong> ${entry.severity || "N/A"}</p>            
             </div>
           `)
         )
@@ -354,31 +353,31 @@ useEffect(() => {
   if (map.current) {
     renderSavedMarkers();
   }
-}, [selectedCropType]);
+}, [selectedCalamityType]);
 
 
   useEffect(() => {
-    const filterPolygonsByCrop = async () => {
-      const res = await axios.get("http://localhost:5000/api/crops/polygons");
+    const filterPolygonsByCalamity = async () => {
+      const res = await axios.get("http://localhost:5000/api/calamities/polygons");
       const geojson = res.data;
   
-      if (selectedCropType === "All") {
+      if (selectedCalamityType === "All") {
         await loadPolygons(geojson, true); 
       } else {
         const filtered = {
           ...geojson,
           features: geojson.features.filter(
-            (feature) => feature.properties.crop_name === selectedCropType
+            (feature) => feature.properties.calamity_type === selectedCalamityType
           ),
         };
         await loadPolygons(filtered, true); // show filtered with color
       }
     };
   
-    if (map.current?.getSource("crop-polygons")) {
-      filterPolygonsByCrop();
+    if (map.current?.getSource("calamity-polygons")) {
+      filterPolygonsByCalamity();
     }
-  }, [selectedCropType]);
+  }, [selectedCalamityType]);
 
   useEffect(() => {
   const handleEsc = (e) => {
@@ -398,7 +397,7 @@ useEffect(() => {
       <div ref={mapContainer} className="h-full w-full" />
 
       {/* {isTagging && newTagLocation && (
-        <TagCropForm
+        <TagCalamityForm
         defaultLocation={{ ...newTagLocation, hectares: newTagLocation.hectares }}
         selectedBarangay={selectedBarangay?.name}  // 👈 Pass name of selected barangay
         onCancel={() => {
@@ -412,16 +411,16 @@ useEffect(() => {
         
             formData.append("admin_id", adminId); // ✅ Attach admin ID
         
-            await axios.post("http://localhost:5000/api/crops", formData, {
+            await axios.post("http://localhost:5000/api/calamities", formData, {
               headers: { "Content-Type": "multipart/form-data" },
             });
         
-            alert("Crop saved!");
+            alert("Calamity saved!");
             await loadPolygons();
             await renderSavedMarkers();
           } catch (error) {
-            console.error("Error saving crop:", error);
-            alert("Failed to save crop.");
+            console.error("Error saving calamity:", error);
+            alert("Failed to save calamity.");
           }
         
           setIsTagging(false);
@@ -553,11 +552,11 @@ useEffect(() => {
       zoomToBarangay={zoomToBarangay}
       onBarangaySelect={handleBarangaySelect}
       selectedBarangay={selectedBarangay}
-      cropTypes={cropTypes}
-      selectedCropType={selectedCropType}
-      setSelectedCropType={setSelectedCropType}
-      crops={sidebarCrops}
-      selectedCrop={selectedCrop}
+      calamityTypes={calamityTypes}
+      selectedCalamityType={selectedCalamityType}
+      setSelectedCalamityType={setSelectedCalamityType}
+      calamities={sidebarCalamities}
+      selectedCalamity={selectedCalamity}
       setEnlargedImage={setEnlargedImage}
       visible={isSidebarVisible}
     />
@@ -597,7 +596,7 @@ useEffect(() => {
 
     <img
       src={enlargedImage}
-      alt="Fullscreen Crop"
+      alt="Fullscreen Calamity"
       className="max-w-full max-h-full object-contain"
     />
   </div>

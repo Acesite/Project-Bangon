@@ -18,8 +18,6 @@ const AdminSideBar = ({
   const [selectedBarangay, setSelectedBarangay] = useState("");
   const [barangayDetails, setBarangayDetails] = useState(null);
   const [showCropDropdown, setShowCropDropdown] = useState(false);
-  
-  
 
   const navigate = useNavigate();
 
@@ -121,7 +119,7 @@ const AdminSideBar = ({
             className="w-[200px] h-[70px] ml-5 object-contain transition duration-500 ease-in-out"
           />
         )}
-</div>
+      </div>
 
       <h2 className="text-xl font-medium text-gray-800 mb-6 border-b pb-3"> Crop Information</h2>
 

@@ -38,7 +38,7 @@ const LoginFarmer = () => {
         } else if (response.data.role === "admin") {
           navigate("/AdminLanding");
         } else {
-          navigate("/Calamity");  
+          navigate("/CalamityFarmerMap");  
         }
       }
       
