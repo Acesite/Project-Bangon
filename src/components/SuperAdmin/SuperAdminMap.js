@@ -26,7 +26,6 @@ const SuperAdminMap = () => {
   const markerRef = useRef(null);
   const directionsRef = useRef(null);
   const drawRef = useRef(null);
-
   const [lng] = useState(122.961602);
   const [lat] = useState(10.507447);
   const [zoom] = useState(13);
@@ -44,8 +43,18 @@ const SuperAdminMap = () => {
   const [selectedCropType, setSelectedCropType] = useState("All");
   const [cropTypes, setCropTypes] = useState([]);
   const [areMarkersVisible, setAreMarkersVisible] = useState(true);
-const savedMarkersRef = useRef([]); // store markers so we can remove them later
+  const savedMarkersRef = useRef([]); // store markers so we can remove them later
+  const [enlargedImage, setEnlargedImage] = useState(null);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
 
+// Bounding box for Bago City
+const bagoCityBounds = [
+  [122.7333, 10.4958],
+  [123.5000, 10.6333]
+];
+
+  const SIDEBAR_WIDTH = 500; // must match "w-[500px]" on the sidebar
+  const PEEK = 1;           // visible slice of the pill when sidebar is open
 
 const cropColorMap = {
   Rice: "#facc15",        // Yellow
@@ -225,12 +234,14 @@ const cropColorMap = {
   
   useEffect(() => {
     if (!map.current) {
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: mapStyle,
-        center: [lng, lat],
-        zoom,
-      });
+  map.current = new mapboxgl.Map({
+  container: mapContainer.current,
+  style: mapStyle,
+  center: [122.9616, 10.5074], 
+  zoom: 7,
+  maxBounds: bagoCityBounds
+});
+
 
       axios.get("http://localhost:5000/api/crops/types").then((res) => {
   setCropTypes(res.data);
@@ -250,7 +261,7 @@ const cropColorMap = {
           const res = await axios.get("http://localhost:5000/api/crops/polygons");
           const geojson = res.data;
       
-          // Add or update GeoJSON source
+          
           if (map.current.getSource("crop-polygons")) {
             map.current.getSource("crop-polygons").setData(geojson);
           } else {
@@ -371,6 +382,17 @@ useEffect(() => {
     }
   }, [selectedCropType]);
 
+  useEffect(() => {
+  const handleEsc = (e) => {
+    if (e.key === "Escape") {
+      setEnlargedImage(null);
+    }
+  };
+  window.addEventListener("keydown", handleEsc);
+  return () => window.removeEventListener("keydown", handleEsc);
+}, []);
+
+
   return (
     <div className="relative h-screen w-screen">
      
@@ -413,7 +435,12 @@ useEffect(() => {
       
       )}
 
-<SidebarToggleButton onClick={() => setIsSidebarVisible(!isSidebarVisible)} isSidebarVisible={isSidebarVisible} />
+<SidebarToggleButton
+  onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+  isSidebarVisible={isSidebarVisible}
+  sidebarWidth={SIDEBAR_WIDTH}
+  peek={PEEK}
+/>
 
       {!isSidebarVisible && (
         <button
@@ -506,25 +533,29 @@ useEffect(() => {
 </button>
 )}
       <div
-        className={`absolute top-0 left-0 h-full w-80 transition-transform duration-500 ease-in-out z-40 ${
-          isSidebarVisible ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <SuperAdminSidebar
-          mapStyles={mapStyles}
-          setMapStyle={setMapStyle}
-          showLayers={showLayers}
-          setShowLayers={setShowLayers}
-          zoomToBarangay={zoomToBarangay}
-          onBarangaySelect={handleBarangaySelect}
-          selectedBarangay={selectedBarangay}
-          cropTypes={cropTypes}
-          selectedCropType={selectedCropType}
-          setSelectedCropType={setSelectedCropType}
-          crops={sidebarCrops}              
-          selectedCrop={selectedCrop}      
-          />
-      </div>
+  className={`absolute top-0 left-0 h-full z-40 bg-white border-r border-gray-200 transition-all duration-200 ease-in-out overflow-hidden ${
+    isSidebarVisible ? "w-[500px] px-6 py-8" : "w-0 px-0 py-0"
+  }`}
+>
+  {isSidebarVisible && (
+    <SuperAdminSidebar
+      mapStyles={mapStyles}
+      setMapStyle={setMapStyle}
+      showLayers={showLayers}
+      setShowLayers={setShowLayers}
+      zoomToBarangay={zoomToBarangay}
+      onBarangaySelect={handleBarangaySelect}
+      selectedBarangay={selectedBarangay}
+      cropTypes={cropTypes}
+      selectedCropType={selectedCropType}
+      setSelectedCropType={setSelectedCropType}
+      crops={sidebarCrops}
+      selectedCrop={selectedCrop}
+      setEnlargedImage={setEnlargedImage}
+      visible={isSidebarVisible}
+    />
+  )}
+</div>
 
       <ToastContainer
         position="top-center"
@@ -539,6 +570,33 @@ useEffect(() => {
         theme="light"
         style={{ zIndex: 9999 }} 
         />
+
+       {enlargedImage && (
+  <div
+    className="fixed inset-0 bg-black bg-opacity-90 z-[9999] flex justify-center items-center animate-fadeIn"
+    onClick={() => setEnlargedImage(null)}
+  >
+    {/* Close X Button */}
+    <button
+      onClick={(e) => {
+        e.stopPropagation(); // prevent background click from triggering close
+        setEnlargedImage(null);
+      }}
+      className="absolute top-4 right-4 text-white text-2xl font-bold z-[10000] hover:text-red-400"
+      title="Close"
+    >
+      ×
+    </button>
+
+    <img
+      src={enlargedImage}
+      alt="Fullscreen Crop"
+      className="max-w-full max-h-full object-contain"
+    />
+  </div>
+)}
+
+
     </div>  
   );
 };

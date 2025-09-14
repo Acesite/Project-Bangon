@@ -5,18 +5,36 @@ const TagCalamityForm = ({ defaultLocation, selectedBarangay, onCancel, onSave }
   const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState(null);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+ const handleSubmit = (e) => {
+  e.preventDefault();
 
-    const formData = new FormData();
-    formData.append("calamity_type", calamityType);
-    formData.append("description", description);
-    formData.append("location", selectedBarangay || "Unknown");
-    formData.append("coordinates", JSON.stringify(defaultLocation.coordinates));
-    if (photo) formData.append("photo", photo);
+  const farmerId = localStorage.getItem("user_id"); // make sure this matches what your backend expects
+  if (!farmerId) {
+    alert("Farmer not logged in!");
+    return;
+  }
 
-    onSave(formData);
-  };
+  if (!defaultLocation?.coordinates) {
+    alert("Coordinates not found!");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("calamity_type", calamityType);
+  formData.append("description", description);
+  formData.append("location", selectedBarangay || "Unknown");
+  formData.append("coordinates", JSON.stringify(defaultLocation.coordinates));
+  formData.append("farmer_id", farmerId); // ✅ farmer ID
+  formData.append("hectares", defaultLocation.hectares?.toString() || "0"); // optional
+
+  if (photo) {
+    formData.append("photo", photo); // ✅ append image if selected
+  }
+
+  // Call the onSave function passed from parent
+  onSave(formData);
+};
+
 
   return (
     <div className="absolute top-10 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg p-6 w-[400px] z-50">

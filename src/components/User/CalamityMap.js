@@ -15,7 +15,7 @@ import SatelliteThumbnail from "../MapboxImages/map-satellite.png";
 import DarkThumbnail from "../MapboxImages/map-dark.png";
 import LightThumbnail from "../MapboxImages/map-light.png";
 import SidebarToggleButton from "./MapControls/SidebarToggleButton";
-// import TagCalamityForm from "./TagCalamityForm";
+import TagCalamityForm from "./TagCalamityForm";
 
 mapboxgl.accessToken = "pk.eyJ1Ijoid29tcHdvbXAtNjkiLCJhIjoiY204emxrOHkwMGJsZjJrcjZtZmN4YXdtNSJ9.LIMPvoBNtGuj4O36r3F72w";
 
@@ -392,11 +392,9 @@ useEffect(() => {
 
   return (
     <div className="relative h-screen w-screen">
-     
-
       <div ref={mapContainer} className="h-full w-full" />
 
-      {/* {isTagging && newTagLocation && (
+      {isTagging && newTagLocation && (
         <TagCalamityForm
         defaultLocation={{ ...newTagLocation, hectares: newTagLocation.hectares }}
         selectedBarangay={selectedBarangay?.name}  // 👈 Pass name of selected barangay
@@ -405,32 +403,74 @@ useEffect(() => {
           setNewTagLocation(null);
           drawRef.current?.deleteAll();
         }}
-        onSave={async (formData) => {
-          try {
-            const adminId = localStorage.getItem("user_id"); // ✅ Get admin ID from storage
-        
-            formData.append("admin_id", adminId); // ✅ Attach admin ID
-        
-            await axios.post("http://localhost:5000/api/calamities", formData, {
-              headers: { "Content-Type": "multipart/form-data" },
-            });
-        
-            alert("Calamity saved!");
-            await loadPolygons();
-            await renderSavedMarkers();
-          } catch (error) {
-            console.error("Error saving calamity:", error);
-            alert("Failed to save calamity.");
-          }
-        
-          setIsTagging(false);
-          setNewTagLocation(null);
-          drawRef.current?.deleteAll();
-        }}
-        
+
+  onSave={async (formData) => {
+  try {
+    // Send formData to the backend
+    const response = await axios.post("http://localhost:5000/api/calamities", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    const savedCalamity = response.data;
+
+    // ✅ Update polygons
+    await loadPolygons();
+
+    // ✅ Add marker for the new calamity without reloading all markers
+    if (savedCalamity.coordinates && map.current) {
+      const center = turf.centerOfMass(turf.polygon([savedCalamity.coordinates])).geometry.coordinates;
+
+      const marker = new mapboxgl.Marker({ color: calamityColorMap[savedCalamity.calamity_type] || "#ef4444" })
+        .setLngLat(center)
+        .setPopup(
+          new mapboxgl.Popup({ offset: 15 }).setHTML(`
+            <div class="text-sm">
+              <h3 class='font-bold text-red-600'>${savedCalamity.calamity_type}</h3>
+              <p><strong>Severity:</strong> ${savedCalamity.severity_level || "N/A"}</p>
+            </div>
+          `)
+        )
+        .addTo(map.current);
+
+      // Save the marker so you can toggle visibility later
+      savedMarkersRef.current.push(marker);
+    }
+
+    // ✅ Update sidebar calamities
+    setSidebarCalamities((prev) => [...prev, savedCalamity]);
+
+    toast.success("Calamity saved successfully!", {
+      position: "top-center",
+      autoClose: 3000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: false,
+      theme: "light",
+    });
+  } catch (error) {
+    console.error("Error saving calamity:", error);
+    toast.error("Failed to save calamity.", {
+      position: "top-center",
+      autoClose: 3000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: false,
+      theme: "light",
+    });
+  }
+
+  // ✅ Reset tagging state
+  setIsTagging(false);
+  setNewTagLocation(null);
+  drawRef.current?.deleteAll();
+}}
+
+
       />
       
-      )} */}
+      )}
 
 <div
   style={{

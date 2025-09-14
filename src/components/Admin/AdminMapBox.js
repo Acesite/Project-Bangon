@@ -53,6 +53,8 @@ const bagoCityBounds = [
   [123.5000, 10.6333]
 ];
 
+  const SIDEBAR_WIDTH = 500; // must match "w-[500px]" on the sidebar
+  const PEEK = 1;           // visible slice of the pill when sidebar is open
 
 const cropColorMap = {
   Rice: "#facc15",        // Yellow
@@ -433,21 +435,12 @@ useEffect(() => {
       
       )}
 
-<div
-  style={{
-    position: "absolute",
-    left: isSidebarVisible ? "480px" : "0px", // Adjust based on sidebar width
-    top: "50%",
-    transform: "translateY(-50%)",
-    zIndex: 10,
-  }}
->
-  <SidebarToggleButton
-    onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-    isSidebarVisible={isSidebarVisible}
-  />
-</div>
-
+<SidebarToggleButton
+  onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+  isSidebarVisible={isSidebarVisible}
+  sidebarWidth={SIDEBAR_WIDTH}
+  peek={PEEK}
+/>
 
       {!isSidebarVisible && (
         <button

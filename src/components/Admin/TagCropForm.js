@@ -190,22 +190,21 @@ const barangayList = [
   readOnly
   className="w-full border border-gray-300 px-3 py-2 rounded-lg bg-gray-100 text-gray-600"
 />
-
-
 </div>
-
 
           {/* Hectares */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Area Size (hectares)</label>
-            <input
-              name="estimatedHectares"
-              type="number"
-              value={hectares}
-              readOnly
-              className="w-full border border-gray-300 px-3 py-2 rounded-lg bg-gray-100"
-            />
-          </div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Area Size (hectares)
+          </label>
+          <input
+            name="estimatedHectares"
+            type="number"
+            value={hectares}
+            onChange={(e) => setHectares(e.target.value)}  // Add this if you're using state
+            className="w-full border border-gray-300 px-3 py-2 rounded-lg"
+          />
+        </div>
 
          <div>
   <label className="block text-sm font-medium text-gray-700 mb-1">Barangay</label>

@@ -14,9 +14,9 @@ const LoginFarmer = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Handle form submission
   const handleLogin = async (e) => {
     e.preventDefault();
+
     try {
       const response = await axios.post("http://localhost:5000/api/farmers/login", {
         mobile_number,
@@ -26,22 +26,23 @@ const LoginFarmer = () => {
       console.log("Login response:", response.data);
 
       if (response.data.token) {
+        // ✅ Standardized localStorage keys
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("role", response.data.role);
         localStorage.setItem("first_name", response.data.first_name);
         localStorage.setItem("last_name", response.data.last_name);
-        localStorage.setItem("user_id", response.data.id);
+        localStorage.setItem("farmer_id", response.data.farmer_id); // matches TagCalamityForm
         localStorage.setItem("profile_picture", response.data.profile_picture);
-      
+
+        // Navigate based on role
         if (response.data.role === "super_admin") {
           navigate("/SuperAdminLandingPage");
         } else if (response.data.role === "admin") {
           navigate("/AdminLanding");
         } else {
-          navigate("/CalamityFarmerMap");  
+          navigate("/CalamityFarmerMap");
         }
       }
-      
     } catch (error) {
       setError(error.response?.data?.message || "An error occurred");
     }
@@ -60,9 +61,7 @@ const LoginFarmer = () => {
             Welcome to <span className="text-green-700 font-semibold">AgriGIS</span>, please enter your account.
           </p>
 
-          {error && (
-            <p className="text-red-500 text-center mb-4">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
           <form onSubmit={handleLogin}>
             <div className="mb-4">
