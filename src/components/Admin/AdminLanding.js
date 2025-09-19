@@ -63,7 +63,7 @@ const AdminLanding = () => {
   <p className="mt-4 text-white text-5md" data-aos="fade-up">
     AgriGIS helps visualize farmland locations, track planted crops, and estimate harvests, empowering farmers and agricultural planners with real-time data.
   </p>
-  <Link to="/AdminMap">
+  <Link to="/ChooseMap">
   <button
     className="relative inline-flex items-center justify-center px-3.5 py-2.5 overflow-hidden font-medium text-white transition duration-300 ease-out border-2 border-white rounded-xl shadow-md group mt-4"
     data-aos="fade-up"

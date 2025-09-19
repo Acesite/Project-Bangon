@@ -51,7 +51,8 @@ const bagoCityBounds = [
   [122.7333, 10.4958],
   [123.5000, 10.6333]
 ];
-
+const SIDEBAR_WIDTH = 500; // must match "w-[500px]" on the sidebar
+  const PEEK = 1;  
 // Calamity color mapping
 const calamityColorMap = {
   Flood: "#3b82f6",           // Blue
@@ -404,23 +405,46 @@ useEffect(() => {
           drawRef.current?.deleteAll();
         }}
 
-  onSave={async (formData) => {
+onSave={async (formData) => {
+  
+  let savedCalamity;
   try {
-    // Send formData to the backend
     const response = await axios.post("http://localhost:5000/api/calamities", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+    savedCalamity = response.data; // has coordinates ARRAY from backend fix
+  } catch (error) {
+    console.error("Create failed:", error);
+    toast.error(error.response?.data?.error || "Failed to save calamity.", {
+      position: "top-center",
+      autoClose: 3000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: false,
+      theme: "light",
+    });
+    setIsTagging(false);
+    setNewTagLocation(null);
+    drawRef.current?.deleteAll();
+    return;
+  }
 
-    const savedCalamity = response.data;
+  // ➋ Optimistic UI updates (these should never flip the toast to red)
+  setSidebarCalamities((prev) => [...prev, savedCalamity]);
 
-    // ✅ Update polygons
-    await loadPolygons();
+  // Add a marker for the new calamity (guard parsing)
+  try {
+    const coords = Array.isArray(savedCalamity.coordinates)
+      ? savedCalamity.coordinates
+      : JSON.parse(savedCalamity.coordinates); // fallback if server returns string
 
-    // ✅ Add marker for the new calamity without reloading all markers
-    if (savedCalamity.coordinates && map.current) {
-      const center = turf.centerOfMass(turf.polygon([savedCalamity.coordinates])).geometry.coordinates;
+    if (map.current && Array.isArray(coords)) {
+      const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
 
-      const marker = new mapboxgl.Marker({ color: calamityColorMap[savedCalamity.calamity_type] || "#ef4444" })
+      const marker = new mapboxgl.Marker({
+        color: (calamityColorMap[savedCalamity.calamity_type] || "#ef4444"),
+      })
         .setLngLat(center)
         .setPopup(
           new mapboxgl.Popup({ offset: 15 }).setHTML(`
@@ -432,36 +456,28 @@ useEffect(() => {
         )
         .addTo(map.current);
 
-      // Save the marker so you can toggle visibility later
       savedMarkersRef.current.push(marker);
     }
-
-    // ✅ Update sidebar calamities
-    setSidebarCalamities((prev) => [...prev, savedCalamity]);
-
-    toast.success("Calamity saved successfully!", {
-      position: "top-center",
-      autoClose: 3000,
-      hideProgressBar: true,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: false,
-      theme: "light",
-    });
-  } catch (error) {
-    console.error("Error saving calamity:", error);
-    toast.error("Failed to save calamity.", {
-      position: "top-center",
-      autoClose: 3000,
-      hideProgressBar: true,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: false,
-      theme: "light",
-    });
+  } catch (e) {
+    console.warn("Marker update failed:", e);
+  }
+  try {
+    await loadPolygons();
+  } catch (e) {
+    console.warn("Polygon reload failed:", e);
   }
 
-  // ✅ Reset tagging state
+  toast.success("Calamity saved successfully!", {
+    position: "top-center",
+    autoClose: 3000,
+    hideProgressBar: true,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: false,
+    theme: "light",
+  });
+
+  // Cleanup
   setIsTagging(false);
   setNewTagLocation(null);
   drawRef.current?.deleteAll();
@@ -481,12 +497,15 @@ useEffect(() => {
     zIndex: 10,
   }}
 >
-  <SidebarToggleButton
-    onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-    isSidebarVisible={isSidebarVisible}
-  />
+  
 </div>
 
+ <SidebarToggleButton
+  onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+  isSidebarVisible={isSidebarVisible}
+  sidebarWidth={SIDEBAR_WIDTH}
+  peek={PEEK}
+/>
 
       {!isSidebarVisible && (
         <button

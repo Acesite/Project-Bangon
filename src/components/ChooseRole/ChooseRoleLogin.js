@@ -6,9 +6,9 @@ const ChooseRoleLogin = () => {
 
   const handleSelect = (role) => {
     if (role === "admin") {
-      navigate("/Login");
-    } else if (role === "farmer") {
-      navigate("/LoginFarmer");
+      navigate("/Login");   // ✅ go to Super Admin landing
+    } else if (role === "fieldOfficer") {
+      navigate("/Login");             // keep your existing route (rename if you have a specific Field Officer login)
     }
   };
 
@@ -18,18 +18,20 @@ const ChooseRoleLogin = () => {
         <img src="/images/AgriGIS.png" alt="Logo" className="w-100 h-24 mx-auto" />
         <h2 className="text-2xl font-bold text-green-700">Login as</h2>
 
-        <button
-          onClick={() => handleSelect("farmer")}
-          className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600"
-        >
-          I'm a Farmer
-        </button>
-
+        {/* Admin */}
         <button
           onClick={() => handleSelect("admin")}
+          className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600"
+        >
+          I'm an Admin
+        </button>
+
+        {/* Field Officer */}
+        <button
+          onClick={() => handleSelect("fieldOfficer")}
           className="w-full border border-green-500 text-green-600 py-3 rounded-lg hover:bg-green-50"
         >
-          I'm an Field Officer
+          I'm a Field Officer
         </button>
 
         <p className="text-sm text-gray-500 mt-4">

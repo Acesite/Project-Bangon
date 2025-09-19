@@ -16,7 +16,7 @@ import SuperAdminMap from "../components/SuperAdmin/SuperAdminMap";
 import Graphs from "../components/SuperAdmin/Graphs";
 import CalamityMap from "../components/User/CalamityMap";
 import FarmerSignup from "../components/Signup/SignupFarmer";
-import ChooseRole from "../components/ChooseRole/ChooseRole";
+import ChooseMap from "../components/ChooseRole/ChooseMap";
 import ChooseRoleLogin from "../components/ChooseRole/ChooseRoleLogin";
 import LoginFarmer from "../components/Login/LoginFarmer";
 
@@ -30,7 +30,7 @@ const AppRoutes = () => {
       <Route path="/AboutUs" element={<AboutUs />} />
       <Route path="/Contact" element={<Contact />} />
       <Route path="/FarmerSignup" element={<FarmerSignup />} />
-      <Route path="/ChooseRole" element={<ChooseRole />} />
+      <Route path="/ChooseMap" element={<ChooseMap />} />
       <Route path="/ChooseRoleLogin" element={<ChooseRoleLogin />} />
       <Route path="/LoginFarmer" element={<LoginFarmer />} />
 

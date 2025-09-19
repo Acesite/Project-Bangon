@@ -43,7 +43,7 @@ const NavBar = () => {
     </nav>
 
           {/* CTA Buttons */}
-          <Link to="/ChooseRole">
+          <Link to="/Signup">
   <button class="relative inline-block group">
     <span class="relative z-10 px-3.5 py-2 overflow-hidden font-medium leading-tight flex items-centrer justify-center text-green-600 transition-colors duration-300 ease-out border-2 border-green-600 rounded-lg group-hover:text-white">
       <span class="absolute inset-0 w-full h-full px-5 py-3 rounded-lg bg-gray-50"></span>

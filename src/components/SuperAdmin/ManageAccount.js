@@ -4,45 +4,45 @@ import "aos/dist/aos.css";
 import axios from "axios";
 import SuperAdminNav from "../NavBar/SuperAdminNav";
 import Footer from "../LandingPage/Footer";
-import AccountsTable from "../SuperAdmin/AccountsTable";
+import AccountsTable from "./AccountsTable";
+import PageContainer from "./PageContainer";
 
 const ManageAccount = () => {
   const [accounts, setAccounts] = useState([]);
 
   useEffect(() => {
     AOS.init({ duration: 1000, once: true });
-
-    fetchAccounts();
+    axios
+      .get("http://localhost:5000/manageaccount/accounts")
+      .then(res => setAccounts(res.data))
+      .catch(err => console.error("Error fetching accounts:", err));
   }, []);
 
-  const fetchAccounts = () => {
-    axios.get("http://localhost:5000/manageaccount/accounts")
-      .then((response) => {
-        setAccounts(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching accounts:", error);
-      });
-  };
+  const handleDelete = (id) =>
+    setAccounts(prev => prev.filter(a => a.id !== id));
 
-  const handleDelete = (id) => {
-    setAccounts(accounts.filter(account => account.id !== id));
-  };
-
-  const handleUpdateStatus = (id, newStatus) => {
-    setAccounts(accounts.map(account => 
-      account.id === id ? { ...account, status: newStatus } : account
-    ));
-  };
-  
+  const handleUpdateStatus = (id, status) =>
+    setAccounts(prev => prev.map(a => (a.id === id ? { ...a, status } : a)));
 
   return (
-    <div className="flex flex-col h-screen bg-white-100 font-poppins">
+    <div className="flex min-h-screen flex-col bg-white font-poppins">
       <SuperAdminNav />
-      <div className="flex-grow container mx-auto p-6 mt-20 bg-white mb-7">
-        <h2 className="text-3xl font-bold text-green-600 mb-6 text-center">Manage Accounts</h2>
-        <AccountsTable accounts={accounts} onDelete={handleDelete} onUpdateStatus={handleUpdateStatus} />
-      </div>
+
+      {/* Let the window handle vertical scrolling. */}
+      <main className="flex-grow pt-[100px] pb-10 overflow-visible">
+        <PageContainer>
+          <h2 className="mb-6 text-center text-3xl font-bold text-green-600 md:text-4xl">
+            Manage Accounts
+          </h2>
+
+          <AccountsTable
+            accounts={accounts}
+            onDelete={handleDelete}
+            onUpdateStatus={handleUpdateStatus}
+          />
+        </PageContainer>
+      </main>
+
       <Footer />
     </div>
   );

@@ -1,52 +1,57 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay } from "swiper/modules";
+import { Autoplay, EffectFade } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-import { EffectFade } from "swiper/modules";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const navigate = useNavigate();  // Initialize useNavigate
+  const navigate = useNavigate();
 
-  // Handle form input changes
   const handleEmailChange = (e) => setEmail(e.target.value);
   const handlePasswordChange = (e) => setPassword(e.target.value);
 
-  // Handle form submission
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const response = await axios.post("http://localhost:5000/users/login", { email, password });
-      console.log("Login response:", response.data);
-     if (response.data.token) {
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("role", response.data.role);
-      localStorage.setItem("first_name", response.data.first_name);
-      localStorage.setItem("last_name", response.data.last_name);
-      localStorage.setItem("user_id", response.data.id); // ✅ Store user id
-      localStorage.setItem("profile_picture", response.data.profile_picture);
-      
 
-  if (response.data.role === "super_admin") {
-    navigate("/SuperAdminLandingPage");
-  } else if (response.data.role === "admin") {
-    navigate("/AdminLanding");
-  } else {
-    navigate("/UserLandingPage");
-  }
-}
+      if (response.data?.token) {
+        const { token, role, id, first_name, last_name, profile_picture } = response.data;
 
-    } catch (error) {
-      setError(error.response?.data?.message || "An error occurred");
+        // Base user info
+        localStorage.setItem("token", token);
+        localStorage.setItem("role", role);
+        localStorage.setItem("first_name", first_name);
+        localStorage.setItem("last_name", last_name);
+        localStorage.setItem("profile_picture", profile_picture || "");
+        localStorage.setItem("user_id", String(id));
+
+        // ✅ Also store admin_id for admins/super_admins
+        if (role === "admin" || role === "super_admin") {
+          localStorage.setItem("admin_id", String(id));
+        } else {
+          localStorage.removeItem("admin_id");
+        }
+
+        // Redirect by role
+        if (role === "super_admin") {
+          navigate("/SuperAdminLandingPage");
+        } else if (role === "admin") {
+          navigate("/AdminLanding");
+        } else {
+          navigate("/UserLandingPage");
+        }
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "An error occurred");
     }
   };
-  
 
   return (
     <div className="flex h-screen items-center justify-center bg-gray-100 font-poppins">
@@ -61,9 +66,7 @@ const Login = () => {
             Welcome to <span className="text-green-700 font-semibold">AgriGIS</span>, please enter your account.
           </p>
 
-          {error && (
-            <p className="text-red-500 text-center mb-4">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
           <form onSubmit={handleLogin}>
             <div className="mb-4">
@@ -74,6 +77,7 @@ const Login = () => {
                 onChange={handleEmailChange}
                 placeholder="name@gmail.com"
                 className="w-full p-3 border rounded-lg"
+                required
               />
             </div>
 
@@ -85,6 +89,7 @@ const Login = () => {
                 onChange={handlePasswordChange}
                 placeholder="********"
                 className="w-full p-3 border rounded-lg"
+                required
               />
             </div>
 
@@ -98,10 +103,6 @@ const Login = () => {
             <button type="submit" className="w-full bg-green-500 text-white p-3 rounded-lg mb-4 hover:bg-green-800 active:bg-green-500">
               Log in
             </button>
-
-            {/* <button className="w-full flex justify-center items-center border p-3 rounded-lg">
-              <img src="/images/google.png" alt="Google" className="h-5 mr-2" /> Log in with Google
-            </button> */}
           </form>
 
           <p className="text-gray-500 text-center mt-4">
@@ -116,7 +117,7 @@ const Login = () => {
             effect="fade"
             spaceBetween={50}
             slidesPerView={1}
-            loop={true}
+            loop
             autoplay={{ delay: 2000, disableOnInteraction: false }}
             className="h-full"
           >

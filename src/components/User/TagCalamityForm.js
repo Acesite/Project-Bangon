@@ -5,36 +5,38 @@ const TagCalamityForm = ({ defaultLocation, selectedBarangay, onCancel, onSave }
   const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState(null);
 
- const handleSubmit = (e) => {
-  e.preventDefault();
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
-  const farmerId = localStorage.getItem("user_id"); // make sure this matches what your backend expects
-  if (!farmerId) {
-    alert("Farmer not logged in!");
-    return;
-  }
+    // Resolve admin id from localStorage (set at login)
+    const role = localStorage.getItem("role");
+    const adminId =
+      role === "admin" || role === "super_admin"
+        ? Number(localStorage.getItem("admin_id") || localStorage.getItem("user_id"))
+        : 0;
 
-  if (!defaultLocation?.coordinates) {
-    alert("Coordinates not found!");
-    return;
-  }
+    if (!adminId) {
+      alert("No admin_id found. Please log in as an admin.");
+      return;
+    }
 
-  const formData = new FormData();
-  formData.append("calamity_type", calamityType);
-  formData.append("description", description);
-  formData.append("location", selectedBarangay || "Unknown");
-  formData.append("coordinates", JSON.stringify(defaultLocation.coordinates));
-  formData.append("farmer_id", farmerId); // ✅ farmer ID
-  formData.append("hectares", defaultLocation.hectares?.toString() || "0"); // optional
+    if (!defaultLocation?.coordinates) {
+      alert("Coordinates not found!");
+      return;
+    }
 
-  if (photo) {
-    formData.append("photo", photo); // ✅ append image if selected
-  }
+    const formData = new FormData();
+    formData.append("calamity_type", calamityType);
+    formData.append("description", description);
+    formData.append("location", selectedBarangay || "Unknown");
+    formData.append("coordinates", JSON.stringify(defaultLocation.coordinates));
+    formData.append("admin_id", String(adminId)); // ✅ backend expects this (NOT NULL)
+    formData.append("hectares", String(defaultLocation.hectares ?? 0)); // optional
 
-  // Call the onSave function passed from parent
-  onSave(formData);
-};
+    if (photo) formData.append("photo", photo);
 
+    onSave(formData);
+  };
 
   return (
     <div className="absolute top-10 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-lg p-6 w-[400px] z-50">
