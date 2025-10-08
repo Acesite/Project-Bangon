@@ -4,9 +4,7 @@ import clsx from "clsx";
 import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
 import Button from "./MapControls/Button";
 
-// ─────────────────────────────────────────────────────────────
-// Small UI helpers (same vibe as AdminSideBar)
-// ─────────────────────────────────────────────────────────────
+
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
 const fmt = (v) => (v ?? v === 0 ? v : "—");
 

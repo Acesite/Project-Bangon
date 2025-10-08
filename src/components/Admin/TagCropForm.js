@@ -59,6 +59,25 @@ const TagCropForm = ({
   const [farmerAddress, setFarmerAddress] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
 
+  const [ecosystems, setEcosystems] = useState([]);  // Add this state for ecosystems
+const [selectedEcosystem, setSelectedEcosystem] = useState("");  // Add state to store the selected ecosystem
+
+useEffect(() => {
+  if (selectedCropType) { // Only fetch ecosystems if a crop type is selected
+    fetch(`http://localhost:5000/api/crops/ecosystems/${selectedCropType}`)
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Ecosystems data:", data); // Log the data for debugging
+        setEcosystems(data);
+      })
+      .catch((err) => console.error("Failed to load ecosystems:", err));
+  } else {
+    setEcosystems([]); // Clear ecosystems if no crop type is selected
+  }
+}, [selectedCropType]);
+
+
+
   const autoHarvestCandidate = useMemo(() => {
     const days = STANDARD_MATURITY_DAYS[selectedCropType] || 0;
     return addDaysToISO(plantedDate, days);
@@ -135,9 +154,12 @@ const TagCropForm = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     setShowConfirmation(false);
-
+  
     const formData = new FormData();
-
+  
+    // Add ecosystem_id to the form data before submitting
+    formData.append("ecosystem_id", selectedEcosystem || "");
+  
     // crop fields
     formData.append("crop_type_id", selectedCropType);
     formData.append("variety_id", selectedVarietyId || "");
@@ -149,7 +171,7 @@ const TagCropForm = ({
     formData.append("coordinates", JSON.stringify(defaultLocation?.coordinates || []));
     formData.append("barangay", manualBarangay || selectedBarangay || ""); // optional for your UI
     if (adminId) formData.append("admin_id", String(adminId));
-
+  
     // farmer fields
     formData.append("farmer_first_name", farmerFirstName || "");
     formData.append("farmer_last_name", farmerLastName || "");
@@ -157,16 +179,16 @@ const TagCropForm = ({
     formData.append("farmer_barangay", farmerBarangay || "");
     // 🔑 send the one-line address with the key your backend expects
     formData.append("full_address", farmerAddress || "");
-
+  
     // photos
     if (photos) {
       for (let i = 0; i < photos.length; i++) {
         formData.append("photos", photos[i]);
       }
     }
-
+  
     await onSave(formData);
-
+  
     // reset
     setCurrentStep(1);
     setHectares("");
@@ -186,6 +208,7 @@ const TagCropForm = ({
     setFarmerBarangay("");
     setFarmerAddress("");
   };
+  
 
   const getCropTypeName = () => {
     const crop = cropTypes.find(c => c.id === selectedCropType);
@@ -231,25 +254,52 @@ const TagCropForm = ({
             {currentStep === 1 && (
               <div className="space-y-4 animate-fadeIn">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Crop Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={selectedCropType}
-                    onChange={(e) => {
-                      const id = parseInt(e.target.value);
-                      setSelectedCropType(Number.isFinite(id) ? id : "");
-                      setSelectedVarietyId("");
-                    }}
-                    className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
-                  >
-                    <option value="">Select Crop Type</option>
-                    {cropTypes.map((type) => (
-                      <option key={type.id} value={type.id}>{type.name}</option>
-                    ))}
-                  </select>
-                </div>
+  <label className="block text-sm font-semibold text-gray-700 mb-2">
+    Crop Type <span className="text-red-500">*</span>
+  </label>
+  <select
+    required
+    value={selectedCropType}
+    onChange={(e) => {
+      const id = parseInt(e.target.value);
+      console.log("Selected crop type:", id);
+      setSelectedCropType(Number.isFinite(id) ? id : "");
+      setSelectedVarietyId("");
+    }}
+    className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
+  >
+    <option value="">Select Crop Type</option>
+    {cropTypes.map((type) => (
+      <option key={type.id} value={type.id}>
+        {type.name}
+      </option>
+    ))}
+  </select>
+</div>
+
+{selectedCropType && ecosystems.length > 0 && (
+  <div>
+    <label className="block text-sm font-semibold text-gray-700 mb-2">
+      Ecosystem <span className="text-red-500">*</span>
+    </label>
+    <select
+      value={selectedEcosystem}
+      onChange={(e) => setSelectedEcosystem(e.target.value)}
+      className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
+    >
+      <option value="">Select Ecosystem</option>
+      {ecosystems.map((ecosystem) => (
+        <option key={ecosystem.id} value={ecosystem.id}>
+          {ecosystem.name}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
+
+
+
+                
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Variety</label>
@@ -498,100 +548,113 @@ const TagCropForm = ({
         </div>
       </div>
 
-      {/* Confirmation Modal */}
-      {showConfirmation && (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fadeIn">
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100">
-              <h3 className="text-xl font-bold text-gray-900">Review Details</h3>
-              <p className="text-sm text-gray-500 mt-1">Please verify before saving</p>
+ {/* Confirmation Modal */}
+{showConfirmation && (
+  <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fadeIn">
+      <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+        <h3 className="text-xl font-bold text-gray-900">Review Details</h3>
+        <p className="text-sm text-gray-500 mt-1">Please verify before saving</p>
+      </div>
+
+      <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
+        <div className="mb-5">
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Crop Information</h4>
+          <div className="space-y-2.5">
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-gray-600">Crop</span>
+              <span className="text-sm font-semibold text-gray-900 text-right">{getCropTypeName()}</span>
+            </div>
+            {selectedVarietyId && (
+              <div className="flex justify-between items-start">
+                <span className="text-sm text-gray-600">Variety</span>
+                <span className="text-sm font-semibold text-gray-900 text-right">{getVarietyName()}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-gray-600">Planted</span>
+              <span className="text-sm font-semibold text-gray-900">{new Date(plantedDate).toLocaleDateString()}</span>
+            </div>
+            {estimatedHarvest && (
+              <div className="flex justify-between items-start">
+                <span className="text-sm text-gray-600">Harvest</span>
+                <span className="text-sm font-semibold text-gray-900">{new Date(estimatedHarvest).toLocaleDateString()}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-gray-600">Area</span>
+              <span className="text-sm font-semibold text-gray-900">{hectares} ha</span>
+            </div>
+            {estimatedVolume && (
+              <div className="flex justify-between items-start">
+                <span className="text-sm text-gray-600">Yield</span>
+                <span className="text-sm font-semibold text-gray-900">{estimatedVolume} {yieldUnitMap[selectedCropType]}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-gray-600">Location</span>
+              <span className="text-sm font-semibold text-gray-900">{manualBarangay}</span>
             </div>
 
-            <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
-              <div className="mb-5">
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Crop Information</h4>
-                <div className="space-y-2.5">
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm text-gray-600">Crop</span>
-                    <span className="text-sm font-semibold text-gray-900 text-right">{getCropTypeName()}</span>
-                  </div>
-                  {selectedVarietyId && (
-                    <div className="flex justify-between items-start">
-                      <span className="text-sm text-gray-600">Variety</span>
-                      <span className="text-sm font-semibold text-gray-900 text-right">{getVarietyName()}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm text-gray-600">Planted</span>
-                    <span className="text-sm font-semibold text-gray-900">{new Date(plantedDate).toLocaleDateString()}</span>
-                  </div>
-                  {estimatedHarvest && (
-                    <div className="flex justify-between items-start">
-                      <span className="text-sm text-gray-600">Harvest</span>
-                      <span className="text-sm font-semibold text-gray-900">{new Date(estimatedHarvest).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm text-gray-600">Area</span>
-                    <span className="text-sm font-semibold text-gray-900">{hectares} ha</span>
-                  </div>
-                  {estimatedVolume && (
-                    <div className="flex justify-between items-start">
-                      <span className="text-sm text-gray-600">Yield</span>
-                      <span className="text-sm font-semibold text-gray-900">{estimatedVolume} {yieldUnitMap[selectedCropType]}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm text-gray-600">Location</span>
-                    <span className="text-sm font-semibold text-gray-900">{manualBarangay}</span>
-                  </div>
-                </div>
-              </div>
+           {/* Added Ecosystem Section */}
+{selectedCropType && ecosystems.length > 0 && (
+  <div className="flex justify-between items-start">
+    <span className="text-sm text-gray-600">Ecosystem</span>
+    <span className="text-sm font-semibold text-gray-900 text-right">
+      {ecosystems.find((ecosystem) => ecosystem.id === parseInt(selectedEcosystem))?.name || "—"}
+    </span>
+  </div>
+)}
 
-              <div className="border-t border-gray-100 my-4"></div>
+          </div>
+        </div>
 
-              <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Farmer Information</h4>
-                <div className="space-y-2.5">
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm text-gray-600">Name</span>
-                    <span className="text-sm font-semibold text-gray-900 text-right">{farmerFirstName} {farmerLastName}</span>
-                  </div>
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm text-gray-600">Mobile</span>
-                    <span className="text-sm font-semibold text-gray-900">{farmerMobile}</span>
-                  </div>
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm text-gray-600">Barangay</span>
-                    <span className="text-sm font-semibold text-gray-900">{farmerBarangay}</span>
-                  </div>
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm text-gray-600">Address</span>
-                    <span className="text-sm font-semibold text-gray-900 text-right max-w-[60%] leading-snug">{farmerAddress}</span>
-                  </div>
-                </div>
-              </div>
+        <div className="border-t border-gray-100 my-4"></div>
+
+        <div>
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Farmer Information</h4>
+          <div className="space-y-2.5">
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-gray-600">Name</span>
+              <span className="text-sm font-semibold text-gray-900 text-right">{farmerFirstName} {farmerLastName}</span>
             </div>
-
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowConfirmation(false)}
-                className="flex-1 px-4 py-2.5 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition"
-              >
-                Go Back
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="flex-1 px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition"
-              >
-                Confirm & Save
-              </button>
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-gray-600">Mobile</span>
+              <span className="text-sm font-semibold text-gray-900">{farmerMobile}</span>
+            </div>
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-gray-600">Barangay</span>
+              <span className="text-sm font-semibold text-gray-900">{farmerBarangay}</span>
+            </div>
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-gray-600">Address</span>
+              <span className="text-sm font-semibold text-gray-900 text-right max-w-[60%] leading-snug">{farmerAddress}</span>
             </div>
           </div>
         </div>
-      )}
+      </div>
+
+      <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+        <button
+          type="button"
+          onClick={() => setShowConfirmation(false)}
+          className="flex-1 px-4 py-2.5 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition"
+        >
+          Go Back
+        </button>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          className="flex-1 px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition"
+        >
+          Confirm & Save
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
 
       <style>{`
         @keyframes fadeIn {
