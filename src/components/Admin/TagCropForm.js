@@ -135,26 +135,30 @@ const TagCropForm = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     setShowConfirmation(false);
-    
+
     const formData = new FormData();
 
+    // crop fields
     formData.append("crop_type_id", selectedCropType);
     formData.append("variety_id", selectedVarietyId || "");
     formData.append("plantedDate", plantedDate || "");
-    formData.append("estimatedHarvest", estimatedHarvest || "");
+    formData.append("estimatedHarvest", estimatedHarvest || ""); // ok if backend ignores
     formData.append("estimatedVolume", estimatedVolume || "");
     formData.append("estimatedHectares", hectares || "");
     formData.append("note", note || "");
     formData.append("coordinates", JSON.stringify(defaultLocation?.coordinates || []));
-    formData.append("barangay", manualBarangay || selectedBarangay || "");
+    formData.append("barangay", manualBarangay || selectedBarangay || ""); // optional for your UI
     if (adminId) formData.append("admin_id", String(adminId));
 
+    // farmer fields
     formData.append("farmer_first_name", farmerFirstName || "");
     formData.append("farmer_last_name", farmerLastName || "");
     formData.append("farmer_mobile", farmerMobile || "");
     formData.append("farmer_barangay", farmerBarangay || "");
-    formData.append("farmer_address", farmerAddress || "");
+    // 🔑 send the one-line address with the key your backend expects
+    formData.append("full_address", farmerAddress || "");
 
+    // photos
     if (photos) {
       for (let i = 0; i < photos.length; i++) {
         formData.append("photos", photos[i]);
@@ -163,6 +167,7 @@ const TagCropForm = ({
 
     await onSave(formData);
 
+    // reset
     setCurrentStep(1);
     setHectares("");
     setSelectedCropType("");
@@ -195,53 +200,36 @@ const TagCropForm = ({
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-        
-        {/* Simplified Header */}
+        {/* Header */}
         <div className="px-8 pt-6 pb-4">
           <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">
             Tag Crop
           </h2>
-          
-          {/* Simple Step Indicator */}
+
           <div className="flex items-center justify-center gap-3 mb-2">
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-              currentStep === 1 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"
-            }`}>
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-                currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-300 text-gray-600"
-              }`}>
-                1
-              </div>
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentStep === 1 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-300 text-gray-600"}`}>1</div>
               <span className="font-medium text-sm">Crop Details</span>
             </div>
-            
+
             <div className="w-8 h-0.5 bg-gray-200"></div>
-            
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-              currentStep === 2 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"
-            }`}>
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-                currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-300 text-gray-600"
-              }`}>
-                2
-              </div>
+
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentStep === 2 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-300 text-gray-600"}`}>2</div>
               <span className="font-medium text-sm">Farmer Info</span>
             </div>
           </div>
-          
+
           <div className="text-center text-sm text-gray-500">
             {currentStep === 1 ? "Enter basic crop information" : "Enter farmer details"}
           </div>
         </div>
 
-        {/* Form Content */}
+        {/* Body */}
         <div className="flex-1 overflow-y-auto px-8 py-4">
           <form onSubmit={handleSubmit} ref={formRef}>
-            
-            {/* Step 1: Crop Information */}
             {currentStep === 1 && (
               <div className="space-y-4 animate-fadeIn">
-                {/* Crop Type */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Crop Type <span className="text-red-500">*</span>
@@ -263,7 +251,6 @@ const TagCropForm = ({
                   </select>
                 </div>
 
-                {/* Variety */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Variety</label>
                   <select
@@ -279,7 +266,6 @@ const TagCropForm = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Planted Date */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Date Planted <span className="text-red-500">*</span>
@@ -293,7 +279,6 @@ const TagCropForm = ({
                     />
                   </div>
 
-                  {/* Estimated Harvest */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Est. Harvest</label>
                     <input
@@ -309,7 +294,6 @@ const TagCropForm = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Area */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Area (ha) <span className="text-red-500">*</span>
@@ -326,7 +310,6 @@ const TagCropForm = ({
                     />
                   </div>
 
-                  {/* Estimated Yield */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Est. Yield {yieldUnitMap[selectedCropType] ? `(${yieldUnitMap[selectedCropType]})` : ""}
@@ -346,7 +329,6 @@ const TagCropForm = ({
                   </div>
                 </div>
 
-                {/* Barangay */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Barangay <span className="text-red-500">*</span>
@@ -364,7 +346,6 @@ const TagCropForm = ({
                   </select>
                 </div>
 
-                {/* Notes */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
                   <textarea
@@ -376,7 +357,6 @@ const TagCropForm = ({
                   />
                 </div>
 
-                {/* Photos */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Photos</label>
                   <input
@@ -391,11 +371,9 @@ const TagCropForm = ({
               </div>
             )}
 
-            {/* Step 2: Farmer Information */}
             {currentStep === 2 && (
               <div className="space-y-4 animate-fadeIn">
                 <div className="grid grid-cols-2 gap-4">
-                  {/* First Name */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       First Name <span className="text-red-500">*</span>
@@ -410,7 +388,6 @@ const TagCropForm = ({
                     />
                   </div>
 
-                  {/* Last Name */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Last Name <span className="text-red-500">*</span>
@@ -426,7 +403,6 @@ const TagCropForm = ({
                   </div>
                 </div>
 
-                {/* Mobile Number */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Mobile Number <span className="text-red-500">*</span>
@@ -441,7 +417,6 @@ const TagCropForm = ({
                   />
                 </div>
 
-                {/* Farmer's Barangay */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Barangay <span className="text-red-500">*</span>
@@ -459,7 +434,6 @@ const TagCropForm = ({
                   </select>
                 </div>
 
-                {/* Address */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Complete Address <span className="text-red-500">*</span>
@@ -478,7 +452,7 @@ const TagCropForm = ({
           </form>
         </div>
 
-        {/* Simplified Footer */}
+        {/* Footer */}
         <div className="px-8 py-5 bg-gray-50 border-t border-gray-200">
           <div className="flex justify-between items-center gap-3">
             <button
@@ -488,7 +462,7 @@ const TagCropForm = ({
             >
               Cancel
             </button>
-            
+
             <div className="flex gap-3">
               {currentStep > 1 && (
                 <button
@@ -499,7 +473,7 @@ const TagCropForm = ({
                   <ArrowLeft size={18} /> Back
                 </button>
               )}
-              
+
               {currentStep < 2 ? (
                 <button
                   type="button"
@@ -516,7 +490,7 @@ const TagCropForm = ({
                   disabled={!isStep2Valid()}
                   className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-green-600"
                 >
-                  <SaveIcon size={18} /> Save 
+                  <SaveIcon size={18} /> Save
                 </button>
               )}
             </div>
@@ -528,15 +502,12 @@ const TagCropForm = ({
       {showConfirmation && (
         <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fadeIn">
-            {/* Header */}
             <div className="px-6 pt-6 pb-4 border-b border-gray-100">
               <h3 className="text-xl font-bold text-gray-900">Review Details</h3>
               <p className="text-sm text-gray-500 mt-1">Please verify before saving</p>
             </div>
 
-            {/* Content */}
             <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
-              {/* Crop Section */}
               <div className="mb-5">
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Crop Information</h4>
                 <div className="space-y-2.5">
@@ -577,10 +548,8 @@ const TagCropForm = ({
                 </div>
               </div>
 
-              {/* Divider */}
               <div className="border-t border-gray-100 my-4"></div>
 
-              {/* Farmer Section */}
               <div>
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Farmer Information</h4>
                 <div className="space-y-2.5">
@@ -604,7 +573,6 @@ const TagCropForm = ({
               </div>
             </div>
 
-            {/* Footer */}
             <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
               <button
                 type="button"
