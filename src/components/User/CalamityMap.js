@@ -45,6 +45,8 @@ const Calamity = () => {
   const savedMarkersRef = useRef([]); // store markers so we can remove them later
   const [enlargedImage, setEnlargedImage] = useState(null);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+ 
+
 
 // Bounding box for Bago City
 const bagoCityBounds = [
@@ -295,18 +297,19 @@ const calamityColorMap = {
         await renderSavedMarkers();
       });
 
-      map.current.on("click", "calamity-polygons-layer", (e) => {
-        const feature = e.features[0];
-        const calamityId = feature.properties?.id;
+      map.current.on("draw.create", (e) => {
+        const feature = e.features[0]; // The polygon just drawn
+        if (feature.geometry.type === "Polygon") {
+          const coordinates = feature.geometry.coordinates[0];
+          const area = turf.area(feature);  // Area in square meters
+          const hectares = +(area / 10000).toFixed(2); // Convert square meters to hectares
       
-        if (!calamityId) return;
-      
-        const calamityData = sidebarCalamities.find((c) => c.id === calamityId);
-        if (calamityData) {
-          setSelectedCalamity(calamityData); 
-          
+          // Set the new location with the calculated hectares
+          setNewTagLocation({ coordinates, hectares });
+          setIsTagging(true); // Enable the tagging mode to show the form
         }
       });
+      
       
       map.current.on("draw.create", (e) => {
         const feature = e.features[0];
@@ -398,14 +401,14 @@ useEffect(() => {
       {isTagging && newTagLocation && (
         <TagCalamityForm
         defaultLocation={{ ...newTagLocation, hectares: newTagLocation.hectares }}
-        selectedBarangay={selectedBarangay?.name}  // 👈 Pass name of selected barangay
+        setNewTagLocation={setNewTagLocation} // Pass setNewTagLocation here
+        selectedBarangay={selectedBarangay?.name}  // Pass name of selected barangay
         onCancel={() => {
           setIsTagging(false);
-          setNewTagLocation(null);
+          setNewTagLocation(null); // Reset the location when canceling
           drawRef.current?.deleteAll();
         }}
-
-onSave={async (formData) => {
+      onSave={async (formData) => {
   
   let savedCalamity;
   try {
