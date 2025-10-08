@@ -37,7 +37,7 @@ const AdminSideBar = ({
 }) => {
   const [selectedBarangay, setSelectedBarangay] = useState("");
   const [barangayDetails, setBarangayDetails] = useState(null);
-  const [showCropDropdown, setShowCropDropdown] = useState(false); // kept for parity
+  const [showCropDropdown, setShowCropDropdown] = useState(false);
   const navigate = useNavigate();
 
   // ───────────────────────────────────────────────────────────
@@ -218,26 +218,64 @@ const AdminSideBar = ({
         {/* Selected crop */}
         {selectedCrop && (
           <Section title={selectedCrop.crop_name || "Crop"}>
-            <dl className="grid grid-cols-2 gap-4">
-              <KV label="Variety" value={fmt(selectedCrop.variety_name)} />
-              <KV label="Barangay" value={fmt(selectedCrop.barangay)} />
-              <KV label="Planted Date" value={fmtDate(selectedCrop.planted_date)} />
-              <KV label="Est. Harvest" value={fmtDate(selectedCrop.estimated_harvest)} />
-              <KV label="Volume" value={fmt(selectedCrop.estimated_volume)} />
-              <KV label="Hectares" value={fmt(selectedCrop.estimated_hectares)} />
+            <dl className="space-y-3">
+              <div className="grid grid-cols-2 gap-x-4">
+                <KV label="Variety" value={fmt(selectedCrop.variety_name)} />
+                <KV label="Hectares" value={fmt(selectedCrop.estimated_hectares)} />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-x-4">
+                <KV label="Planted Date" value={fmtDate(selectedCrop.planted_date)} />
+                <KV label="Est. Harvest" value={fmtDate(selectedCrop.estimated_harvest)} />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-x-4">
+                <KV label="Volume" value={fmt(selectedCrop.estimated_volume)} />
+                <div></div>
+              </div>
+
+              {selectedCrop.note?.trim() && (
+                <div className="pt-2 border-t border-gray-100">
+                  <dt className="text-xs uppercase tracking-wide text-gray-500 mb-1">Note</dt>
+                  <dd className="text-sm text-gray-900">{selectedCrop.note.trim()}</dd>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-x-4">
+                <KV label="Tagged by" value={fmt(selectedCrop.admin_name)} />
+                <KV label="Tagged on" value={fmtDate(selectedCrop.created_at)} />
+              </div>
             </dl>
+          </Section>
+        )}
 
-            <div className="mt-3">
-              <div className="text-xs uppercase tracking-wide text-gray-500">Note</div>
-              <p className="text-sm text-gray-900 mt-1">
-                {selectedCrop.note?.trim() || "—"}
-              </p>
-            </div>
-
-            <div className="mt-4 border-t border-gray-100 pt-3 grid grid-cols-2 gap-4">
-              <KV label="Tagged by" value={fmt(selectedCrop.admin_name)} />
-              <KV label="Tagged on" value={fmtDate(selectedCrop.created_at)} />
-            </div>
+        {/* Farmer Information Section */}
+        {selectedCrop && (selectedCrop.farmer_first_name || selectedCrop.farmer_barangay) && (
+          <Section title="Farmer Information">
+            <dl className="space-y-3">
+              <div className="grid grid-cols-2 gap-x-4">
+                {selectedCrop.farmer_first_name && (
+                  <KV 
+                    label="Farmer Name" 
+                    value={`${selectedCrop.farmer_first_name} ${selectedCrop.farmer_last_name || ''}`.trim()} 
+                  />
+                )}
+                {selectedCrop.farmer_barangay && (
+                  <KV label="Barangay" value={fmt(selectedCrop.farmer_barangay)} />
+                )}
+              </div>
+              
+              {selectedCrop.farmer_mobile && (
+                <KV label="Mobile Number" value={fmt(selectedCrop.farmer_mobile)} />
+              )}
+              
+              {selectedCrop.farmer_address && (
+                <div className="pt-2 border-t border-gray-100">
+                  <dt className="text-xs uppercase tracking-wide text-gray-500 mb-1">Address</dt>
+                  <dd className="text-sm text-gray-900">{fmt(selectedCrop.farmer_address)}</dd>
+                </div>
+              )}
+            </dl>
           </Section>
         )}
 
@@ -264,7 +302,7 @@ const AdminSideBar = ({
           </Section>
         )}
 
-        {/* Photos by barangay (optional, kept from your version) */}
+        {/* Photos by barangay */}
         {barangayDetails && crops.length > 0 && (
           <Section title={`Photos from ${barangayDetails.name}`}>
             <div className="grid grid-cols-2 gap-2">
