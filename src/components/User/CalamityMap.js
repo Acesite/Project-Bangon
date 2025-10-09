@@ -485,8 +485,6 @@ useEffect(() => {
   setNewTagLocation(null);
   drawRef.current?.deleteAll();
 }}
-
-
       />
       
       )}
