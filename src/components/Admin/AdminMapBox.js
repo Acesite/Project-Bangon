@@ -722,15 +722,7 @@ const AdminMapBox = () => {
           )}
         </IconButton>
 
-        {/* Live readout */}
-        <div className="hidden sm:flex items-center gap-2 text-xs text-gray-700 ml-1 px-2 py-1 bg-white rounded-lg border border-gray-200">
-          <span className="opacity-70">Acc:</span>
-          <span className="font-medium">{userLoc?.acc ? `${Math.round(userLoc.acc)}m` : "—"}</span>
-          <span className="opacity-70 ml-2">Head:</span>
-          <span className="font-medium">
-            {typeof headingDeg === "number" ? `${Math.round(headingDeg)}°` : "—"}
-          </span>
-        </div>
+        
       </div>
 
       {/* Map */}
