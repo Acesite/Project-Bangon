@@ -43,19 +43,20 @@ function expandBoundsToIncludePoint(bounds, [lng, lat], pad = 0.05) {
 function explainGeoError(err) {
   if (!err) return "Unknown geolocation error.";
   switch (err.code) {
-    case 1: return "Permission denied. Allow location for this site in your browser.";
-    case 2: return "Position unavailable. Try near a window or check OS location services.";
-    case 3: return "Timed out. Try again or increase the timeout.";
-    default: return err.message || "Geolocation failed.";
+    case 1:
+      return "Permission denied. Allow location for this site in your browser.";
+    case 2:
+      return "Position unavailable. Try near a window or check OS location services.";
+    case 3:
+      return "Timed out. Try again or increase the timeout.";
+    default:
+      return err.message || "Geolocation failed.";
   }
 }
 
 // Start a resilient geolocation watch and always return a safe stop function
 function startGeoWatch(onPos, onErr, opts) {
-  if (
-    !("geolocation" in navigator) ||
-    typeof navigator.geolocation.watchPosition !== "function"
-  ) {
+  if (!("geolocation" in navigator) || typeof navigator.geolocation.watchPosition !== "function") {
     onErr?.({ code: 2, message: "Geolocation watch not supported in this browser." });
     return () => {}; // no-op stopper
   }
@@ -73,6 +74,43 @@ function startGeoWatch(onPos, onErr, opts) {
   };
 }
 
+// --- Device orientation helpers (compass / heading) ---
+function extractHeadingFromEvent(e) {
+  // iOS Safari
+  if (typeof e.webkitCompassHeading === "number") {
+    return e.webkitCompassHeading; // 0=N, 90=E (clockwise)
+  }
+  // Standard alpha: device frame (we convert to compass-like)
+  if (typeof e.alpha === "number") {
+    const h = 360 - e.alpha; // convert to 0=N, clockwise
+    return (h + 360) % 360;
+  }
+  return null;
+}
+
+async function startCompass(onHeading) {
+  // iOS 13+ permission gate
+  try {
+    if (
+      typeof DeviceOrientationEvent !== "undefined" &&
+      typeof DeviceOrientationEvent.requestPermission === "function"
+    ) {
+      const p = await DeviceOrientationEvent.requestPermission();
+      if (p !== "granted") throw new Error("Compass permission denied.");
+    }
+  } catch {
+    // non-iOS or already allowed
+  }
+
+  const handler = (e) => {
+    const h = extractHeadingFromEvent(e);
+    if (h != null && !Number.isNaN(h)) onHeading(h);
+  };
+
+  const type = "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
+  window.addEventListener(type, handler, { passive: true });
+  return () => window.removeEventListener(type, handler);
+}
 
 const AdminMapBox = () => {
   const mapContainer = useRef(null);
@@ -104,9 +142,16 @@ const AdminMapBox = () => {
 
   // === GPS state/refs ===
   const userMarkerRef = useRef(null);
+  const userMarkerElRef = useRef(null); // custom element we rotate with heading
   const [userLoc, setUserLoc] = useState(null); // { lng, lat, acc }
   const [tracking, setTracking] = useState(false);
   const watchStopRef = useRef(null);
+
+  // --- Heading / Compass state ---
+  const [headingDeg, setHeadingDeg] = useState(null); // 0-360
+  const [compassOn, setCompassOn] = useState(false);
+  const compassStopRef = useRef(null);
+  const [rotateMapWithHeading, setRotateMapWithHeading] = useState(false);
 
   // Option 1: Lock to Bago toggle (default ON)
   const [lockToBago, setLockToBago] = useState(true);
@@ -114,11 +159,11 @@ const AdminMapBox = () => {
   // Bounding box for Bago City
   const bagoCityBounds = [
     [122.7333, 10.4958],
-    [123.5000, 10.6333]
+    [123.5, 10.6333],
   ];
 
   const SIDEBAR_WIDTH = 500; // must match "w-[500px]" on the sidebar
-  const PEEK = 1;           // visible slice of the pill when sidebar is open
+  const PEEK = 1; // visible slice of the pill when sidebar is open
 
   const cropColorMap = {
     Rice: "#facc15",
@@ -126,7 +171,7 @@ const AdminMapBox = () => {
     Banana: "#a3e635",
     Sugarcane: "#34d399",
     Cassava: "#60a5fa",
-    Vegetables: "#f472b6"
+    Vegetables: "#f472b6",
   };
 
   const mapStyles = {
@@ -179,9 +224,7 @@ const AdminMapBox = () => {
       savedMarkersRef.current.forEach((marker) => marker.remove());
       savedMarkersRef.current = [];
 
-      const filtered = selectedCropType === "All"
-        ? crops
-        : crops.filter(crop => crop.crop_name === selectedCropType);
+      const filtered = selectedCropType === "All" ? crops : crops.filter((crop) => crop.crop_name === selectedCropType);
       if (filtered.length === 0) {
         toast.info("No Crops Found .", {
           position: "top-center",
@@ -247,13 +290,19 @@ const AdminMapBox = () => {
           "fill-color": [
             "match",
             ["get", "crop_name"],
-            "Rice", "#facc15",
-            "Corn", "#fb923c",
-            "Banana", "#a3e635",
-            "Sugarcane", "#34d399",
-            "Cassava", "#60a5fa",
-            "Vegetables", "#f472b6",
-            "#10B981"
+            "Rice",
+            "#facc15",
+            "Corn",
+            "#fb923c",
+            "Banana",
+            "#a3e635",
+            "Sugarcane",
+            "#34d399",
+            "Cassava",
+            "#60a5fa",
+            "Vegetables",
+            "#f472b6",
+            "#10B981",
           ],
           "fill-opacity": 0.4,
         }
@@ -338,21 +387,64 @@ const AdminMapBox = () => {
     map.current.getSource(USER_ACC_SOURCE).setData(circle);
   }
 
+  // Directional user marker (arrow) that can rotate with heading
   function setUserMarker(lng, lat, acc) {
     if (!map.current) return;
     const m = map.current;
 
-    if (!userMarkerRef.current) {
-      userMarkerRef.current = new mapboxgl.Marker({ color: "#3b82f6" })
-        .setLngLat([lng, lat])
-        .setPopup(new mapboxgl.Popup({ offset: 12 }).setText("You are here"))
-        .addTo(m);
-    } else {
-      userMarkerRef.current.setLngLat([lng, lat]);
+    // Create or reuse a custom element so we can rotate it with heading
+    if (!userMarkerElRef.current) {
+      const el = document.createElement("div");
+      el.style.width = "36px";
+      el.style.height = "36px";
+      el.style.borderRadius = "50%";
+      el.style.position = "relative";
+      el.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.25)";
+      el.style.background = "rgba(59,130,246,0.10)";
+
+      const arrow = document.createElement("div");
+      arrow.style.position = "absolute";
+      arrow.style.left = "50%";
+      arrow.style.top = "50%";
+      arrow.style.transform = "translate(-50%, -65%)";
+      arrow.style.width = "0";
+      arrow.style.height = "0";
+      arrow.style.borderLeft = "8px solid transparent";
+      arrow.style.borderRight = "8px solid transparent";
+      arrow.style.borderBottom = "16px solid #2563eb"; // blue arrow
+      arrow.style.filter = "drop-shadow(0 1px 2px rgba(0,0,0,0.3))";
+      el.appendChild(arrow);
+
+      userMarkerElRef.current = el;
+
+      if (!userMarkerRef.current) {
+        userMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
+          .setLngLat([lng, lat])
+          .setPopup(new mapboxgl.Popup({ offset: 12 }).setText("You are here"))
+          .addTo(m);
+      } else {
+        userMarkerRef.current.setElement(el);
+      }
     }
 
+    // Update position
+    userMarkerRef.current.setLngLat([lng, lat]);
+
+    // Paint accuracy ring
     updateUserAccuracyCircle(lng, lat, acc);
+
+    // Apply rotation if we already have a heading
+    if (typeof headingDeg === "number" && userMarkerElRef.current) {
+      userMarkerElRef.current.style.transform = `rotate(${headingDeg}deg)`;
+    }
+
+    // Keep camera sane
     m.flyTo({ center: [lng, lat], zoom: Math.max(m.getZoom(), 15), essential: true });
+
+    // Optional: rotate the map if enabled
+    if (rotateMapWithHeading && typeof headingDeg === "number") {
+      m.setBearing(headingDeg);
+    }
   }
 
   // Centralized handler for GPS fixes (applies Option 1 behavior)
@@ -476,6 +568,10 @@ const AdminMapBox = () => {
           if (userMarkerRef.current) {
             userMarkerRef.current.setLngLat([userLoc.lng, userLoc.lat]).addTo(map.current);
           }
+          // re-apply heading rotation on the marker
+          if (typeof headingDeg === "number" && userMarkerElRef.current) {
+            userMarkerElRef.current.style.transform = `rotate(${headingDeg}deg)`;
+          }
         }
 
         await loadPolygons();
@@ -533,9 +629,7 @@ const AdminMapBox = () => {
       } else {
         const filtered = {
           ...geojson,
-          features: geojson.features.filter(
-            (feature) => feature.properties.crop_name === selectedCropType
-          ),
+          features: geojson.features.filter((feature) => feature.properties.crop_name === selectedCropType),
         };
         await loadPolygons(filtered, true);
       }
@@ -556,39 +650,41 @@ const AdminMapBox = () => {
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
-  // Cleanup (stop tracking, remove marker) on unmount
+  // Cleanup (stop tracking, remove marker, stop compass) on unmount
   useEffect(() => {
     return () => {
       watchStopRef.current?.();
       userMarkerRef.current?.remove();
+      if (compassStopRef.current) {
+        compassStopRef.current();
+      }
     };
   }, []);
 
   return (
     <div className="relative h-screen w-screen">
-      {/* Locate / Track controls + Lock toggle */}
+      {/* Locate / Track controls + Lock toggle + Compass */}
       <div className="absolute top-4 left-4 z-50 flex gap-2 flex-wrap">
         <button
-     onClick={async () => {
-      if (!("geolocation" in navigator)) {
-        toast.error("Geolocation not supported by this browser.");
-        return;
-      }
-      try {
-        const pos = await new Promise((resolve, reject) =>
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 20000,   // more time
-            maximumAge: 10000 // allow a recent cached fix
-          })
-        );
-        const { longitude: glng, latitude: glat, accuracy } = pos.coords;
-        handleFix(glng, glat, accuracy);
-      } catch (e) {
-        toast.error(explainGeoError(e));  // clearer message
-      }
-    }}
-    
+          onClick={async () => {
+            if (!("geolocation" in navigator)) {
+              toast.error("Geolocation not supported by this browser.");
+              return;
+            }
+            try {
+              const pos = await new Promise((resolve, reject) =>
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                  enableHighAccuracy: true,
+                  timeout: 20000, // more time
+                  maximumAge: 10000, // allow a recent cached fix
+                })
+              );
+              const { longitude: glng, latitude: glat, accuracy } = pos.coords;
+              handleFix(glng, glat, accuracy);
+            } catch (e) {
+              toast.error(explainGeoError(e)); // clearer message
+            }
+          }}
           className="bg-white border border-gray-300 rounded-full px-3 py-2 text-sm shadow hover:shadow-md"
           title="Use my GPS"
         >
@@ -604,23 +700,33 @@ const AdminMapBox = () => {
             if (!tracking) {
               const stop = startGeoWatch(
                 (pos) => {
-                  const { longitude: glng, latitude: glat, accuracy } = pos.coords;
+                  const { longitude: glng, latitude: glat, accuracy, heading } = pos.coords;
                   handleFix(glng, glat, accuracy);
+
+                  // If movement heading is available, use it as facing
+                  if (typeof heading === "number" && !Number.isNaN(heading)) {
+                    setHeadingDeg(heading);
+                    if (userMarkerElRef.current) {
+                      userMarkerElRef.current.style.transform = `rotate(${heading}deg)`;
+                    }
+                    if (rotateMapWithHeading && map.current) {
+                      map.current.setBearing(heading);
+                    }
+                  }
                 },
                 (err) => toast.error(explainGeoError(err)),
                 { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
               );
-              watchStopRef.current = stop;   // always a callable stopper
+              watchStopRef.current = stop; // always a callable stopper
               setTracking(true);
               toast.success("Live tracking ON");
             } else {
-              watchStopRef.current?.();      // safely stop even if clearWatch is missing
+              watchStopRef.current?.(); // safely stop even if clearWatch is missing
               watchStopRef.current = null;
               setTracking(false);
               toast.info("Live tracking OFF");
             }
           }}
-          
           className={`border rounded-full px-3 py-2 text-sm shadow hover:shadow-md ${
             tracking ? "bg-blue-600 text-white border-blue-600" : "bg-white border-gray-300"
           }`}
@@ -629,12 +735,56 @@ const AdminMapBox = () => {
           {tracking ? "Tracking…" : "Start tracking"}
         </button>
 
+        {/* Compass toggle */}
+        <button
+          onClick={async () => {
+            if (!compassOn) {
+              try {
+                compassStopRef.current = await startCompass((deg) => {
+                  setHeadingDeg(deg);
+                  if (userMarkerElRef.current) {
+                    userMarkerElRef.current.style.transform = `rotate(${deg}deg)`;
+                  }
+                  if (rotateMapWithHeading && map.current) {
+                    map.current.setBearing(deg);
+                  }
+                });
+                setCompassOn(true);
+                toast.success("Compass ON");
+              } catch (e) {
+                toast.error(e?.message || "Failed to start compass.");
+              }
+            } else {
+              try {
+                compassStopRef.current?.();
+              } finally {
+                compassStopRef.current = null;
+              }
+              setCompassOn(false);
+              toast.info("Compass OFF");
+            }
+          }}
+          className={`border rounded-full px-3 py-2 text-sm shadow hover:shadow-md ${
+            compassOn ? "bg-emerald-600 text-white border-emerald-600" : "bg-white border-gray-300"
+          }`}
+          title="Toggle device compass"
+        >
+          {compassOn ? "Compass…" : "Start compass"}
+        </button>
+
+        {/* Follow heading (rotate map) */}
         <label className="flex items-center gap-2 bg-white border border-gray-300 rounded-full px-3 py-2 text-sm shadow cursor-pointer select-none">
           <input
             type="checkbox"
-            checked={lockToBago}
-            onChange={(e) => setLockToBago(e.target.checked)}
+            checked={rotateMapWithHeading}
+            onChange={(e) => setRotateMapWithHeading(e.target.checked)}
           />
+          Follow heading
+        </label>
+
+        {/* Lock to Bago toggle */}
+        <label className="flex items-center gap-2 bg-white border border-gray-300 rounded-full px-3 py-2 text-sm shadow cursor-pointer select-none">
+          <input type="checkbox" checked={lockToBago} onChange={(e) => setLockToBago(e.target.checked)} />
           Lock to Bago
         </label>
       </div>
@@ -747,7 +897,7 @@ const AdminMapBox = () => {
         <button
           onClick={() => {
             if (areMarkersVisible) {
-              savedMarkersRef.current.forEach(marker => marker.remove());
+              savedMarkersRef.current.forEach((marker) => marker.remove());
             } else {
               renderSavedMarkers();
             }
@@ -756,18 +906,8 @@ const AdminMapBox = () => {
           className="absolute bottom-[194px] right-[9px] z-50 bg-white border border-gray-300 rounded-[5px] w-8 h-8 flex items-center justify-center shadow-[0_0_8px_2px_rgba(0,0,0,0.15)] "
           title={areMarkersVisible ? "Hide Markers" : "Show Markers"}
         >
-          <svg
-            className="w-5 h-5 text-black"
-            fill={!areMarkersVisible ? "currentColor" : "none"}
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 21s6-5.686 6-10a6 6 0 10-12 0c0 4.314 6 10 6 10z"
-            />
+          <svg className="w-5 h-5 text-black" fill={!areMarkersVisible ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s6-5.686 6-10a6 6 0 10-12 0c0 4.314 6 10 6 10z" />
             <circle cx="12" cy="11" r="2" fill="white" />
           </svg>
         </button>
@@ -829,11 +969,7 @@ const AdminMapBox = () => {
             ×
           </button>
 
-          <img
-            src={enlargedImage}
-            alt="Fullscreen Crop"
-            className="max-w-full max-h-full object-contain"
-          />
+          <img src={enlargedImage} alt="Fullscreen Crop" className="max-w-full max-h-full object-contain" />
         </div>
       )}
     </div>
