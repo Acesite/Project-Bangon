@@ -46,24 +46,23 @@ const Calamity = () => {
   const [enlargedImage, setEnlargedImage] = useState(null);
   const [sidebarVisible, setSidebarVisible] = useState(true);
  
-
-
-// Bounding box for Bago City
-const bagoCityBounds = [
-  [122.7333, 10.4958],
-  [123.5000, 10.6333]
-];
-const SIDEBAR_WIDTH = 500; // must match "w-[500px]" on the sidebar
+  // Bounding box for Bago City
+  const bagoCityBounds = [
+    [122.7333, 10.4958],
+    [123.5000, 10.6333]
+  ];
+  const SIDEBAR_WIDTH = 500; // must match "w-[500px]" on the sidebar
   const PEEK = 1;  
-// Calamity color mapping
-const calamityColorMap = {
-  Flood: "#3b82f6",           // Blue
-  Earthquake: "#ef4444",      // Red
-  Typhoon: "#8b5cf6",         // Purple
-  Landslide: "#f59e0b",       // Amber
-  Drought: "#f97316",         // Orange
-  Wildfire: "#dc2626"         // Dark Red
-};
+
+  // Calamity color mapping
+  const calamityColorMap = {
+    Flood: "#3b82f6",           // Blue
+    Earthquake: "#ef4444",      // Red
+    Typhoon: "#8b5cf6",         // Purple
+    Landslide: "#f59e0b",       // Amber
+    Drought: "#f97316",         // Orange
+    Wildfire: "#dc2626"         // Dark Red
+  };
 
   const mapStyles = {
     Default: { url: "mapbox://styles/wompwomp-69/cm900xa91008j01t14w8u8i9d", thumbnail: DefaultThumbnail },
@@ -112,25 +111,24 @@ const calamityColorMap = {
       const calamities = response.data;
       setSidebarCalamities(calamities);
   
-     
       savedMarkersRef.current.forEach((marker) => marker.remove());
       savedMarkersRef.current = [];
   
       const filtered = selectedCalamityType === "All"
         ? calamities
         : calamities.filter(calamity => calamity.calamity_type === selectedCalamityType);
-        if (filtered.length === 0) {
-          toast.info("No Calamities Found .", {
-            position: "top-center",
-            autoClose: 3000,
-            hideProgressBar: true,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: false,
-            theme: "light",
-          });
-          return;
-        }
+      if (filtered.length === 0) {
+        toast.info("No Calamities Found .", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: false,
+          theme: "light",
+        });
+        return;
+      }
          
       if (filtered.length === 0) return;
   
@@ -176,9 +174,54 @@ const calamityColorMap = {
       console.error("Failed to load saved markers:", error);
     }
   };
-  
 
-  
+  // ——— helper: attach polygon click + hover once layers exist ———
+  const attachPolygonInteractivity = () => {
+    if (!map.current?.getLayer("calamity-polygons-layer")) return;
+
+    // Avoid duplicate bindings by removing before adding
+    map.current.off("click", "calamity-polygons-layer", handlePolyClick);
+    map.current.off("mouseenter", "calamity-polygons-layer", handlePolyEnter);
+    map.current.off("mouseleave", "calamity-polygons-layer", handlePolyLeave);
+
+    map.current.on("click", "calamity-polygons-layer", handlePolyClick);
+    map.current.on("mouseenter", "calamity-polygons-layer", handlePolyEnter);
+    map.current.on("mouseleave", "calamity-polygons-layer", handlePolyLeave);
+  };
+
+  const handlePolyClick = (e) => {
+    if (!e.features?.length) return;
+    const feature = e.features[0];
+    const polyId = String(feature.properties?.id ?? "");
+
+    // find the full record (supports calamity_id or id from API)
+    const calam = sidebarCalamities.find(
+      (c) => String(c.calamity_id ?? c.id) === polyId
+    );
+
+    if (calam) {
+      setSelectedCalamity(calam);
+      setIsSidebarVisible(true);
+    }
+
+    // optional recenter
+    try {
+      const coords = feature.geometry?.coordinates?.[0];
+      if (Array.isArray(coords) && coords.length > 2) {
+        const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
+        map.current.easeTo({ center, zoom: Math.max(map.current.getZoom(), 13) });
+      }
+    } catch {}
+  };
+
+  const handlePolyEnter = () => {
+    if (map.current) map.current.getCanvas().style.cursor = "pointer";
+  };
+  const handlePolyLeave = () => {
+    if (map.current) map.current.getCanvas().style.cursor = "";
+  };
+  // ————————————————————————————————————————————————
+
   const loadPolygons = async (geojsonData = null, isFiltered = false) => {
     const res = await axios.get("http://localhost:5000/api/calamities/polygons");
     const fullData = geojsonData || res.data;
@@ -229,24 +272,24 @@ const calamityColorMap = {
         },
       });
     }
+
+    // ensure interactivity is bound whenever (re)loading polygons
+    attachPolygonInteractivity();
   };
-  
   
   useEffect(() => {
     if (!map.current) {
-  map.current = new mapboxgl.Map({
-  container: mapContainer.current,
-  style: mapStyle,
-  center: [122.9616, 10.5074], // Center point inside Bago City
-  zoom: 7,
-  maxBounds: bagoCityBounds
-});
-
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: mapStyle,
+        center: [122.9616, 10.5074], // Center point inside Bago City
+        zoom: 7,
+        maxBounds: bagoCityBounds
+      });
 
       axios.get("http://localhost:5000/api/calamities/types").then((res) => {
-  setCalamityTypes(res.data);
-});
-
+        setCalamityTypes(res.data);
+      });
 
       map.current.addControl(new mapboxgl.NavigationControl(), "bottom-right");
 
@@ -294,6 +337,9 @@ const calamityColorMap = {
           console.error(" Failed to load polygons:", err);
         }
       
+        // attach click/hover after layers exist
+        attachPolygonInteractivity();
+
         await renderSavedMarkers();
       });
 
@@ -309,7 +355,6 @@ const calamityColorMap = {
           setIsTagging(true); // Enable the tagging mode to show the form
         }
       });
-      
       
       map.current.on("draw.create", (e) => {
         const feature = e.features[0];
@@ -328,37 +373,38 @@ const calamityColorMap = {
       map.current.once("style.load", async () => {
         await loadPolygons();
         await renderSavedMarkers();
+        // reattach events after style change
+        attachPolygonInteractivity();
       });
     }
     
   }, [mapStyle]);
 
   useEffect(() => {
-  if (map.current) {
-    taggedData.forEach((entry) => {
-      const center = turf.centerOfMass(turf.polygon([entry.coordinates])).geometry.coordinates;
+    if (map.current) {
+      taggedData.forEach((entry) => {
+        const center = turf.centerOfMass(turf.polygon([entry.coordinates])).geometry.coordinates;
 
-      new mapboxgl.Marker({ color: "#f59e0b" })
-        .setLngLat(center)
-        .setPopup(
-          new mapboxgl.Popup({ offset: 15 }).setHTML(`
-            <div class="text-sm">
-              <h3 class='font-bold text-red-600'>${entry.calamity_type}</h3>
-              <p><strong>Severity:</strong> ${entry.severity || "N/A"}</p>            
-            </div>
-          `)
-        )
-        .addTo(map.current);
-    });
-  }
-}, [taggedData]);
+        new mapboxgl.Marker({ color: "#f59e0b" })
+          .setLngLat(center)
+          .setPopup(
+            new mapboxgl.Popup({ offset: 15 }).setHTML(`
+              <div class="text-sm">
+                <h3 class='font-bold text-red-600'>${entry.calamity_type}</h3>
+                <p><strong>Severity:</strong> ${entry.severity || "N/A"}</p>            
+              </div>
+            `)
+          )
+          .addTo(map.current);
+      });
+    }
+  }, [taggedData]);
 
-useEffect(() => {
-  if (map.current) {
-    renderSavedMarkers();
-  }
-}, [selectedCalamityType]);
-
+  useEffect(() => {
+    if (map.current) {
+      renderSavedMarkers();
+    }
+  }, [selectedCalamityType]);
 
   useEffect(() => {
     const filterPolygonsByCalamity = async () => {
@@ -384,15 +430,14 @@ useEffect(() => {
   }, [selectedCalamityType]);
 
   useEffect(() => {
-  const handleEsc = (e) => {
-    if (e.key === "Escape") {
-      setEnlargedImage(null);
-    }
-  };
-  window.addEventListener("keydown", handleEsc);
-  return () => window.removeEventListener("keydown", handleEsc);
-}, []);
-
+    const handleEsc = (e) => {
+      if (e.key === "Escape") {
+        setEnlargedImage(null);
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
 
   return (
     <div className="relative h-screen w-screen">
@@ -400,113 +445,110 @@ useEffect(() => {
 
       {isTagging && newTagLocation && (
         <TagCalamityForm
-        defaultLocation={{ ...newTagLocation, hectares: newTagLocation.hectares }}
-        setNewTagLocation={setNewTagLocation} // Pass setNewTagLocation here
-        selectedBarangay={selectedBarangay?.name}  // Pass name of selected barangay
-        onCancel={() => {
-          setIsTagging(false);
-          setNewTagLocation(null); // Reset the location when canceling
-          drawRef.current?.deleteAll();
-        }}
-      onSave={async (formData) => {
-  
-  let savedCalamity;
-  try {
-    const response = await axios.post("http://localhost:5000/api/calamities", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    savedCalamity = response.data; // has coordinates ARRAY from backend fix
-  } catch (error) {
-    console.error("Create failed:", error);
-    toast.error(error.response?.data?.error || "Failed to save calamity.", {
-      position: "top-center",
-      autoClose: 3000,
-      hideProgressBar: true,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: false,
-      theme: "light",
-    });
-    setIsTagging(false);
-    setNewTagLocation(null);
-    drawRef.current?.deleteAll();
-    return;
-  }
+          defaultLocation={{ ...newTagLocation, hectares: newTagLocation.hectares }}
+          setNewTagLocation={setNewTagLocation} // Pass setNewTagLocation here
+          selectedBarangay={selectedBarangay?.name}  // Pass name of selected barangay
+          onCancel={() => {
+            setIsTagging(false);
+            setNewTagLocation(null); // Reset the location when canceling
+            drawRef.current?.deleteAll();
+          }}
+          onSave={async (formData) => {
+            let savedCalamity;
+            try {
+              const response = await axios.post("http://localhost:5000/api/calamities", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+              });
+              savedCalamity = response.data; // has coordinates ARRAY from backend fix
+            } catch (error) {
+              console.error("Create failed:", error);
+              toast.error(error.response?.data?.error || "Failed to save calamity.", {
+                position: "top-center",
+                autoClose: 3000,
+                hideProgressBar: true,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                theme: "light",
+              });
+              setIsTagging(false);
+              setNewTagLocation(null);
+              drawRef.current?.deleteAll();
+              return;
+            }
 
-  // ➋ Optimistic UI updates (these should never flip the toast to red)
-  setSidebarCalamities((prev) => [...prev, savedCalamity]);
+            // Optimistic UI updates
+            setSidebarCalamities((prev) => [...prev, savedCalamity]);
 
-  // Add a marker for the new calamity (guard parsing)
-  try {
-    const coords = Array.isArray(savedCalamity.coordinates)
-      ? savedCalamity.coordinates
-      : JSON.parse(savedCalamity.coordinates); // fallback if server returns string
+            // Add a marker for the new calamity (guard parsing)
+            try {
+              const coords = Array.isArray(savedCalamity.coordinates)
+                ? savedCalamity.coordinates
+                : JSON.parse(savedCalamity.coordinates); // fallback if server returns string
 
-    if (map.current && Array.isArray(coords)) {
-      const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
+              if (map.current && Array.isArray(coords)) {
+                const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
 
-      const marker = new mapboxgl.Marker({
-        color: (calamityColorMap[savedCalamity.calamity_type] || "#ef4444"),
-      })
-        .setLngLat(center)
-        .setPopup(
-          new mapboxgl.Popup({ offset: 15 }).setHTML(`
-            <div class="text-sm">
-              <h3 class='font-bold text-red-600'>${savedCalamity.calamity_type}</h3>
-              <p><strong>Severity:</strong> ${savedCalamity.severity_level || "N/A"}</p>
-            </div>
-          `)
-        )
-        .addTo(map.current);
+                const marker = new mapboxgl.Marker({
+                  color: (calamityColorMap[savedCalamity.calamity_type] || "#ef4444"),
+                })
+                  .setLngLat(center)
+                  .setPopup(
+                    new mapboxgl.Popup({ offset: 15 }).setHTML(`
+                      <div class="text-sm">
+                        <h3 class='font-bold text-red-600'>${savedCalamity.calamity_type}</h3>
+                        <p><strong>Severity:</strong> ${savedCalamity.severity_level || "N/A"}</p>
+                      </div>
+                    `)
+                  )
+                  .addTo(map.current);
 
-      savedMarkersRef.current.push(marker);
-    }
-  } catch (e) {
-    console.warn("Marker update failed:", e);
-  }
-  try {
-    await loadPolygons();
-  } catch (e) {
-    console.warn("Polygon reload failed:", e);
-  }
+                savedMarkersRef.current.push(marker);
+              }
+            } catch (e) {
+              console.warn("Marker update failed:", e);
+            }
+            try {
+              await loadPolygons();
+            } catch (e) {
+              console.warn("Polygon reload failed:", e);
+            }
 
-  toast.success("Calamity saved successfully!", {
-    position: "top-center",
-    autoClose: 3000,
-    hideProgressBar: true,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: false,
-    theme: "light",
-  });
+            toast.success("Calamity saved successfully!", {
+              position: "top-center",
+              autoClose: 3000,
+              hideProgressBar: true,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: false,
+              theme: "light",
+            });
 
-  // Cleanup
-  setIsTagging(false);
-  setNewTagLocation(null);
-  drawRef.current?.deleteAll();
-}}
-      />
-      
+            // Cleanup
+            setIsTagging(false);
+            setNewTagLocation(null);
+            drawRef.current?.deleteAll();
+          }}
+        />
       )}
 
-<div
-  style={{
-    position: "absolute",
-    left: isSidebarVisible ? "480px" : "0px", // Adjust based on sidebar width
-    top: "50%",
-    transform: "translateY(-50%)",
-    zIndex: 10,
-  }}
->
-  
-</div>
+      <div
+        style={{
+          position: "absolute",
+          left: isSidebarVisible ? "480px" : "0px", // Adjust based on sidebar width
+          top: "50%",
+          transform: "translateY(-50%)",
+          zIndex: 10,
+        }}
+      >
+      </div>
 
- <SidebarToggleButton
-  onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-  isSidebarVisible={isSidebarVisible}
-  sidebarWidth={SIDEBAR_WIDTH}
-  peek={PEEK}
-/>
+      <SidebarToggleButton
+        onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+        isSidebarVisible={isSidebarVisible}
+        sidebarWidth={SIDEBAR_WIDTH}
+        peek={PEEK}
+      />
 
       {!isSidebarVisible && (
         <button
@@ -569,59 +611,61 @@ useEffect(() => {
           )}
         </>
       )}
-    {!isTagging && (
-<button
-  onClick={() => {
-    if (areMarkersVisible) {
-      savedMarkersRef.current.forEach(marker => marker.remove());
-    } else {
-      renderSavedMarkers();
-    }
-    setAreMarkersVisible(!areMarkersVisible);
-  }}
-  className="absolute bottom-[194px] right-[9px] z-50 bg-white border border-gray-300 rounded-[5px] w-8 h-8 flex items-center justify-center shadow-[0_0_8px_2px_rgba(0,0,0,0.15)] "
-  title={areMarkersVisible ? "Hide Markers" : "Show Markers"}
->
-  <svg
-    className="w-5 h-5 text-black"
-    fill={!areMarkersVisible ? "currentColor" : "none"}
-    stroke="currentColor"
-    strokeWidth="2"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M12 21s6-5.686 6-10a6 6 0 10-12 0c0 4.314 6 10 6 10z"
-    />
-    <circle cx="12" cy="11" r="2" fill="white" />
-  </svg>
-</button>
-)}
+
+      {!isTagging && (
+        <button
+          onClick={() => {
+            if (areMarkersVisible) {
+              savedMarkersRef.current.forEach(marker => marker.remove());
+            } else {
+              renderSavedMarkers();
+            }
+            setAreMarkersVisible(!areMarkersVisible);
+          }}
+          className="absolute bottom-[194px] right-[9px] z-50 bg-white border border-gray-300 rounded-[5px] w-8 h-8 flex items-center justify-center shadow-[0_0_8px_2px_rgba(0,0,0,0.15)] "
+          title={areMarkersVisible ? "Hide Markers" : "Show Markers"}
+        >
+          <svg
+            className="w-5 h-5 text-black"
+            fill={!areMarkersVisible ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 21s6-5.686 6-10a6 6 0 10-12 0c0 4.314 6 10 6 10z"
+            />
+            <circle cx="12" cy="11" r="2" fill="white" />
+          </svg>
+        </button>
+      )}
+
       <div
-  className={`absolute top-0 left-0 h-full z-40 bg-white border-r border-gray-200 transition-all duration-200 ease-in-out overflow-hidden ${
-    isSidebarVisible ? "w-[500px] px-6 py-8" : "w-0 px-0 py-0"
-  }`}
->
-  {isSidebarVisible && (
-    <CalamitySidebar
-      mapStyles={mapStyles}
-      setMapStyle={setMapStyle}
-      showLayers={showLayers}
-      setShowLayers={setShowLayers}
-      zoomToBarangay={zoomToBarangay}
-      onBarangaySelect={handleBarangaySelect}
-      selectedBarangay={selectedBarangay}
-      calamityTypes={calamityTypes}
-      selectedCalamityType={selectedCalamityType}
-      setSelectedCalamityType={setSelectedCalamityType}
-      calamities={sidebarCalamities}
-      selectedCalamity={selectedCalamity}
-      setEnlargedImage={setEnlargedImage}
-      visible={isSidebarVisible}
-    />
-  )}
-</div>
+        className={`absolute top-0 left-0 h-full z-40 bg-white border-r border-gray-200 transition-all duration-200 ease-in-out overflow-hidden ${
+          isSidebarVisible ? "w-[500px] px-6 py-8" : "w-0 px-0 py-0"
+        }`}
+      >
+        {isSidebarVisible && (
+          <CalamitySidebar
+            mapStyles={mapStyles}
+            setMapStyle={setMapStyle}
+            showLayers={showLayers}
+            setShowLayers={setShowLayers}
+            zoomToBarangay={zoomToBarangay}
+            onBarangaySelect={handleBarangaySelect}
+            selectedBarangay={selectedBarangay}
+            calamityTypes={calamityTypes}
+            selectedCalamityType={selectedCalamityType}
+            setSelectedCalamityType={setSelectedCalamityType}
+            calamities={sidebarCalamities}
+            selectedCalamity={selectedCalamity}
+            setEnlargedImage={setEnlargedImage}
+            visible={isSidebarVisible}
+          />
+        )}
+      </div>
 
       <ToastContainer
         position="top-center"
@@ -635,34 +679,32 @@ useEffect(() => {
         pauseOnHover
         theme="light"
         style={{ zIndex: 9999 }} 
-        />
+      />
 
-       {enlargedImage && (
-  <div
-    className="fixed inset-0 bg-black bg-opacity-90 z-[9999] flex justify-center items-center animate-fadeIn"
-    onClick={() => setEnlargedImage(null)}
-  >
-    {/* Close X Button */}
-    <button
-      onClick={(e) => {
-        e.stopPropagation(); // prevent background click from triggering close
-        setEnlargedImage(null);
-      }}
-      className="absolute top-4 right-4 text-white text-2xl font-bold z-[10000] hover:text-red-400"
-      title="Close"
-    >
-      ×
-    </button>
+      {enlargedImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 z-[9999] flex justify-center items-center animate-fadeIn"
+          onClick={() => setEnlargedImage(null)}
+        >
+          {/* Close X Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // prevent background click from triggering close
+              setEnlargedImage(null);
+            }}
+            className="absolute top-4 right-4 text-white text-2xl font-bold z-[10000] hover:text-red-400"
+            title="Close"
+          >
+            ×
+          </button>
 
-    <img
-      src={enlargedImage}
-      alt="Fullscreen Calamity"
-      className="max-w-full max-h-full object-contain"
-    />
-  </div>
-)}
-
-
+          <img
+            src={enlargedImage}
+            alt="Fullscreen Calamity"
+            className="max-w-full max-h-full object-contain"
+          />
+        </div>
+      )}
     </div>  
   );
 };

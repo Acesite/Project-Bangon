@@ -4,9 +4,9 @@ import clsx from "clsx";
 import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
 import Button from "./MapControls/Button";
 
-
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
 const fmt = (v) => (v ?? v === 0 ? v : "—");
+const fmtHa = (v) => (v || v === 0 ? Number(v).toFixed(2) + " ha" : "—");
 
 const Section = ({ title, children }) => (
   <div className="rounded-xl border border-gray-200 bg-white p-4 mb-4">
@@ -22,7 +22,17 @@ const KV = ({ label, value }) => (
   </div>
 );
 
-// Colors for legend / quick badges
+// Fixed list used by the Calamity Type filter
+const CALAMITY_FILTERS = [
+  "Flood",
+  "Earthquake",
+  "Typhoon",
+  "Landslide",
+  "Drought",
+  "Wildfire",
+];
+
+// Legend colors
 const CALAMITY_COLORS = {
   Flood: "#3b82f6",
   Earthquake: "#ef4444",
@@ -33,7 +43,7 @@ const CALAMITY_COLORS = {
   Pest: "#16a34a",
 };
 
-// Barangay dictionary (copied from your AdminSideBar for consistency)
+// Barangay -> coords
 const BARANGAY_COORDS = {
   Abuanan: [122.9844, 10.5275],
   Alianza: [122.92424927088227, 10.471876805354725],
@@ -69,30 +79,73 @@ const statusBadge = (status) => {
 };
 
 const CalamitySidebar = ({
-  // visibility & media
   visible,
   setEnlargedImage,
 
-  // map hooks
   zoomToBarangay,
   onBarangaySelect,
 
-  // filters (provided by parent)
-  calamityTypes = [],                 // array of strings
+  // props kept for compatibility; `calamityTypes` is no longer used for options
+  calamityTypes = [],
   selectedCalamityType = "All",
   setSelectedCalamityType = () => {},
 
-  // data
-  calamities = [],                    // array of calamity rows
-  selectedCalamity = null,            // currently selected calamity (optional)
+  calamities = [],
+  selectedCalamity = null,
 
-  // optional pre-selected barangay from parent (string)
   selectedBarangay: selectedBarangayProp = "",
 }) => {
   const [selectedBarangay, setSelectedBarangay] = useState(selectedBarangayProp || "");
-  const [barangayDetails, setBarangayDetails] = useState(null);
+  const [cropMap, setCropMap] = useState({});
+  const [ecosystemMap, setEcosystemMap] = useState({});
+  const [varietyMap, setVarietyMap] = useState({});
 
-  // keep internal barangay in sync if parent changes it
+  // lookups
+  useEffect(() => {
+    let abort = false;
+    (async () => {
+      try {
+        const [ecoRes, cropRes] = await Promise.all([
+          fetch("http://localhost:5000/api/calamities/ecosystems"),
+          fetch("http://localhost:5000/api/calamities/crops"),
+        ]);
+        const ecoData = (await ecoRes.json()) || [];
+        const cropData = (await cropRes.json()) || [];
+        if (abort) return;
+        const cm = {};
+        cropData.forEach((c) => (cm[String(c.id)] = c.name));
+        setCropMap(cm);
+        const em = {};
+        ecoData.forEach((e) => (em[String(e.id)] = e.name));
+        setEcosystemMap(em);
+      } catch {}
+    })();
+    return () => {
+      abort = true;
+    };
+  }, []);
+
+  // varieties for selected calamity
+  useEffect(() => {
+    let abort = false;
+    const cropTypeId = selectedCalamity?.crop_type_id;
+    if (!cropTypeId) return;
+    (async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/calamities/crops/${cropTypeId}/varieties`);
+        const data = (await res.json()) || [];
+        if (abort) return;
+        const vm = {};
+        data.forEach((v) => (vm[String(v.id)] = v.name));
+        setVarietyMap(vm);
+      } catch {}
+    })();
+    return () => {
+      abort = true;
+    };
+  }, [selectedCalamity?.crop_type_id]);
+
+  // sync preselected barangay
   useEffect(() => {
     if (selectedBarangayProp && selectedBarangayProp !== selectedBarangay) {
       setSelectedBarangay(selectedBarangayProp);
@@ -103,22 +156,14 @@ const CalamitySidebar = ({
   const handleBarangayChange = (e) => {
     const brgy = e.target.value;
     setSelectedBarangay(brgy);
-
     if (BARANGAY_COORDS[brgy]) {
       const coordinates = BARANGAY_COORDS[brgy];
       zoomToBarangay?.(coordinates);
-      setBarangayDetails({
-        name: brgy,
-        coordinates,
-        // you can hydrate crop list here if you want, kept minimal for calamities
-      });
       onBarangaySelect?.({ name: brgy, coordinates });
-    } else {
-      setBarangayDetails(null);
     }
   };
 
-  // Filter list by calamity type and barangay (if any)
+  // filter list by type + barangay
   const filteredCalamities = useMemo(() => {
     const byType =
       selectedCalamityType === "All"
@@ -133,10 +178,21 @@ const CalamitySidebar = ({
     });
   }, [calamities, selectedCalamityType, selectedBarangay]);
 
-  // First image to show in hero (selected calamity if any)
   const heroImg = selectedCalamity?.photo
     ? `http://localhost:5000${selectedCalamity.photo}`
     : null;
+
+  const cropName = (id) => (id ? cropMap[String(id)] || `#${id}` : "—");
+  const ecoName = (id) => (id ? ecosystemMap[String(id)] || `#${id}` : "—");
+  const varietyName = (id) => (id ? varietyMap[String(id)] || `#${id}` : "—");
+
+  const coordText = useMemo(() => {
+    const lat = selectedCalamity?.latitude;
+    const lng = selectedCalamity?.longitude;
+    if (lat == null || lng == null) return "—";
+    const f = (n) => Number(n).toFixed(5);
+    return `${f(lat)}, ${f(lng)}`;
+  }, [selectedCalamity]);
 
   return (
     <div
@@ -164,7 +220,7 @@ const CalamitySidebar = ({
           </div>
         </div>
 
-        {/* Location (static to match AdminSideBar UI) */}
+        {/* Location (static) */}
         <Section title="Location">
           <dl className="grid grid-cols-3 gap-3">
             <KV label="Region" value="Western Visayas" />
@@ -173,9 +229,10 @@ const CalamitySidebar = ({
           </dl>
         </Section>
 
-        {/* Filters (Calamity Type + Barangay) */}
+        {/* Filters */}
         <Section title="Filters">
           <div className="grid grid-cols-2 gap-3">
+            {/* Calamity Type — uses fixed options */}
             <div>
               <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">
                 Calamity Type
@@ -186,7 +243,7 @@ const CalamitySidebar = ({
                 onChange={(e) => setSelectedCalamityType?.(e.target.value)}
               >
                 <option value="All">All</option>
-                {calamityTypes.map((t) => (
+                {CALAMITY_FILTERS.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
@@ -194,6 +251,7 @@ const CalamitySidebar = ({
               </select>
             </div>
 
+            {/* Barangay filter */}
             <div>
               <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">
                 Barangay
@@ -214,15 +272,54 @@ const CalamitySidebar = ({
           </div>
         </Section>
 
-        {/* Details of the selected calamity */}
+        {/* Detailed panel (shown when a pin/polygon is selected) */}
         {selectedCalamity && (
-          <Section title={selectedCalamity.calamity_type || "Calamity"}>
+          <Section title="Report details">
+            <div className="flex flex-wrap gap-2 mb-3">
+              {selectedCalamity.location && (
+                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+                  {selectedCalamity.location}
+                </span>
+              )}
+              {coordText !== "—" && (
+                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-50 text-gray-700 border border-gray-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-gray-500" />
+                  {coordText}
+                </span>
+              )}
+              {selectedCalamity.affected_area && (
+                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                  {fmtHa(selectedCalamity.affected_area)}
+                </span>
+              )}
+            </div>
+
             <dl className="grid grid-cols-2 gap-4">
-              <KV label="Location" value={fmt(selectedCalamity.location)} />
+              <KV label="Calamity Type" value={fmt(selectedCalamity.calamity_type)} />
+              <KV label="Crop Stage" value={fmt(selectedCalamity.crop_stage)} />
+              <KV label="Crop Type" value={cropName(selectedCalamity.crop_type_id)} />
+              <KV label="Ecosystem" value={ecoName(selectedCalamity.ecosystem_id)} />
+              <KV label="Variety" value={varietyName(selectedCalamity.crop_variety_id)} />
+              <KV label="Affected Area" value={fmtHa(selectedCalamity.affected_area)} />
               <KV label="Latitude" value={fmt(selectedCalamity.latitude)} />
               <KV label="Longitude" value={fmt(selectedCalamity.longitude)} />
-              <KV label="Reported" value={fmtDate(selectedCalamity.date_reported || selectedCalamity.created_at)} />
+              <KV label="Location (Barangay)" value={fmt(selectedCalamity.location)} />
               <KV label="Admin ID" value={fmt(selectedCalamity.admin_id)} />
+              <KV label="Reported" value={fmtDate(selectedCalamity.date_reported || selectedCalamity.created_at)} />
+              {selectedCalamity.status && (
+                <div className="col-span-2">
+                  <span
+                    className={clsx(
+                      "inline-block px-2 py-1 rounded-full text-xs font-medium",
+                      statusBadge(selectedCalamity.status)
+                    )}
+                  >
+                    {selectedCalamity.status}
+                  </span>
+                </div>
+              )}
             </dl>
 
             <div className="mt-3">
@@ -232,80 +329,25 @@ const CalamitySidebar = ({
               </p>
             </div>
 
-            {selectedCalamity.status && (
+            {selectedCalamity.photo && (
               <div className="mt-3">
-                <span
-                  className={clsx(
-                    "inline-block px-2 py-1 rounded-full text-xs font-medium",
-                    statusBadge(selectedCalamity.status)
-                  )}
+                <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Photo</div>
+                <button
+                  type="button"
+                  className="block overflow-hidden rounded-md border"
+                  onClick={() => setEnlargedImage?.(`http://localhost:5000${selectedCalamity.photo}`)}
+                  title="View photo"
                 >
-                  {selectedCalamity.status}
-                </span>
+                  <img
+                    src={`http://localhost:5000${selectedCalamity.photo}`}
+                    alt={selectedCalamity.calamity_type}
+                    className="h-40 w-full object-cover"
+                  />
+                </button>
               </div>
             )}
           </Section>
         )}
-
-        {/* Calamity list (filtered) */}
-        <Section title="Calamity Reports">
-          {filteredCalamities.length === 0 ? (
-            <div className="text-sm text-gray-600">No calamity reports found.</div>
-          ) : (
-            <ul className="space-y-3">
-              {filteredCalamities.map((c) => {
-                const color = CALAMITY_COLORS[c.calamity_type] || "#ef4444";
-                const thumb = c.photo ? `http://localhost:5000${c.photo}` : null;
-                return (
-                  <li key={c.calamity_id || c.id} className="border rounded-lg p-3 bg-white">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="inline-block w-3.5 h-3.5 rounded-full"
-                          style={{ backgroundColor: color }}
-                          title={c.calamity_type}
-                        />
-                        <span className="font-medium text-gray-900">{c.calamity_type}</span>
-                      </div>
-                      {c.status && (
-                        <span
-                          className={clsx(
-                            "px-2 py-0.5 rounded-full text-xs font-medium",
-                            statusBadge(c.status)
-                          )}
-                        >
-                          {c.status}
-                        </span>
-                      )}
-                    </div>
-
-                    {thumb && (
-                      <button
-                        type="button"
-                        className="mt-2 block overflow-hidden rounded-md border"
-                        onClick={() => setEnlargedImage?.(thumb)}
-                        title="View photo"
-                      >
-                        <img src={thumb} alt={c.calamity_type} className="h-28 w-full object-cover" />
-                      </button>
-                    )}
-
-                    <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
-                      <KV label="Location" value={fmt(c.location)} />
-                      <KV label="Reported" value={fmtDate(c.date_reported || c.created_at)} />
-                      <KV label="Lat" value={fmt(c.latitude)} />
-                      <KV label="Lng" value={fmt(c.longitude)} />
-                    </div>
-
-                    {c.description && (
-                      <p className="mt-2 text-sm text-gray-800">{c.description}</p>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Section>
 
         {/* Legend */}
         <Section title="Legend">
@@ -325,7 +367,7 @@ const CalamitySidebar = ({
           </details>
         </Section>
 
-        {/* Home button (kept for parity) */}
+        {/* Home */}
         <div className="mt-5">
           <Button to="/AdminLanding" label="Home" />
         </div>

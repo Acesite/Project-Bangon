@@ -37,7 +37,7 @@ const TagCalamityForm = ({
   selectedBarangay,
   onCancel,
   onSave,
-  setNewTagLocation
+  setNewTagLocation,
 }) => {
   // form state
   const [calamityType, setCalamityType] = useState("");
@@ -68,9 +68,18 @@ const TagCalamityForm = ({
     const c = defaultLocation?.coordinates;
     if (!c || !Array.isArray(c) || c.length < 2) return "";
     const [lng, lat] = c;
-    // keep to 5 decimals for readability
     return `${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`;
   }, [defaultLocation]);
+
+  // Prefill affected area from drawn polygon hectares
+  useEffect(() => {
+    const ha = defaultLocation?.hectares;
+    if (ha != null && !Number.isNaN(ha)) {
+      const val = Number(ha).toFixed(2);
+      setAffectedArea(val);
+      setNewTagLocation?.((prev) => ({ ...(prev || {}), hectares: Number(val) }));
+    }
+  }, [defaultLocation?.hectares, setNewTagLocation]);
 
   // fetch ecosystems + crops
   useEffect(() => {
@@ -111,7 +120,9 @@ const TagCalamityForm = ({
       }
     };
     run();
-    return () => { abort = true; };
+    return () => {
+      abort = true;
+    };
   }, []);
 
   // fetch varieties on crop change and filter ecosystems
@@ -141,7 +152,9 @@ const TagCalamityForm = ({
 
       setLoadingVarieties(true);
       try {
-        const res = await fetch(`http://localhost:5000/api/calamities/crops/${cropTypeId}/varieties`);
+        const res = await fetch(
+          `http://localhost:5000/api/calamities/crops/${cropTypeId}/varieties`
+        );
         if (!res.ok) throw new Error("Network error while fetching varieties.");
         const data = await res.json();
         if (abort) return;
@@ -403,7 +416,9 @@ const TagCalamityForm = ({
                         <option value="" disabled>No varieties found</option>
                       )}
                       {varieties.map((v) => (
-                        <option key={v.id} value={v.id}>{v.name}</option>
+                        <option key={v.id} value={v.id}>
+                          {v.name}
+                        </option>
                       ))}
                     </select>
                     {loadingVarieties && (
@@ -439,7 +454,11 @@ const TagCalamityForm = ({
                       }));
                     }
                   }}
-                  placeholder={defaultLocation?.hectares ? String(defaultLocation.hectares) : "0.00"}
+                  placeholder={
+                    defaultLocation?.hectares != null
+                      ? Number(defaultLocation.hectares).toFixed(2)
+                      : "0.00"
+                  }
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                   aria-describedby="area-help"
