@@ -178,9 +178,69 @@ const CalamitySidebar = ({
     });
   }, [calamities, selectedCalamityType, selectedBarangay]);
 
-  const heroImg = selectedCalamity?.photo
-    ? `http://localhost:5000${selectedCalamity.photo}`
-    : null;
+  // Build full list of photo URLs (multi-photo support + robust fallback)
+  // Normalize various backend shapes into absolute URLs
+const photoUrls = useMemo(() => {
+  if (!selectedCalamity) return [];
+
+  const base = "http://localhost:5000";
+  const urls = new Set();
+
+  const pushUrl = (raw) => {
+    if (!raw) return;
+    let p = String(raw).trim();
+    if (!p) return;
+
+    // accept csv like "a.jpg, b.jpg"
+    if (p.includes(",") && !p.startsWith("[") && !p.startsWith("{")) {
+      p.split(",").forEach((part) => pushUrl(part));
+      return;
+    }
+
+    // if it's JSON array inside a string, parse
+    if ((p.startsWith("[") && p.endsWith("]")) || (p.startsWith("\"") && p.endsWith("\""))) {
+      try {
+        const parsed = JSON.parse(p);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((x) => pushUrl(x));
+          return;
+        }
+        // fallthrough to add as a single url if not an array
+      } catch {
+        /* ignore and continue as a single path */
+      }
+    }
+
+    // normalize leading slashes and make absolute
+    if (!/^https?:\/\//i.test(p)) {
+      p = p.startsWith("/") ? `${base}${p}` : `${base}/${p}`;
+    }
+
+    // quick sanity: common image extensions (optional but helpful)
+    // if you store without extensions, remove this guard
+    // const ok = /\.(png|jpe?g|webp|gif|bmp|svg)(\?.*)?$/i.test(p);
+    // if (!ok) return;
+
+    urls.add(p);
+  };
+
+  // Preferred: multi-photo field
+  if (Array.isArray(selectedCalamity.photos)) {
+    selectedCalamity.photos.forEach(pushUrl);
+  } else if (selectedCalamity.photos) {
+    pushUrl(selectedCalamity.photos);
+  }
+
+  // Fallback: single "photo" field
+  if (urls.size === 0 && selectedCalamity.photo) {
+    pushUrl(selectedCalamity.photo);
+  }
+
+  return Array.from(urls);
+}, [selectedCalamity]);
+
+
+  const heroImg = photoUrls.length > 0 ? photoUrls[0] : null;
 
   const cropName = (id) => (id ? cropMap[String(id)] || `#${id}` : "—");
   const ecoName = (id) => (id ? ecosystemMap[String(id)] || `#${id}` : "—");
@@ -329,23 +389,31 @@ const CalamitySidebar = ({
               </p>
             </div>
 
-            {selectedCalamity.photo && (
-              <div className="mt-3">
-                <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Photo</div>
-                <button
-                  type="button"
-                  className="block overflow-hidden rounded-md border"
-                  onClick={() => setEnlargedImage?.(`http://localhost:5000${selectedCalamity.photo}`)}
-                  title="View photo"
-                >
-                  <img
-                    src={`http://localhost:5000${selectedCalamity.photo}`}
-                    alt={selectedCalamity.calamity_type}
-                    className="h-40 w-full object-cover"
-                  />
-                </button>
-              </div>
-            )}
+            {/* Photos grid (multi-photo support) */}
+            {photoUrls.length > 0 && (
+  <div className="mt-4">
+    <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Photos</div>
+    <div className="grid grid-cols-3 gap-2">
+      {photoUrls.map((url, idx) => (
+        <button
+          key={idx}
+          type="button"
+          className="group relative block overflow-hidden rounded-md border border-gray-200 bg-gray-50 aspect-square"
+          onClick={() => setEnlargedImage?.(url)}
+          title={`View photo ${idx + 1}`}
+        >
+          <img
+            src={url}
+            alt={`${selectedCalamity.calamity_type || "Calamity"} ${idx + 1}`}
+            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+            loading="lazy"
+          />
+        </button>
+      ))}
+    </div>
+  </div>
+)}
+
           </Section>
         )}
 

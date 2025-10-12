@@ -1,3 +1,4 @@
+// components/User/TagCalamityForm.js
 import React, { useState, useEffect, useMemo } from "react";
 
 const Spinner = () => (
@@ -42,7 +43,7 @@ const TagCalamityForm = ({
   // form state
   const [calamityType, setCalamityType] = useState("");
   const [description, setDescription] = useState("");
-  const [photo, setPhoto] = useState(null);
+  const [photos, setPhotos] = useState([]); // multiple files
   const [ecosystemId, setEcosystemId] = useState("");
   const [cropTypeId, setCropTypeId] = useState("");
   const [varietyId, setVarietyId] = useState("");
@@ -174,21 +175,36 @@ const TagCalamityForm = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cropTypeId, allEcosystems]);
 
-  // photo selection with basic checks
-  const onPickPhoto = (file) => {
-    if (!file) return;
+  // photo selection with basic checks (multiple)
+  const onPickPhotos = (fileList) => {
+    if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList);
+
     const maxMB = 5;
     const validTypes = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
-    if (!validTypes.includes(file.type)) {
+
+    const invalid = files.find((f) => !validTypes.includes(f.type));
+    if (invalid) {
       setSubmitError("Unsupported image type. Please upload JPG, PNG, WEBP, or HEIC.");
       return;
     }
-    if (file.size > maxMB * 1024 * 1024) {
-      setSubmitError(`Image is too large. Max size is ${maxMB} MB.`);
+    const tooBig = files.find((f) => f.size > maxMB * 1024 * 1024);
+    if (tooBig) {
+      setSubmitError(`One or more images are too large. Max size is ${maxMB} MB each.`);
       return;
     }
+
     setSubmitError("");
-    setPhoto(file);
+    // merge with existing photos, avoid duplicates by name+size
+    setPhotos((prev) => {
+      const map = new Map(prev.map((p) => [p.name + ":" + p.size, p]));
+      files.forEach((f) => map.set(f.name + ":" + f.size, f));
+      return Array.from(map.values());
+    });
+  };
+
+  const removePhotoAt = (idx) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = (e) => {
@@ -218,7 +234,9 @@ const TagCalamityForm = ({
       formData.append("crop_variety_id", varietyId);
       formData.append("affected_area", affectedArea || defaultLocation?.hectares || "0");
       formData.append("crop_stage", cropStage);
-      if (photo) formData.append("photo", photo);
+
+      // attach all photos (backend expects "photos")
+      photos.forEach((file) => formData.append("photos", file));
 
       onSave(formData);
     } catch (err) {
@@ -467,37 +485,38 @@ const TagCalamityForm = ({
               </div>
 
               <div>
-                <Label htmlFor="photo">Photo</Label>
+                <Label htmlFor="photos">Photos</Label>
                 <input
-                  id="photo"
+                  id="photos"
                   type="file"
                   accept="image/*"
-                  onChange={(e) => onPickPhoto(e.target.files?.[0])}
+                  multiple
+                  onChange={(e) => onPickPhotos(e.target.files)}
                   className="w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border file:border-gray-300 file:text-sm file:font-medium file:bg-white file:text-gray-700 hover:file:bg-gray-50"
                 />
-                <HelpText>JPG/PNG/WEBP/HEIC up to 5MB.</HelpText>
+                <HelpText>JPG/PNG/WEBP/HEIC up to 5MB each. You can select multiple.</HelpText>
 
-                {/* preview */}
-                {photo && (
-                  <div className="mt-3 flex items-center gap-3">
-                    <img
-                      src={URL.createObjectURL(photo)}
-                      alt="Selected"
-                      className="h-16 w-16 object-cover rounded-md border"
-                    />
-                    <div className="text-sm">
-                      <p className="text-gray-800 font-medium">{photo.name}</p>
-                      <p className="text-gray-500 text-xs">
-                        {(photo.size / (1024 * 1024)).toFixed(2)} MB
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setPhoto(null)}
-                        className="mt-1 inline-flex items-center text-xs text-red-600 hover:underline"
-                      >
-                        Remove photo
-                      </button>
-                    </div>
+                {/* previews */}
+                {photos.length > 0 && (
+                  <div className="mt-3 grid grid-cols-4 gap-3">
+                    {photos.map((f, idx) => (
+                      <div key={idx} className="relative">
+                        <img
+                          src={URL.createObjectURL(f)}
+                          alt={f.name}
+                          className="h-20 w-full object-cover rounded-md border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePhotoAt(idx)}
+                          className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center shadow"
+                          title="Remove"
+                        >
+                          ×
+                        </button>
+                        <div className="mt-1 text-[11px] text-gray-600 truncate">{f.name}</div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
