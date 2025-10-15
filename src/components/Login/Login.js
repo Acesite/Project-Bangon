@@ -11,6 +11,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleEmailChange = (e) => setEmail(e.target.value);
@@ -18,25 +19,48 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    try {
-      const response = await axios.post("http://localhost:5000/users/login", { email, password });
+    setError("");
+    setLoading(true);
 
-      if (response.data?.token) {
-        const { token, role, id, first_name, last_name, profile_picture } = response.data;
+    try {
+      const response = await axios.post("http://localhost:5000/users/login", {
+        email: email.trim(),
+        password,
+      });
+
+      const data = response.data || {};
+      if (data.token) {
+        const {
+          token,
+          role,
+          id,
+          first_name = "",
+          last_name = "",
+          profile_picture = "",
+          // if your backend later sends `full_name`, we’ll prefer it:
+          full_name: fullNameFromApi,
+        } = data;
+
+        // Compute full name safely
+        const computedFullName = (fullNameFromApi && String(fullNameFromApi).trim())
+          || [first_name, last_name].map((s) => (s || "").trim()).filter(Boolean).join(" ");
 
         // Base user info
         localStorage.setItem("token", token);
         localStorage.setItem("role", role);
-        localStorage.setItem("first_name", first_name);
-        localStorage.setItem("last_name", last_name);
+        localStorage.setItem("first_name", first_name || "");
+        localStorage.setItem("last_name", last_name || "");
+        localStorage.setItem("full_name", computedFullName || ""); // ✅ for all users
         localStorage.setItem("profile_picture", profile_picture || "");
         localStorage.setItem("user_id", String(id));
 
-        // ✅ Also store admin_id for admins/super_admins
+        // Admin-specific keys
         if (role === "admin" || role === "super_admin") {
           localStorage.setItem("admin_id", String(id));
+          localStorage.setItem("admin_full_name", computedFullName || ""); // ✅ store admin full name
         } else {
           localStorage.removeItem("admin_id");
+          localStorage.removeItem("admin_full_name");
         }
 
         // Redirect by role
@@ -47,9 +71,13 @@ const Login = () => {
         } else {
           navigate("/UserLandingPage");
         }
+      } else {
+        setError("Invalid response from server.");
       }
     } catch (err) {
       setError(err.response?.data?.message || "An error occurred");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -100,8 +128,14 @@ const Login = () => {
               <a href="#" className="text-green-600">Forgot password?</a>
             </div>
 
-            <button type="submit" className="w-full bg-green-500 text-white p-3 rounded-lg mb-4 hover:bg-green-800 active:bg-green-500">
-              Log in
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full text-white p-3 rounded-lg mb-4 ${
+                loading ? "bg-green-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-800 active:bg-green-500"
+              }`}
+            >
+              {loading ? "Logging in..." : "Log in"}
             </button>
           </form>
 

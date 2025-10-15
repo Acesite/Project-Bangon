@@ -49,6 +49,9 @@ const TagCalamityForm = ({
   const [varietyId, setVarietyId] = useState("");
   const [affectedArea, setAffectedArea] = useState("");
   const [cropStage, setCropStage] = useState("");
+  const [barangay, setBarangay] = useState(selectedBarangay || "");
+  const [status, setStatus] = useState("Pending"); // NEW
+  const [severityLevel, setSeverityLevel] = useState(""); // NEW — Severity
 
   // dropdown data
   const [ecosystems, setEcosystems] = useState([]);
@@ -227,6 +230,9 @@ const TagCalamityForm = ({
       formData.append("calamity_type", calamityType);
       formData.append("description", description.trim());
       formData.append("location", selectedBarangay || "Unknown");
+      formData.append("barangay", barangay || selectedBarangay || "");
+      formData.append("status", status); // existing
+      formData.append("severity_level", severityLevel); // NEW
       formData.append("coordinates", JSON.stringify(defaultLocation.coordinates));
       formData.append("admin_id", String(adminId));
       formData.append("ecosystem_id", ecosystemId);
@@ -235,7 +241,6 @@ const TagCalamityForm = ({
       formData.append("affected_area", affectedArea || defaultLocation?.hectares || "0");
       formData.append("crop_stage", cropStage);
 
-      // attach all photos (backend expects "photos")
       photos.forEach((file) => formData.append("photos", file));
 
       onSave(formData);
@@ -249,11 +254,14 @@ const TagCalamityForm = ({
   // disable submit until required fields are present
   const canSubmit =
     calamityType &&
+    (barangay || selectedBarangay) &&
     description.trim().length > 0 &&
     cropTypeId &&
     ecosystemId &&
     cropStage &&
-    (varieties.length === 0 || varietyId) && // if varieties exist, selection is required
+    status &&
+    severityLevel && // NEW — require a choice
+    (varieties.length === 0 || varietyId) &&
     (affectedArea || defaultLocation?.hectares);
 
   return (
@@ -272,10 +280,10 @@ const TagCalamityForm = ({
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Context chips */}
             <div className="flex flex-wrap gap-2">
-              {selectedBarangay && (
+              {(barangay || selectedBarangay) && (
                 <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                   <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
-                  {selectedBarangay}
+                  {barangay || selectedBarangay}
                 </span>
               )}
               {coordStr && (
@@ -316,6 +324,23 @@ const TagCalamityForm = ({
                 <HelpText id="calamity-help">Choose the category that best matches the event.</HelpText>
               </div>
 
+              {/* Barangay */}
+              <div>
+                <Label htmlFor="barangay" required>Barangay</Label>
+                <input
+                  id="barangay"
+                  type="text"
+                  value={barangay}
+                  onChange={(e) => setBarangay(e.target.value)}
+                  placeholder="e.g., Brgy. San Isidro"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                  aria-describedby="brgy-help"
+                />
+                <HelpText id="brgy-help">Specify the barangay where the incident occurred.</HelpText>
+              </div>
+
+              {/* Crop Stage */}
               <div>
                 <Label htmlFor="stage" required>Crop Development Stage</Label>
                 <select
@@ -331,6 +356,42 @@ const TagCalamityForm = ({
                   <option value="Harvested">Harvested</option>
                 </select>
                 <HelpText>Pick the current stage of the affected crop.</HelpText>
+              </div>
+
+              {/* Status */}
+              <div>
+                <Label htmlFor="status" required>Status</Label>
+                <select
+                  id="status"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="Verified">Verified</option>
+                  <option value="Resolved">Resolved</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+                <HelpText>Set by field officer during geotagging.</HelpText>
+              </div>
+
+              {/* Severity — NEW */}
+              <div>
+                <Label htmlFor="severity" required>Severity</Label>
+                <select
+                  id="severity"
+                  value={severityLevel}
+                  onChange={(e) => setSeverityLevel(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select severity</option>
+                  <option value="Low">Low</option>
+                  <option value="Moderate">Moderate</option>
+                  <option value="High">High</option>
+                </select>
+                <HelpText>How intense is the incident right now?</HelpText>
               </div>
 
               <div className="sm:col-span-2">
