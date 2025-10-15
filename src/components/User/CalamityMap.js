@@ -106,6 +106,19 @@ function IconButton({ title, active, onClick, children }) {
   );
 }
 
+/** --------- NEW: bounds helpers for lock-to-Bago ---------- **/
+function isInsideBounds([lng, lat], bounds) {
+  const [[minLng, minLat], [maxLng, maxLat]] = bounds;
+  return lng >= minLng && lng <= maxLng && lat >= minLat && lat <= maxLat;
+}
+function expandBoundsToIncludePoint(bounds, [lng, lat], pad = 0.05) {
+  const [[minLng, minLat], [maxLng, maxLat]] = bounds;
+  return [
+    [Math.min(minLng, lng) - pad, Math.min(minLat, lat) - pad],
+    [Math.max(maxLng, lng) + pad, Math.max(maxLat, lat) + pad],
+  ];
+}
+
 /** --------------------------------------------------------------------- **/
 
 const Calamity = () => {
@@ -140,6 +153,10 @@ const Calamity = () => {
     [122.7333, 10.4958],
     [123.5000, 10.6333],
   ];
+
+  // NEW: lock toggle
+  const [lockToBago, setLockToBago] = useState(true);
+
   const SIDEBAR_WIDTH = 500;
   const PEEK = 1;
 
@@ -453,6 +470,14 @@ const Calamity = () => {
 
   function handleFix(glng, glat, accuracy) {
     if (!map.current) return;
+
+    // NEW: if locked and your GPS fix is outside Bago, temporarily expand bounds to include it
+    if (lockToBago && !isInsideBounds([glng, glat], bagoCityBounds)) {
+      const expanded = expandBoundsToIncludePoint(bagoCityBounds, [glng, glat], 0.05);
+      map.current.setMaxBounds(expanded);
+      toast.info("You’re outside Bago. Temporarily expanded bounds to include your location.");
+    }
+
     setUserLoc({ lng: glng, lat: glat, acc: accuracy });
     setUserMarker(glng, glat, accuracy);
   }
@@ -555,6 +580,18 @@ const Calamity = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapStyle]);
+
+  // NEW: watch lock toggle and apply/remove maxBounds
+  useEffect(() => {
+    if (!map.current) return;
+    if (lockToBago) {
+      map.current.setMaxBounds(bagoCityBounds);
+      toast.info("Map locked to Bago City boundaries.");
+    } else {
+      map.current.setMaxBounds(null);
+      toast.info("Map unlocked. You can pan anywhere.");
+    }
+  }, [lockToBago]);
 
   useEffect(() => {
     if (map.current) {
@@ -743,6 +780,25 @@ const Calamity = () => {
             <path d="M12 2 6 22l6-5 6 5-6-20z" />
           </svg>
         </IconButton>
+
+        {/* NEW: Lock to Bago toggle */}
+        <IconButton
+          title={lockToBago ? "Unlock map" : "Lock to Bago"}
+          active={lockToBago}
+          onClick={() => setLockToBago((v) => !v)}
+        >
+          {lockToBago ? (
+            // locked icon
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17 8h-1V6a4 4 0 1 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Zm-7-2a2 2 0 1 1 4 0v2h-4V6Z" />
+            </svg>
+          ) : (
+            // unlocked icon
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17 8h-1V6a4 4 0 0 0-7.33-2.4l1.5 1.32A2 2 0 0 1 13 6v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Z" />
+            </svg>
+          )}
+        </IconButton>
       </div>
 
       {/* Map */}
@@ -923,7 +979,7 @@ const Calamity = () => {
             }
             setAreMarkersVisible(!areMarkersVisible);
           }}
-          className="absolute bottom-[194px] right-[9px] z-50 bg-white border border-gray-300 rounded-[5px] w-8 h-8 flex items-center justify-center shadow-[0_0_8px_2px_rgba(0,0,0,0.15)] "
+          className="absolute bottom-[194px] right-[9px] z-50 bg:white bg-white border border-gray-300 rounded-[5px] w-8 h-8 flex items-center justify-center shadow-[0_0_8px_2px_rgba(0,0,0,0.15)] "
           title={areMarkersVisible ? "Hide Markers" : "Show Markers"}
         >
           <svg
