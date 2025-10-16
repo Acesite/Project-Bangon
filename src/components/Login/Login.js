@@ -140,7 +140,7 @@ const Login = () => {
           </form>
 
           <p className="text-gray-500 text-center mt-4">
-            Don’t have an account? <a href="ChooseRole" className="text-green-600">Sign up here</a>
+            Don’t have an account? <a href="/Signup" className="text-green-600">Sign up here</a>
           </p>
         </div>
 
