@@ -21,6 +21,15 @@ const SORT_OPTIONS = [
   { value: "volume_asc",   label: "Volume: Low → High" },
 ];
 
+const yieldUnitMap = {
+  1: "sacks",   // Corn (adjust if your ids differ)
+  2: "sacks",   // Rice
+  3: "bunches", // Banana
+  4: "tons",    // Sugarcane
+  5: "tons",    // Cassava
+  6: "kg",      // Vegetables
+};
+
 const ManageCrop = () => {
   const [crops, setCrops] = useState([]);
   const [editingCrop, setEditingCrop] = useState(null);
@@ -31,7 +40,7 @@ const ManageCrop = () => {
   const [selectedCropTypeId, setSelectedCropTypeId] = useState(null);
   const [search, setSearch] = useState("");
 
-  // NEW: sort + pagination + confirm
+  // sort + pagination + confirm
   const [sort, setSort] = useState("harvest_desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
@@ -68,20 +77,9 @@ const ManageCrop = () => {
 
   const formatDate = (date) => {
     if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const yieldUnitMap = {
-    1: "sacks",   // Corn
-    2: "sacks",   // Rice
-    3: "bunches", // Banana
-    4: "tons",    // Sugarcane
-    5: "tons",    // Cassava
-    6: "kg",      // Vegetables
+    const t = new Date(date);
+    if (isNaN(t.getTime())) return "N/A";
+    return t.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   };
 
   // ------- filter + search -------
@@ -92,7 +90,17 @@ const ManageCrop = () => {
     if (!search.trim()) return byType;
     const q = search.toLowerCase();
     return byType.filter((c) =>
-      [c.crop_name, c.variety_name, c.barangay, c.first_name, c.last_name, c.note]
+      [
+        c.crop_name,
+        c.variety_name,
+        c.crop_barangay,
+        c.farmer_first_name,
+        c.farmer_last_name,
+        c.farmer_mobile,
+        c.farmer_barangay,
+        c.farmer_address,
+        c.note,
+      ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
     );
@@ -144,6 +152,13 @@ const ManageCrop = () => {
       ...crop,
       crop_type_id: crop.crop_type_id || "",
       variety_id: crop.variety_id || "",
+      farmer_id: crop.farmer_id || "",   // allow swapping farmer link if needed
+      planted_date: crop.planted_date || "",
+      estimated_harvest: crop.estimated_harvest || "",
+      estimated_volume: crop.estimated_volume || "",
+      estimated_hectares: crop.estimated_hectares || "",
+      note: crop.note || "",
+      barangay: crop.crop_barangay || "",
     });
   };
 
@@ -181,7 +196,6 @@ const ManageCrop = () => {
     <div className="flex flex-col min-h-screen bg-white font-poppins">
       <AdminNav />
 
-      {/* keep your nav offset but center content */}
       <main className="ml-[115px] pt-[100px] pr-8 flex-grow">
         <div className="max-w-7xl mx-auto px-6">
           {/* Header + tools */}
@@ -216,7 +230,7 @@ const ManageCrop = () => {
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Crop, variety, barangay…"
+                  placeholder="Crop, variety, farmer, barangay…"
                   className="border border-gray-300 px-3 py-2 rounded-md w-56 focus:outline-none focus:ring-2 focus:ring-green-600"
                 />
               </div>
@@ -289,17 +303,35 @@ const ManageCrop = () => {
                       <h3 className="text-xl font-semibold text-gray-900">{crop.crop_name}</h3>
                     </div>
 
-                    {/* Meta */}
+                    {/* Meta (crop info) */}
                     <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2">
                       <Meta label="Variety"  value={crop.variety_name || "N/A"} />
-                      <Meta label="Barangay" value={crop.barangay || "N/A"} />
+                      <Meta label="Barangay (Crop)" value={crop.crop_barangay || "N/A"} />
                       <Meta label="Planted"  value={formatDate(crop.planted_date)} />
                       <Meta label="Harvest"  value={formatDate(crop.estimated_harvest)} />
                       <Meta label="Volume"   value={`${crop.estimated_volume} ${yieldUnitMap[crop.crop_type_id] || "units"}`} />
                       <Meta label="Hectares" value={crop.estimated_hectares} />
                     </div>
 
-                    {/* Note */}
+                    {/* Farmer block */}
+                    <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">Farmer</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
+                        <Meta
+                          label="Name"
+                          value={
+                            crop.farmer_first_name || crop.farmer_last_name
+                              ? `${crop.farmer_first_name || ""} ${crop.farmer_last_name || ""}`.trim()
+                              : "N/A"
+                          }
+                        />
+                        <Meta label="Mobile"      value={crop.farmer_mobile || "N/A"} />
+                        <Meta label="Barangay"    value={crop.farmer_barangay || "N/A"} />
+                        <Meta label="Full Address" value={crop.farmer_address || "N/A"} />
+                      </div>
+                    </div>
+
+                    {/* Notes */}
                     <NoteClamp text={crop.note} className="mt-3" />
 
                     {/* Footer */}
@@ -307,8 +339,8 @@ const ManageCrop = () => {
                       <div className="text-xs text-gray-500">
                         Tagged by{" "}
                         <span className="text-gray-700">
-                          {crop.first_name && crop.last_name
-                            ? `${crop.first_name} ${crop.last_name}`
+                          {crop.tagger_first_name && crop.tagger_last_name
+                            ? `${crop.tagger_first_name} ${crop.tagger_last_name}`
                             : "N/A"}
                         </span>
                       </div>
@@ -397,7 +429,7 @@ const ManageCrop = () => {
               <input
                 type="date"
                 name="planted_date"
-                value={editForm.planted_date?.split("T")[0] || ""}
+                value={(editForm.planted_date || "").toString().split("T")[0] || ""}
                 onChange={handleEditChange}
                 className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-green-600"
               />
@@ -405,7 +437,7 @@ const ManageCrop = () => {
               <input
                 type="date"
                 name="estimated_harvest"
-                value={editForm.estimated_harvest?.split("T")[0] || ""}
+                value={(editForm.estimated_harvest || "").toString().split("T")[0] || ""}
                 onChange={handleEditChange}
                 className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-green-600"
               />
@@ -424,6 +456,23 @@ const ManageCrop = () => {
                 onChange={handleEditChange}
                 className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-green-600"
                 placeholder="Hectares"
+              />
+
+              <input
+                name="barangay"
+                value={editForm.barangay || ""}
+                onChange={handleEditChange}
+                className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-green-600"
+                placeholder="Crop Barangay"
+              />
+
+              {/* optional: change linked farmer by id */}
+              <input
+                name="farmer_id"
+                value={editForm.farmer_id || ""}
+                onChange={handleEditChange}
+                className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-green-600"
+                placeholder="Farmer ID"
               />
 
               <textarea
@@ -450,15 +499,15 @@ const ManageCrop = () => {
       {pendingDelete && (
         <ConfirmDialog
           title="Delete crop"
-          message={`This will permanently delete "${pendingDelete.crop_name}" in ${pendingDelete.barangay || "—"}.`}
+          message={`This will permanently delete "${pendingDelete.crop_name}" in ${pendingDelete.crop_barangay || "—"}.`}
           onCancel={() => setPendingDelete(null)}
           onConfirm={confirmDelete}
         />
       )}
-<div className="mt-5">
-    <Footer />
-</div>
-     
+
+      <div className="mt-5">
+        <Footer />
+      </div>
     </div>
   );
 };
@@ -515,7 +564,7 @@ function PageBtn({ children, disabled, onClick, aria }) {
 function ConfirmDialog({ title, message, onCancel, onConfirm }) {
   return (
     <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center">
-      <div className="bg-white w-full max-w-md rounded-xl shadow-2xl p-6">
+      <div className="bg-white w/full max-w-md rounded-xl shadow-2xl p-6">
         <h4 className="text-lg font-semibold text-gray-900">{title}</h4>
         <p className="mt-2 text-sm text-gray-700">{message}</p>
         <div className="mt-6 flex justify-end gap-2">

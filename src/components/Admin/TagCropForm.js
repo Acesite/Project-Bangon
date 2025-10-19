@@ -1,25 +1,15 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { SaveIcon, ArrowRight, ArrowLeft } from "lucide-react";
 
-const STANDARD_MATURITY_DAYS = {
-  1: 100, 2: 110, 3: 360, 4: 365, 5: 300, 6: 60,
-};
-
-const yieldUnitMap = {
-  1: "sacks", 2: "sacks", 3: "bunches", 4: "tons", 5: "tons", 6: "kg",
-};
-
-const yieldPerHectare = {
-  1: 80, 2: 85.4, 3: 150, 4: 80, 5: 70, 6: 100,
-};
-
+/* ---------- CONFIG ---------- */
+const STANDARD_MATURITY_DAYS = { 1: 100, 2: 110, 3: 360, 4: 365, 5: 300, 6: 60 };
+const yieldUnitMap = { 1: "sacks", 2: "sacks", 3: "bunches", 4: "tons", 5: "tons", 6: "kg" };
+const yieldPerHectare = { 1: 80, 2: 85.4, 3: 150, 4: 80, 5: 70, 6: 100 };
 const barangayList = [
-  "Abuanan","Alianza","Atipuluan","Bacong","Bagroy","Balingasag",
-  "Binubuhan","Busay","Calumangan","Caridad","Dulao","Ilijan",
-  "Lag-asan","Mailum","Ma-ao","Malingin","Napoles","Pacol",
-  "Poblacion","Sagasa","Tabunan","Taloc"
+  "Abuanan","Alianza","Atipuluan","Bacong","Bagroy","Balingasag","Binubuhan","Busay",
+  "Calumangan","Caridad","Dulao","Ilijan","Lag-asan","Mailum","Ma-ao","Malingin",
+  "Napoles","Pacol","Poblacion","Sagasa","Tabunan","Taloc"
 ];
-
 function addDaysToISO(dateStr, days) {
   if (!dateStr || !days) return "";
   const d = new Date(dateStr + "T00:00:00");
@@ -27,16 +17,12 @@ function addDaysToISO(dateStr, days) {
   return d.toISOString().slice(0, 10);
 }
 
-const TagCropForm = ({
-  onCancel,
-  onSave,
-  defaultLocation,
-  selectedBarangay,
-  adminId,
-}) => {
+/* ---------- COMPONENT ---------- */
+const TagCropForm = ({ onCancel, onSave, defaultLocation, selectedBarangay, adminId }) => {
   const formRef = useRef(null);
   const [currentStep, setCurrentStep] = useState(1);
 
+  // Crop
   const [hectares, setHectares] = useState("");
   const [cropTypes, setCropTypes] = useState([]);
   const [selectedCropType, setSelectedCropType] = useState("");
@@ -52,31 +38,32 @@ const TagCropForm = ({
   const [estimatedVolume, setEstimatedVolume] = useState("");
   const [volumeTouched, setVolumeTouched] = useState(false);
 
+  // Farmer
   const [farmerFirstName, setFarmerFirstName] = useState("");
   const [farmerLastName, setFarmerLastName] = useState("");
   const [farmerMobile, setFarmerMobile] = useState("");
   const [farmerBarangay, setFarmerBarangay] = useState("");
   const [farmerAddress, setFarmerAddress] = useState("");
+
+  // Ecosystems
+  const [ecosystems, setEcosystems] = useState([]);
+  const [selectedEcosystem, setSelectedEcosystem] = useState("");
+
+  // Review Modal
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const [ecosystems, setEcosystems] = useState([]);  // Add this state for ecosystems
-const [selectedEcosystem, setSelectedEcosystem] = useState("");  // Add state to store the selected ecosystem
-
-useEffect(() => {
-  if (selectedCropType) { // Only fetch ecosystems if a crop type is selected
-    fetch(`http://localhost:5000/api/crops/ecosystems/${selectedCropType}`)
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Ecosystems data:", data); // Log the data for debugging
-        setEcosystems(data);
-      })
-      .catch((err) => console.error("Failed to load ecosystems:", err));
-  } else {
-    setEcosystems([]); // Clear ecosystems if no crop type is selected
-  }
-}, [selectedCropType]);
-
-
+  /* ---------- EFFECTS / DERIVED ---------- */
+  useEffect(() => {
+    if (selectedCropType) {
+      fetch(`http://localhost:5000/api/crops/ecosystems/${selectedCropType}`)
+        .then((res) => res.json())
+        .then((data) => setEcosystems(data))
+        .catch((err) => console.error("Failed to load ecosystems:", err));
+    } else {
+      setEcosystems([]);
+      setSelectedEcosystem("");
+    }
+  }, [selectedCropType]);
 
   const autoHarvestCandidate = useMemo(() => {
     const days = STANDARD_MATURITY_DAYS[selectedCropType] || 0;
@@ -125,71 +112,52 @@ useEffect(() => {
       .catch((err) => console.error("Failed to load varieties:", err));
   }, [selectedCropType]);
 
-  const isStep1Valid = () => {
-    return selectedCropType && plantedDate && hectares && manualBarangay;
-  };
+  /* ---------- VALIDATION ---------- */
+  const isStep1Valid = () => selectedCropType && plantedDate && hectares && manualBarangay;
+  const isStep2Valid = () =>
+    farmerFirstName && farmerLastName && farmerMobile && farmerBarangay && farmerAddress;
 
-  const isStep2Valid = () => {
-    return farmerFirstName && farmerLastName && farmerMobile && farmerBarangay && farmerAddress;
-  };
-
+  /* ---------- HANDLERS ---------- */
   const handleShowConfirmation = () => {
-    if (isStep2Valid()) {
-      setShowConfirmation(true);
-    }
+    if (isStep2Valid()) setShowConfirmation(true);
   };
-
   const handleNext = () => {
-    if (currentStep === 1 && isStep1Valid()) {
-      setCurrentStep(2);
-    }
+    if (currentStep === 1 && isStep1Valid()) setCurrentStep(2);
   };
-
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
+    if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e?.preventDefault?.();
     setShowConfirmation(false);
-  
+
     const formData = new FormData();
-  
-    // Add ecosystem_id to the form data before submitting
     formData.append("ecosystem_id", selectedEcosystem || "");
-  
-    // crop fields
     formData.append("crop_type_id", selectedCropType);
     formData.append("variety_id", selectedVarietyId || "");
     formData.append("plantedDate", plantedDate || "");
-    formData.append("estimatedHarvest", estimatedHarvest || ""); // ok if backend ignores
+    formData.append("estimatedHarvest", estimatedHarvest || "");
     formData.append("estimatedVolume", estimatedVolume || "");
     formData.append("estimatedHectares", hectares || "");
     formData.append("note", note || "");
     formData.append("coordinates", JSON.stringify(defaultLocation?.coordinates || []));
-    formData.append("barangay", manualBarangay || selectedBarangay || ""); // optional for your UI
+    formData.append("barangay", manualBarangay || selectedBarangay || "");
     if (adminId) formData.append("admin_id", String(adminId));
-  
-    // farmer fields
+
     formData.append("farmer_first_name", farmerFirstName || "");
     formData.append("farmer_last_name", farmerLastName || "");
     formData.append("farmer_mobile", farmerMobile || "");
     formData.append("farmer_barangay", farmerBarangay || "");
-    // 🔑 send the one-line address with the key your backend expects
     formData.append("full_address", farmerAddress || "");
-  
-    // photos
+
     if (photos) {
-      for (let i = 0; i < photos.length; i++) {
-        formData.append("photos", photos[i]);
-      }
+      for (let i = 0; i < photos.length; i++) formData.append("photos", photos[i]);
     }
-  
+
     await onSave(formData);
-  
-    // reset
+
+    // Reset
     setCurrentStep(1);
     setHectares("");
     setSelectedCropType("");
@@ -208,111 +176,153 @@ useEffect(() => {
     setFarmerBarangay("");
     setFarmerAddress("");
   };
-  
 
   const getCropTypeName = () => {
-    const crop = cropTypes.find(c => c.id === selectedCropType);
+    const crop = cropTypes.find((c) => c.id === selectedCropType);
     return crop ? crop.name : "—";
   };
-
   const getVarietyName = () => {
-    const variety = dynamicVarieties.find(v => v.id === parseInt(selectedVarietyId));
+    const variety = dynamicVarieties.find((v) => v.id === parseInt(selectedVarietyId));
     return variety ? variety.name : "—";
   };
 
+  /* ---------- UI ---------- */
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-8 pt-6 pb-4">
-          <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">
-            Tag Crop
-          </h2>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[86vh] overflow-hidden flex flex-col">
+        {/* Header (STICKY) */}
+        <div className="sticky top-0 z-10 px-8 pt-6 pb-4 bg-white/95 backdrop-blur border-b">
+          <h2 className="text-2xl font-bold text-gray-900 text-center">Tag Crop</h2>
 
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentStep === 1 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-300 text-gray-600"}`}>1</div>
-              <span className="font-medium text-sm">Crop Details</span>
+          {/* Stepper + progress */}
+          <div className="mt-4 mx-auto w-full max-w-sm">
+            <div className="flex items-center justify-center gap-3">
+              <div
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
+                  currentStep === 1 ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-400"
+                }`}
+              >
+                <span
+                  className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
+                    currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-300 text-gray-600"
+                  }`}
+                >
+                  1
+                </span>
+                <span className="text-sm font-semibold">Crop Details</span>
+              </div>
+
+              <div className="h-px w-8 bg-gray-200" />
+
+              <div
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
+                  currentStep === 2 ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-400"
+                }`}
+              >
+                <span
+                  className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
+                    currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-300 text-gray-600"
+                  }`}
+                >
+                  2
+                </span>
+                <span className="text-sm font-semibold">Farmer Info</span>
+              </div>
             </div>
-
-            <div className="w-8 h-0.5 bg-gray-200"></div>
-
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentStep === 2 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-300 text-gray-600"}`}>2</div>
-              <span className="font-medium text-sm">Farmer Info</span>
+            <div className="mt-3 h-1 rounded bg-gray-100">
+              <div
+                className={`h-1 rounded bg-green-500 transition-all duration-300 ${
+                  currentStep === 1 ? "w-1/2" : "w-full"
+                }`}
+              />
             </div>
-          </div>
-
-          <div className="text-center text-sm text-gray-500">
-            {currentStep === 1 ? "Enter basic crop information" : "Enter farmer details"}
+            <p className="mt-2 text-center text-sm text-gray-500">
+              {currentStep === 1 ? "Enter basic crop information" : "Enter farmer details"}
+            </p>
           </div>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-8 py-4">
-          <form onSubmit={handleSubmit} ref={formRef}>
+        <div className="flex-1 overflow-y-auto px-8 pb-2">
+          <form onSubmit={handleSubmit} ref={formRef} className="space-y-2">
             {currentStep === 1 && (
-              <div className="space-y-4 animate-fadeIn">
-                <div>
-  <label className="block text-sm font-semibold text-gray-700 mb-2">
-    Crop Type <span className="text-red-500">*</span>
-  </label>
-  <select
-    required
-    value={selectedCropType}
-    onChange={(e) => {
-      const id = parseInt(e.target.value);
-      console.log("Selected crop type:", id);
-      setSelectedCropType(Number.isFinite(id) ? id : "");
-      setSelectedVarietyId("");
-    }}
-    className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
-  >
-    <option value="">Select Crop Type</option>
-    {cropTypes.map((type) => (
-      <option key={type.id} value={type.id}>
-        {type.name}
-      </option>
-    ))}
-  </select>
-</div>
+              <div className="space-y-6 animate-fadeIn">
+                {/* Section: Crop Basics */}
+                <h5 className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                  Crop Basics
+                </h5>
 
-{selectedCropType && ecosystems.length > 0 && (
-  <div>
-    <label className="block text-sm font-semibold text-gray-700 mb-2">
-      Ecosystem <span className="text-red-500">*</span>
-    </label>
-    <select
-      value={selectedEcosystem}
-      onChange={(e) => setSelectedEcosystem(e.target.value)}
-      className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
-    >
-      <option value="">Select Ecosystem</option>
-      {ecosystems.map((ecosystem) => (
-        <option key={ecosystem.id} value={ecosystem.id}>
-          {ecosystem.name}
-        </option>
-      ))}
-    </select>
-  </div>
-)}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Variety</label>
-                  <select
-                    value={selectedVarietyId}
-                    onChange={(e) => setSelectedVarietyId(e.target.value)}
-                    className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
-                  >
-                    <option value="">Select Variety (Optional)</option>
-                    {dynamicVarieties.map((v) => (
-                      <option key={v.id} value={v.id}>{v.name}</option>
-                    ))}
-                  </select>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Crop Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={selectedCropType}
+                      onChange={(e) => {
+                        const id = parseInt(e.target.value);
+                        setSelectedCropType(Number.isFinite(id) ? id : "");
+                        setSelectedVarietyId("");
+                      }}
+                      className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
+                    >
+                      <option value="">Select Crop Type</option>
+                      {cropTypes.map((type) => (
+                        <option key={type.id} value={type.id}>
+                          {type.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedCropType && ecosystems.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Ecosystem <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedEcosystem}
+                        onChange={(e) => setSelectedEcosystem(e.target.value)}
+                        className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
+                      >
+                        <option value="">Select Ecosystem</option>
+                        {ecosystems.map((ecosystem) => (
+                          <option key={ecosystem.id} value={ecosystem.id}>
+                            {ecosystem.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Required for reporting and maps.
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Variety</label>
+                    <select
+                      value={selectedVarietyId}
+                      onChange={(e) => setSelectedVarietyId(e.target.value)}
+                      className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
+                    >
+                      <option value="">Select Variety (Optional)</option>
+                      {dynamicVarieties.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="my-2 h-px bg-gray-100" />
+
+                {/* Section: Dates */}
+                <h5 className="text-xs font-semibold tracking-wider text-gray-500 uppercase">Dates</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Date Planted <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -323,9 +333,8 @@ useEffect(() => {
                       className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Est. Harvest</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Est. Harvest</label>
                     <input
                       type="date"
                       value={estimatedHarvest}
@@ -338,9 +347,15 @@ useEffect(() => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="my-2 h-px bg-gray-100" />
+
+                {/* Section: Area & Yield */}
+                <h5 className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                  Area &amp; Yield
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Area (ha) <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -351,13 +366,15 @@ useEffect(() => {
                       value={hectares}
                       onChange={(e) => setHectares(e.target.value)}
                       placeholder="0.00"
-                      className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
+                      className="w-full border-2 border-gray-200 px-4 py-3 pr-14 rounded-lg text-right focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
                     />
+                    <span className="absolute right-3 bottom-3 text-sm text-gray-500">ha</span>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Est. Yield {yieldUnitMap[selectedCropType] ? `(${yieldUnitMap[selectedCropType]})` : ""}
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Est. Yield{" "}
+                      {yieldUnitMap[selectedCropType] ? `(${yieldUnitMap[selectedCropType]})` : ""}
                     </label>
                     <input
                       type="number"
@@ -369,58 +386,75 @@ useEffect(() => {
                         setEstimatedVolume(e.target.value);
                       }}
                       placeholder="Auto-calculated"
-                      className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
+                      className="w-full border-2 border-gray-200 px-4 py-3 pr-20 rounded-lg text-right focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
                     />
+                    <span className="absolute right-3 bottom-3 text-sm text-gray-500">
+                      {yieldUnitMap[selectedCropType] || "units"}
+                    </span>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Barangay <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={manualBarangay}
-                    onChange={(e) => setManualBarangay(e.target.value)}
-                    className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
-                  >
-                    <option value="">Select Barangay</option>
-                    {barangayList.map((bgy) => (
-                      <option key={bgy} value={bgy}>{bgy}</option>
-                    ))}
-                  </select>
-                </div>
+                <div className="my-2 h-px bg-gray-100" />
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
-                  <textarea
-                    rows="3"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Any observations or notes..."
-                    className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
-                  />
-                </div>
+                {/* Section: Location & Notes */}
+                <h5 className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                  Location &amp; Notes
+                </h5>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Barangay <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={manualBarangay}
+                      onChange={(e) => setManualBarangay(e.target.value)}
+                      className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
+                    >
+                      <option value="">Select Barangay</option>
+                      {barangayList.map((bgy) => (
+                        <option key={bgy} value={bgy}>
+                          {bgy}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Photos</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => setPhotos(e.target.files)}
-                    className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg bg-white text-base file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">JPG/PNG/WebP up to 10MB each</p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes</label>
+                    <textarea
+                      rows="3"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="Any observations or notes..."
+                      className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition text-base"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Photos</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => setPhotos(e.target.files)}
+                      className="w-full border-2 border-gray-200 px-4 py-3 rounded-lg bg-white text-base file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">JPG/PNG/WebP up to 10MB each</p>
+                  </div>
                 </div>
               </div>
             )}
 
             {currentStep === 2 && (
-              <div className="space-y-4 animate-fadeIn">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-6 animate-fadeIn">
+                <h5 className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                  Farmer Details
+                </h5>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       First Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -434,7 +468,7 @@ useEffect(() => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Last Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -449,7 +483,7 @@ useEffect(() => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Mobile Number <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -463,7 +497,7 @@ useEffect(() => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Barangay <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -474,13 +508,15 @@ useEffect(() => {
                   >
                     <option value="">Select Barangay</option>
                     {barangayList.map((bgy) => (
-                      <option key={bgy} value={bgy}>{bgy}</option>
+                      <option key={bgy} value={bgy}>
+                        {bgy}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Complete Address <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -497,168 +533,134 @@ useEffect(() => {
           </form>
         </div>
 
-        {/* Footer */}
-        <div className="px-8 py-5 bg-gray-50 border-t border-gray-200">
-          <div className="flex justify-between items-center gap-3">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-6 py-2.5 text-gray-600 hover:text-gray-800 font-medium transition"
-            >
-              Cancel
-            </button>
+        {/* Footer (STICKY) */}
+        <div className="sticky bottom-0 z-10 px-8 py-5 bg-white/95 backdrop-blur border-t border-gray-200 flex justify-between items-center gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-2.5 text-gray-600 hover:text-gray-800 font-medium transition"
+          >
+            Cancel
+          </button>
 
-            <div className="flex gap-3">
-              {currentStep > 1 && (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
-                >
-                  <ArrowLeft size={18} /> Back
-                </button>
-              )}
+          <div className="flex gap-3">
+            {currentStep > 1 && (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="flex items-center gap-2 px-6 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+              >
+                <ArrowLeft size={18} /> Back
+              </button>
+            )}
 
-              {currentStep < 2 ? (
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  disabled={!isStep1Valid()}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-green-600"
-                >
-                  Next <ArrowRight size={18} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleShowConfirmation}
-                  disabled={!isStep2Valid()}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-green-600"
-                >
-                  <SaveIcon size={18} /> Save
-                </button>
-              )}
-            </div>
+            {currentStep < 2 ? (
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={!isStep1Valid()}
+                className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-green-600"
+              >
+                Next <ArrowRight size={18} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleShowConfirmation}
+                disabled={!isStep2Valid()}
+                className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-green-600"
+              >
+                <SaveIcon size={18} /> Save
+              </button>
+            )}
           </div>
         </div>
       </div>
 
- {/* Confirmation Modal */}
-{showConfirmation && (
-  <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
-    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fadeIn">
-      <div className="px-6 pt-6 pb-4 border-b border-gray-100">
-        <h3 className="text-xl font-bold text-gray-900">Review Details</h3>
-        <p className="text-sm text-gray-500 mt-1">Please verify before saving</p>
-      </div>
-
-      <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
-        <div className="mb-5">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Crop Information</h4>
-          <div className="space-y-2.5">
-            <div className="flex justify-between items-start">
-              <span className="text-sm text-gray-600">Crop</span>
-              <span className="text-sm font-semibold text-gray-900 text-right">{getCropTypeName()}</span>
-            </div>
-            {selectedVarietyId && (
-              <div className="flex justify-between items-start">
-                <span className="text-sm text-gray-600">Variety</span>
-                <span className="text-sm font-semibold text-gray-900 text-right">{getVarietyName()}</span>
-              </div>
-            )}
-            <div className="flex justify-between items-start">
-              <span className="text-sm text-gray-600">Planted</span>
-              <span className="text-sm font-semibold text-gray-900">{new Date(plantedDate).toLocaleDateString()}</span>
-            </div>
-            {estimatedHarvest && (
-              <div className="flex justify-between items-start">
-                <span className="text-sm text-gray-600">Harvest</span>
-                <span className="text-sm font-semibold text-gray-900">{new Date(estimatedHarvest).toLocaleDateString()}</span>
-              </div>
-            )}
-            <div className="flex justify-between items-start">
-              <span className="text-sm text-gray-600">Area</span>
-              <span className="text-sm font-semibold text-gray-900">{hectares} ha</span>
-            </div>
-            {estimatedVolume && (
-              <div className="flex justify-between items-start">
-                <span className="text-sm text-gray-600">Yield</span>
-                <span className="text-sm font-semibold text-gray-900">{estimatedVolume} {yieldUnitMap[selectedCropType]}</span>
-              </div>
-            )}
-            <div className="flex justify-between items-start">
-              <span className="text-sm text-gray-600">Location</span>
-              <span className="text-sm font-semibold text-gray-900">{manualBarangay}</span>
-            </div>
-
-           {/* Added Ecosystem Section */}
-{selectedCropType && ecosystems.length > 0 && (
-  <div className="flex justify-between items-start">
-    <span className="text-sm text-gray-600">Ecosystem</span>
-    <span className="text-sm font-semibold text-gray-900 text-right">
-      {ecosystems.find((ecosystem) => ecosystem.id === parseInt(selectedEcosystem))?.name || "—"}
-    </span>
-  </div>
-)}
-
-          </div>
-        </div>
-
-        <div className="border-t border-gray-100 my-4"></div>
-
-        <div>
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Farmer Information</h4>
-          <div className="space-y-2.5">
-            <div className="flex justify-between items-start">
-              <span className="text-sm text-gray-600">Name</span>
-              <span className="text-sm font-semibold text-gray-900 text-right">{farmerFirstName} {farmerLastName}</span>
-            </div>
-            <div className="flex justify-between items-start">
-              <span className="text-sm text-gray-600">Mobile</span>
-              <span className="text-sm font-semibold text-gray-900">{farmerMobile}</span>
-            </div>
-            <div className="flex justify-between items-start">
-              <span className="text-sm text-gray-600">Barangay</span>
-              <span className="text-sm font-semibold text-gray-900">{farmerBarangay}</span>
-            </div>
-            <div className="flex justify-between items-start">
-              <span className="text-sm text-gray-600">Address</span>
-              <span className="text-sm font-semibold text-gray-900 text-right max-w-[60%] leading-snug">{farmerAddress}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
-        <button
-          type="button"
-          onClick={() => setShowConfirmation(false)}
-          className="flex-1 px-4 py-2.5 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition"
+      {/* ---------- Review Modal: Minimal & Clean (with STICKY header/footer) ---------- */}
+      {showConfirmation && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/60 p-4 flex items-center justify-center"
+          role="dialog"
+          aria-modal="true"
         >
-          Go Back
-        </button>
-        <button
-          type="button"
-          onClick={handleSubmit}
-          className="flex-1 px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition"
-        >
-          Confirm & Save
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+          <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+            {/* sticky header */}
+            <div className="sticky top-0 z-10 px-6 py-5 border-b bg-white/95 backdrop-blur">
+              <h3 className="text-xl font-bold text-gray-900">Review Details</h3>
+              <p className="text-sm text-gray-500 mt-0.5">Please verify before saving.</p>
+            </div>
 
+            <div className="p-6 max-h-[62vh] overflow-y-auto">
+              {/* Crop */}
+              <section>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Crop Information
+                </h4>
+                <div className="mt-3 rounded-xl border">
+                  {[
+                    ["Crop", getCropTypeName()],
+                    ...(selectedVarietyId ? [["Variety", getVarietyName()]] : []),
+                    ["Planted", plantedDate ? new Date(plantedDate).toLocaleDateString() : "—"],
+                    ...(estimatedHarvest ? [["Harvest", new Date(estimatedHarvest).toLocaleDateString()]] : []),
+                    ["Area", `${hectares} ha`],
+                    ...(estimatedVolume ? [["Estimated Yield", `${estimatedVolume} ${yieldUnitMap[selectedCropType]}`]] : []),
+                    ["Location", manualBarangay],
+                    ...(selectedCropType && ecosystems.length > 0
+                      ? [["Ecosystem", ecosystems.find((e) => e.id === parseInt(selectedEcosystem))?.name || "—"]]
+                      : []),
+                  ].map(([k, v], i, a) => (
+                    <div key={k} className={`flex items-center justify-between px-4 py-3 ${i < a.length - 1 ? "border-b" : ""}`}>
+                      <span className="text-sm text-gray-600">{k}</span>
+                      <span className="text-sm font-semibold text-gray-900 text-right">{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
+              {/* Farmer */}
+              <section className="mt-6">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Farmer Information
+                </h4>
+                <div className="mt-3 rounded-xl border">
+                  {[
+                    ["Name", `${farmerFirstName} ${farmerLastName}`],
+                    ["Mobile", farmerMobile],
+                    ["Barangay", farmerBarangay],
+                    ["Address", farmerAddress],
+                  ].map(([k, v], i, a) => (
+                    <div key={k} className={`flex items-start justify-between px-4 py-3 ${i < a.length - 1 ? "border-b" : ""}`}>
+                      <span className="text-sm text-gray-600">{k}</span>
+                      <span className="text-sm font-semibold text-gray-900 text-right max-w-[60%]">{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            {/* sticky footer */}
+            <div className="sticky bottom-0 z-10 px-6 py-4 bg-white/95 backdrop-blur border-t flex gap-3">
+              <button
+                onClick={() => setShowConfirmation(false)}
+                className="flex-1 px-4 py-2.5 rounded-lg border text-gray-700 hover:bg-gray-50 transition"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold transition"
+              >
+                Confirm &amp; Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.25s ease-out;
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+        .animate-fadeIn { animation: fadeIn 0.25s ease-out; }
       `}</style>
     </div>
   );
