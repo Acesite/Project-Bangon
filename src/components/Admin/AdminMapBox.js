@@ -17,9 +17,50 @@ import DarkThumbnail from "../MapboxImages/map-dark.png";
 import LightThumbnail from "../MapboxImages/map-light.png";
 import SidebarToggleButton from "./MapControls/SidebarToggleButton";
 import TagCropForm from "./TagCropForm";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 mapboxgl.accessToken =
   "pk.eyJ1Ijoid29tcHdvbXAtNjkiLCJhIjoiY204emxrOHkwMGJsZjJrcjZtZmN4YXdtNSJ9.LIMPvoBNtGuj4O36r3F72w";
+
+/* ---------- tiny CSS for the pulsing halo above the selected marker ---------- */
+const addPulseStylesOnce = () => {
+  if (document.getElementById("pulse-style")) return;
+  const style = document.createElement("style");
+  style.id = "pulse-style";
+  style.innerHTML = `
+  @keyframes pulseRing {
+    0%   { transform: translate(-50%, -50%) scale(0.8); opacity: .65; }
+    70%  { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+    100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+  }
+  .pulse-wrapper {
+    position: relative;
+    width: 0; height: 0;
+    pointer-events: none;
+  }
+  .pulse-ring {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 44px; height: 44px;
+    border-radius: 9999px;
+    background: rgba(16, 185, 129, 0.35);
+    box-shadow: 0 0 0 2px rgba(16,185,129,0.55) inset;
+    animation: pulseRing 1.8s ease-out infinite;
+  }
+  .chip {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 8px;
+    background: #111827;
+    color: #fff;
+    border-radius: 9999px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transform: translate(-50%, -8px);
+    white-space: nowrap;
+  }`;
+  document.head.appendChild(style);
+};
 
 // Helper: accuracy ring (meters → km)
 function makeAccuracyCircle([lng, lat], accuracy) {
@@ -110,7 +151,7 @@ function IconButton({ title, active, onClick, children }) {
       onClick={onClick}
       className={`w-9 h-9 grid place-items-center rounded-lg border transition shadow-sm ${
         active
-          ? "bg-emerald-600 text-white border-emerald-600"  
+          ? "bg-emerald-600 text-white border-emerald-600"
           : "bg-white text-gray-800 border-gray-300"
       } hover:shadow-md`}
     >
@@ -120,11 +161,44 @@ function IconButton({ title, active, onClick, children }) {
 }
 
 const AdminMapBox = () => {
+  addPulseStylesOnce();
+
+  // Deep-link target
+  const locationState = useLocation().state || {};
+  const [searchParams] = useSearchParams();
+  const coerceNum = (val) => {
+    if (val === null || val === undefined) return NaN;
+    if (typeof val === "string" && val.trim() === "") return NaN;
+    const n = Number(val);
+    return Number.isFinite(n) ? n : NaN;
+  };
+  const target = {
+    lat: coerceNum(locationState.lat ?? searchParams.get("lat")),
+    lng: coerceNum(locationState.lng ?? searchParams.get("lng")),
+    cropId: String(locationState.cropId ?? searchParams.get("cropId") ?? ""),
+    cropName: locationState.cropName ?? searchParams.get("cropName") ?? "",
+    barangay: locationState.barangay ?? searchParams.get("barangay") ?? "",
+    zoom: coerceNum(locationState.zoom ?? searchParams.get("zoom")),
+  };
+  if (!Number.isFinite(target.zoom)) target.zoom = 16;
+
   const mapContainer = useRef(null);
   const map = useRef(null);
   const markerRef = useRef(null);
   const directionsRef = useRef(null);
   const drawRef = useRef(null);
+
+  // keep cropId -> marker
+  const cropMarkerMapRef = useRef(new Map());
+  // selected chips/halo/polygon highlight
+  const selectedLabelRef = useRef(null);
+  const selectedHaloRef = useRef(null);
+
+  const HILITE_SRC = "selected-crop-highlight-src";
+  const HILITE_FILL = "selected-crop-highlight-fill";
+  const HILITE_LINE = "selected-crop-highlight-line";
+
+  const hasDeepLinkedRef = useRef(false);
 
   const [mapStyle, setMapStyle] = useState(
     "mapbox://styles/wompwomp-69/cm900xa91008j01t14w8u8i9d"
@@ -148,7 +222,7 @@ const AdminMapBox = () => {
   // GPS / heading
   const userMarkerRef = useRef(null);
   const userMarkerElRef = useRef(null);
-  const [userLoc, setUserLoc] = useState(null); // {lng,lat,acc}
+  const [userLoc, setUserLoc] = useState(null);
   const [tracking, setTracking] = useState(false);
   const watchStopRef = useRef(null);
 
@@ -231,12 +305,20 @@ const AdminMapBox = () => {
       const crops = response.data;
       setSidebarCrops(crops);
 
+      // clear previous marker references
       savedMarkersRef.current.forEach((m) => m.remove?.());
       savedMarkersRef.current = [];
+      cropMarkerMapRef.current.clear();
 
-      const filtered = selectedCropType === "All" ? crops : crops.filter((c) => c.crop_name === selectedCropType);
+      const filtered =
+        selectedCropType === "All" ? crops : crops.filter((c) => c.crop_name === selectedCropType);
       if (filtered.length === 0) {
-        toast.info("No Crops Found .", { position: "top-center", autoClose: 3000, hideProgressBar: true, theme: "light" });
+        toast.info("No Crops Found .", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: true,
+          theme: "light",
+        });
         return;
       }
 
@@ -269,9 +351,11 @@ const AdminMapBox = () => {
 
           marker.getElement().addEventListener("click", () => {
             setSelectedCrop(crop);
+            highlightSelection(crop); // ensure highlight when user clicks a pin
             setIsSidebarVisible(true);
           });
 
+          cropMarkerMapRef.current.set(String(crop.id), marker);
           savedMarkersRef.current.push(marker);
         }
       });
@@ -434,6 +518,205 @@ const AdminMapBox = () => {
     setUserMarker(glng, glat, accuracy);
   }
 
+  // Compute polygon center safely (inside feature)
+  function getCropCenter(crop) {
+    let coords = crop?.coordinates;
+    if (!coords) return null;
+    if (typeof coords === "string") {
+      try {
+        coords = JSON.parse(coords);
+      } catch {
+        return null;
+      }
+    }
+    if (!Array.isArray(coords) || coords.length < 3) return null;
+    const first = coords[0];
+    const last = coords[coords.length - 1];
+    if (JSON.stringify(first) !== JSON.stringify(last)) coords = [...coords, first];
+    const poly = turf.polygon([coords]);
+    let pt = turf.centerOfMass(poly);
+    if (!pt || !pt.geometry || !Array.isArray(pt.geometry.coordinates)) {
+      pt = turf.pointOnFeature(poly);
+    }
+    return pt.geometry.coordinates; // [lng, lat]
+  }
+
+  /** ---------- CLEAR visual selection ---------- */
+  function clearSelection() {
+    if (!map.current) return;
+    if (selectedLabelRef.current) {
+      selectedLabelRef.current.remove();
+      selectedLabelRef.current = null;
+    }
+    if (selectedHaloRef.current) {
+      selectedHaloRef.current.remove();
+      selectedHaloRef.current = null;
+    }
+    if (map.current.getLayer(HILITE_FILL)) map.current.removeLayer(HILITE_FILL);
+    if (map.current.getLayer(HILITE_LINE)) map.current.removeLayer(HILITE_LINE);
+    if (map.current.getSource(HILITE_SRC)) map.current.removeSource(HILITE_SRC);
+  }
+
+  /** ---------- SHOW chip + pulsing halo over existing marker ---------- */
+  function showMarkerChipAndHalo(cropId, chipText = "Selected crop") {
+    if (!map.current) return;
+
+    // remove previous label/halo
+    if (selectedLabelRef.current) {
+      selectedLabelRef.current.remove();
+      selectedLabelRef.current = null;
+    }
+    if (selectedHaloRef.current) {
+      selectedHaloRef.current.remove();
+      selectedHaloRef.current = null;
+    }
+
+    const marker = cropMarkerMapRef.current.get(String(cropId));
+    if (!marker) return;
+    const at = marker.getLngLat();
+
+    // Chip label
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.textContent = chipText;
+
+    const chipMarker = new mapboxgl.Marker({
+      element: chip,
+      anchor: "bottom",
+      offset: [0, -42],
+    })
+      .setLngLat(at)
+      .addTo(map.current);
+
+    selectedLabelRef.current = chipMarker;
+
+    // Pulsing halo (just a pure CSS animated ring)
+    const haloWrap = document.createElement("div");
+    haloWrap.className = "pulse-wrapper";
+    const ring = document.createElement("div");
+    ring.className = "pulse-ring";
+    haloWrap.appendChild(ring);
+
+    const haloMarker = new mapboxgl.Marker({
+      element: haloWrap,
+      anchor: "center",
+    })
+      .setLngLat(at)
+      .addTo(map.current);
+
+    selectedHaloRef.current = haloMarker;
+
+    // Also open the marker's popup
+    try { marker.togglePopup(); } catch { /* ignore */ }
+  }
+
+  /* ---------- STYLE-READY HELPER (added) ---------- */
+  function runWhenStyleReady(cb) {
+    const m = map.current;
+    if (!m) return;
+    if (m.isStyleLoaded && m.isStyleLoaded()) {
+      cb();
+      return;
+    }
+    const onStyle = () => {
+      if (m.isStyleLoaded && m.isStyleLoaded()) {
+        m.off("styledata", onStyle);
+        cb();
+      }
+    };
+    m.on("styledata", onStyle);
+  }
+
+  /** ---------- HIGHLIGHT polygon outline/fill for the selected crop ---------- */
+  function highlightPolygon(crop) {
+    if (!map.current || !crop) return;
+
+    runWhenStyleReady(() => {
+      let coords = crop.coordinates;
+      if (typeof coords === "string") {
+        try { coords = JSON.parse(coords); } catch { return; }
+      }
+      if (!Array.isArray(coords) || coords.length < 3) return;
+      const first = coords[0];
+      const last = coords[coords.length - 1];
+      if (JSON.stringify(first) !== JSON.stringify(last)) coords = [...coords, first];
+      const feature = turf.polygon([coords], { id: crop.id, crop_name: crop.crop_name });
+
+      if (!map.current.getSource(HILITE_SRC)) {
+        map.current.addSource(HILITE_SRC, {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [feature] },
+        });
+        if (!map.current.getLayer(HILITE_FILL)) {
+          map.current.addLayer({
+            id: HILITE_FILL,
+            type: "fill",
+            source: HILITE_SRC,
+            paint: { "fill-color": "#10B981", "fill-opacity": 0.15 },
+          });
+        }
+        if (!map.current.getLayer(HILITE_LINE)) {
+          map.current.addLayer({
+            id: HILITE_LINE,
+            type: "line",
+            source: HILITE_SRC,
+            paint: { "line-color": "#10B981", "line-width": 4 },
+          });
+        }
+      } else {
+        map.current.getSource(HILITE_SRC).setData({
+          type: "FeatureCollection",
+          features: [feature],
+        });
+      }
+    });
+  }
+
+  /** ---------- One-call helper used everywhere ---------- */
+  function highlightSelection(crop) {
+    if (!map.current || !crop) return;
+    clearSelection();
+    showMarkerChipAndHalo(crop.id, `${crop.crop_name}${crop.variety_name ? ` – ${crop.variety_name}` : ""}`);
+    highlightPolygon(crop);
+    const center = getCropCenter(crop);
+    if (center) {
+      map.current.flyTo({ center, zoom: Math.max(map.current.getZoom(), 16), essential: true });
+    }
+  }
+
+  useEffect(() => {
+    // only proceed if:
+    if (!map.current) return;                // map ready
+    if (hasDeepLinkedRef.current) return;    // run once
+    if (!target.cropId) return;              // we were deep-linked
+    if (!sidebarCrops.length) return;        // crops already fetched by renderSavedMarkers()
+
+    // find the target crop
+    const hit = sidebarCrops.find(c => String(c.id) === String(target.cropId));
+    if (!hit) return;
+
+    // select and highlight (you already have these helpers)
+    runWhenStyleReady(() => {
+      setSelectedCrop(hit);
+      highlightSelection(hit);                 // shows chip + halo + polygon outline/fill
+      setIsSidebarVisible(true);
+
+      // center the map nicely
+      const center =
+        getCropCenter(hit) ||
+        (Number.isFinite(target.lng) && Number.isFinite(target.lat)
+          ? [target.lng, target.lat]
+          : null);
+
+      if (center) {
+        map.current.flyTo({ center, zoom: target.zoom ?? 16, essential: true });
+      }
+
+      // make sure we don’t repeat
+      hasDeepLinkedRef.current = true;
+    });
+  }, [sidebarCrops, target.cropId, target.lat, target.lng, target.zoom]);
+
   // Init map
   useEffect(() => {
     if (!map.current) {
@@ -461,7 +744,7 @@ const AdminMapBox = () => {
           const res = await axios.get("http://localhost:5000/api/crops/polygons");
           const geojson = res.data;
 
-        if (map.current.getSource("crop-polygons")) {
+          if (map.current.getSource("crop-polygons")) {
             map.current.getSource("crop-polygons").setData(geojson);
           } else {
             map.current.addSource("crop-polygons", { type: "geojson", data: geojson });
@@ -484,14 +767,43 @@ const AdminMapBox = () => {
 
         ensureUserAccuracyLayers();
         await renderSavedMarkers();
+
+        // Deep-link focus (run ONCE)
+        if (!hasDeepLinkedRef.current) {
+          let focus = null;
+
+          // Prefer cropId: highlight marker + polygon and open sidebar
+          if (target.cropId && sidebarCrops.length) {
+            const hit = sidebarCrops.find((c) => String(c.id) === String(target.cropId));
+            if (hit) {
+              setSelectedCrop(hit);
+              highlightSelection(hit);
+              setIsSidebarVisible(true);
+              focus = getCropCenter(hit);
+            }
+          }
+
+          if (!focus && Number.isFinite(target.lat) && Number.isFinite(target.lng)) {
+            focus = [target.lng, target.lat];
+          }
+
+          if (focus) {
+            hasDeepLinkedRef.current = true;
+            map.current.flyTo({ center: focus, zoom: target.zoom, essential: true });
+          }
+        }
       });
 
       map.current.on("click", "crop-polygons-layer", (e) => {
         const feature = e.features[0];
         const cropId = feature.properties?.id;
         if (!cropId) return;
-        const cropData = sidebarCrops.find((c) => c.id === cropId);
-        if (cropData) setSelectedCrop(cropData);
+        const cropData = sidebarCrops.find((c) => String(c.id) === String(cropId));
+        if (cropData) {
+          setSelectedCrop(cropData);
+          highlightSelection(cropData);
+          setIsSidebarVisible(true);
+        }
       });
 
       map.current.on("draw.create", (e) => {
@@ -505,18 +817,46 @@ const AdminMapBox = () => {
         }
       });
     } else {
+      // when changing style, re-add our layers/markers and re-apply highlight
       map.current.setStyle(mapStyle);
       map.current.once("style.load", async () => {
         ensureUserAccuracyLayers();
         if (userLoc) {
           updateUserAccuracyCircle(userLoc.lng, userLoc.lat, userLoc.acc);
-          if (userMarkerRef.current) userMarkerRef.current.setLngLat([userLoc.lng, userLoc.lat]).addTo(map.current);
+          if (userMarkerRef.current)
+            userMarkerRef.current.setLngLat([userLoc.lng, userLoc.lat]).addTo(map.current);
           if (typeof headingDeg === "number" && userMarkerElRef.current) {
             userMarkerElRef.current.style.transform = `rotate(${headingDeg}deg)`;
           }
         }
         await loadPolygons();
         await renderSavedMarkers();
+
+        // re-apply current selection highlight after style change
+        if (selectedCrop) {
+          highlightSelection(selectedCrop);
+        } else if (!hasDeepLinkedRef.current) {
+          let focus = null;
+
+          if (target.cropId && sidebarCrops.length) {
+            const hit = sidebarCrops.find((c) => String(c.id) === String(target.cropId));
+            if (hit) {
+              setSelectedCrop(hit);
+              highlightSelection(hit);
+              setIsSidebarVisible(true);
+              focus = getCropCenter(hit);
+            }
+          }
+
+          if (!focus && Number.isFinite(target.lat) && Number.isFinite(target.lng)) {
+            focus = [target.lng, target.lat];
+          }
+
+          if (focus) {
+            hasDeepLinkedRef.current = true;
+            map.current.flyTo({ center: focus, zoom: target.zoom, essential: true });
+          }
+        }
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -535,20 +875,21 @@ const AdminMapBox = () => {
   }, [lockToBago]);
 
   useEffect(() => {
-    if (map.current) taggedData.forEach((e) => {
-      const center = turf.centerOfMass(turf.polygon([e.coordinates])).geometry.coordinates;
-      new mapboxgl.Marker({ color: "#f59e0b" })
-        .setLngLat(center)
-        .setPopup(
-          new mapboxgl.Popup({ offset: 15 }).setHTML(`
+    if (map.current)
+      taggedData.forEach((e) => {
+        const center = turf.centerOfMass(turf.polygon([e.coordinates])).geometry.coordinates;
+        new mapboxgl.Marker({ color: "#f59e0b" })
+          .setLngLat(center)
+          .setPopup(
+            new mapboxgl.Popup({ offset: 15 }).setHTML(`
             <div class="text-sm">
               <h3 class='font-bold text-green-600'>${e.crop_name}</h3>
               <p><strong>Variety:</strong> ${e.variety || "N/A"}</p>
             </div>
           `)
-        )
-        .addTo(map.current);
-    });
+          )
+          .addTo(map.current);
+      });
   }, [taggedData]);
 
   useEffect(() => {
@@ -584,13 +925,14 @@ const AdminMapBox = () => {
       watchStopRef.current?.();
       userMarkerRef.current?.remove();
       compassStopRef.current?.();
+      clearSelection();
     };
   }, []);
 
   // ———————————— UI ————————————
   return (
     <div className="relative h-screen w-screen">
-      {/* Compact toolbar — moved to TOP-CENTER */}
+      {/* Compact toolbar — TOP-CENTER */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-white/70 backdrop-blur rounded-xl p-2 shadow-md">
         {/* GPS once */}
         <IconButton
@@ -637,7 +979,8 @@ const AdminMapBox = () => {
                   handleFix(glng, glat, accuracy);
                   if (typeof heading === "number" && !Number.isNaN(heading)) {
                     setHeadingDeg(heading);
-                    if (userMarkerElRef.current) userMarkerElRef.current.style.transform = `rotate(${heading}deg)`;
+                    if (userMarkerElRef.current)
+                      userMarkerElRef.current.style.transform = `rotate(${heading}deg)`;
                     if (rotateMapWithHeading && map.current) map.current.setBearing(heading);
                   }
                 },
@@ -675,7 +1018,8 @@ const AdminMapBox = () => {
               try {
                 compassStopRef.current = await startCompass((deg) => {
                   setHeadingDeg(deg);
-                  if (userMarkerElRef.current) userMarkerElRef.current.style.transform = `rotate(${deg}deg)`;
+                  if (userMarkerElRef.current)
+                    userMarkerElRef.current.style.transform = `rotate(${deg}deg)`;
                   if (rotateMapWithHeading && map.current) map.current.setBearing(deg);
                 });
                 setCompassOn(true);
@@ -723,8 +1067,6 @@ const AdminMapBox = () => {
             </svg>
           )}
         </IconButton>
-
-        
       </div>
 
       {/* Map */}
@@ -791,7 +1133,13 @@ const AdminMapBox = () => {
           title="Toggle directions"
           className="absolute top-4 left-16 bg-white border border-gray-300 rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:shadow-lg z-50"
         >
-          <svg className="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg
+            className="w-5 h-5 text-gray-800"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
@@ -804,12 +1152,26 @@ const AdminMapBox = () => {
             if (areMarkersVisible) savedMarkersRef.current.forEach((m) => m.remove?.());
             else renderSavedMarkers();
             setAreMarkersVisible(!areMarkersVisible);
+            if (!areMarkersVisible) {
+              // If we just hid markers, also clear selection
+              clearSelection();
+            }
           }}
           className="absolute bottom-[194px] right-[9px] z-50 bg-white border border-gray-300 rounded-[5px] w-8 h-8 flex items-center justify-center shadow-[0_0_8px_2px_rgba(0,0,0,0.15)]"
           title={areMarkersVisible ? "Hide markers" : "Show markers"}
         >
-          <svg className="w-5 h-5 text-black" fill={!areMarkersVisible ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s6-5.686 6-10a6 6 0 10-12 0c0 4.314 6 10 6 10z" />
+          <svg
+            className="w-5 h-5 text-black"
+            fill={!areMarkersVisible ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 21s6-5.686 6-10a6 6 0 10-12 0c0 4.314 6 10 6 10z"
+            />
             <circle cx="12" cy="11" r="2" fill="white" />
           </svg>
         </button>
