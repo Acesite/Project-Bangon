@@ -65,6 +65,9 @@ const ManageCrop = () => {
   const [pageSize, setPageSize] = useState(8);
   const [pendingDelete, setPendingDelete] = useState(null);
 
+  // NEW: modal for viewing full details
+  const [viewingCrop, setViewingCrop] = useState(null);
+
   useEffect(() => {
     AOS.init({ duration: 400, once: true });
     (async () => {
@@ -342,7 +345,6 @@ const ManageCrop = () => {
                                   },
                                 })
                               }
-                              
                               title="Open in Admin Map"
                             >
                               View location ↗
@@ -352,22 +354,14 @@ const ManageCrop = () => {
                       />
                     </div>
 
-                    {/* Farmer block */}
-                    <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
-                      <div className="text-[11px] tracking-wide text-slate-500 uppercase mb-2">Farmer</div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
-                        <Stat
-                          label="Name"
-                          value={
-                            crop.farmer_first_name || crop.farmer_last_name
-                              ? `${crop.farmer_first_name || ""} ${crop.farmer_last_name || ""}`.trim()
-                              : "N/A"
-                          }
-                        />
-                        <Stat label="Mobile" value={crop.farmer_mobile || "N/A"} />
-                        <Stat label="Barangay" value={crop.farmer_barangay || "N/A"} />
-                        <Stat label="Full Address" value={<span className="break-words">{crop.farmer_address || "N/A"}</span>} />
-                      </div>
+                    {/* Compact actions row (replaces farmer details on the card) */}
+                    <div className="mt-4 flex items-center justify-end">
+                      <button
+                        onClick={() => setViewingCrop(crop)}
+                        className="text-sm text-emerald-700 hover:underline"
+                      >
+                        View all
+                      </button>
                     </div>
 
                     {/* Notes */}
@@ -518,6 +512,82 @@ const ManageCrop = () => {
               </button>
               <button onClick={handleUpdate} className="px-4 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700">
                 Update
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View All Modal (full farmer + extra details) */}
+      {viewingCrop && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50">
+          <div className="bg-white p-6 md:p-8 rounded-2xl w-full max-w-2xl shadow-2xl relative">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-semibold text-slate-900">
+                  {viewingCrop.crop_name}
+                  {viewingCrop.variety_name ? ` · ${viewingCrop.variety_name}` : ""}
+                </h3>
+                <p className="text-sm text-slate-500">
+                  {viewingCrop.crop_barangay || "—"}
+                </p>
+              </div>
+              <button
+                onClick={() => setViewingCrop(null)}
+                className="p-2 -m-2 rounded-md hover:bg-slate-50 text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                aria-label="Close"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Farmer Details */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 mb-4">
+              <div className="text-[11px] tracking-wide text-slate-500 uppercase mb-2">Farmer</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                <Stat
+                  label="Name"
+                  value={
+                    viewingCrop.farmer_first_name || viewingCrop.farmer_last_name
+                      ? `${viewingCrop.farmer_first_name || ""} ${viewingCrop.farmer_last_name || ""}`.trim()
+                      : "N/A"
+                  }
+                />
+                <Stat label="Mobile" value={viewingCrop.farmer_mobile || "N/A"} />
+                <Stat label="Barangay" value={viewingCrop.farmer_barangay || "N/A"} />
+                <Stat
+                  label="Full Address"
+                  value={<span className="break-words">{viewingCrop.farmer_address || "N/A"}</span>}
+                />
+              </div>
+            </div>
+
+            {/* Crop Meta */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+              <Stat label="Planted" value={fmtDate(viewingCrop.planted_date)} />
+              <Stat label="Harvest" value={fmtDate(viewingCrop.estimated_harvest)} />
+              <Stat
+                label="Volume"
+                value={`${fmtNum(viewingCrop.estimated_volume)} ${yieldUnitMap[viewingCrop.crop_type_id] || "units"}`}
+              />
+              <Stat label="Hectares" value={fmtNum(viewingCrop.estimated_hectares)} />
+            </div>
+
+            {/* Note */}
+            {viewingCrop.note && viewingCrop.note.trim() && (
+              <div className="mt-4">
+                <div className="text-[11px] uppercase tracking-wide text-slate-500">Note</div>
+                <p className="text-[14px] text-slate-700 whitespace-pre-wrap">{viewingCrop.note}</p>
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setViewingCrop(null)}
+                className="px-4 py-2 rounded-md border border-slate-300 hover:bg-slate-50"
+              >
+                Close
               </button>
             </div>
           </div>
