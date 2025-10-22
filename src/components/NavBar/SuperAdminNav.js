@@ -147,6 +147,15 @@ const AdminNavBar = () => {
             >
               Manage Account
             </a>
+            
+            <a
+              href="/ManageCalamity"
+              className={`tracking-wide font-light hover:text-green-700 ${
+                location.pathname === "/ManageCalamity" ? "text-green-700 font-medium" : "text-black-600"
+              }`}
+            >
+             Calamity
+            </a>
             <a
               href="/SuperAdminManageCrop"
               className={`tracking-wide font-light hover:text-green-700 ${

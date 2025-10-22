@@ -19,6 +19,7 @@ import FarmerSignup from "../components/Signup/SignupFarmer";
 import ChooseMap from "../components/ChooseRole/ChooseMap";
 import ChooseRoleLogin from "../components/ChooseRole/ChooseRoleLogin";
 import LoginFarmer from "../components/Login/LoginFarmer";
+import ManageCalamity from "../components/User/ManageCalamity";
 
 
 const AppRoutes = () => {
@@ -50,6 +51,7 @@ const AppRoutes = () => {
       <Route path="/AdminMap" element={<AdminMap />} />
       <Route path="/AdminLanding" element={<AdminLanding />} />
       <Route path="/ManageCrops" element={<ManageCrop />} />
+      <Route path="/ManageCalamity" element={<ManageCalamity />} />
     </Routes>
   );
 };

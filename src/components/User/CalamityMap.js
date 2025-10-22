@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import MapboxDirections from "@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions";
@@ -16,8 +16,40 @@ import DarkThumbnail from "../MapboxImages/map-dark.png";
 import LightThumbnail from "../MapboxImages/map-light.png";
 import SidebarToggleButton from "./MapControls/SidebarToggleButton";
 import TagCalamityForm from "./TagCalamityForm";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 mapboxgl.accessToken = "pk.eyJ1Ijoid29tcHdvbXAtNjkiLCJhIjoiY204emxrOHkwMGJsZjJrcjZtZmN4YXdtNSJ9.LIMPvoBNtGuj4O36r3F72w";
+
+/** --------- constants to replace unused lng/lat/zoom state --------- **/
+const INIT_CENTER = [122.9616, 10.5074];
+const INIT_ZOOM = 13;
+
+/** --------- bounds hoisted (stable for deps) --------- **/
+const BAGO_CITY_BOUNDS = [
+  [122.7333, 10.4958],
+  [123.5, 10.6333],
+];
+
+/** ---------------- tiny CSS for pulsing halo + chip ---------------- **/
+const addPulseStylesOnce = () => {
+  if (document.getElementById("pulse-style")) return;
+  const style = document.createElement("style");
+  style.id = "pulse-style";
+  style.innerHTML = `
+  @keyframes pulseRing {
+    0%   { transform: translate(-50%, -50%) scale(0.8); opacity: .65; }
+    70%  { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+    100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+  }
+  .pulse-wrapper { position: relative; width: 0; height: 0; pointer-events: none; }
+  .pulse-ring { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px;
+    border-radius: 9999px; background: rgba(239,68,68,0.35);
+    box-shadow: 0 0 0 2px rgba(239,68,68,0.55) inset; animation: pulseRing 1.8s ease-out infinite; }
+  .chip { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    font-size: 12px; font-weight: 600; padding: 4px 8px; background: #111827; color: #fff;
+    border-radius: 9999px; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transform: translate(-50%, -8px); white-space: nowrap; }`;
+  document.head.appendChild(style);
+};
 
 /** ---------------- GPS helpers (copied from Admin map) ---------------- **/
 
@@ -106,7 +138,7 @@ function IconButton({ title, active, onClick, children }) {
   );
 }
 
-/** --------- NEW: bounds helpers for lock-to-Bago ---------- **/
+/** --------- bounds helpers for lock-to-Bago ---------- **/
 function isInsideBounds([lng, lat], bounds) {
   const [[minLng, minLat], [maxLng, maxLat]] = bounds;
   return lng >= minLng && lng <= maxLng && lat >= minLat && lat <= maxLat;
@@ -119,17 +151,15 @@ function expandBoundsToIncludePoint(bounds, [lng, lat], pad = 0.05) {
   ];
 }
 
-/** --------------------------------------------------------------------- **/
+const CalamityFarmerMap = () => {
+  addPulseStylesOnce();
 
-const Calamity = () => {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const markerRef = useRef(null);
   const directionsRef = useRef(null);
   const drawRef = useRef(null);
-  const [lng] = useState(122.961602);
-  const [lat] = useState(10.507447);
-  const [zoom] = useState(13);
+
   const [mapStyle, setMapStyle] = useState("mapbox://styles/wompwomp-69/cm900xa91008j01t14w8u8i9d");
   const [showLayers, setShowLayers] = useState(false);
   const [isSwitcherVisible, setIsSwitcherVisible] = useState(false);
@@ -138,7 +168,7 @@ const Calamity = () => {
   const [isDirectionsVisible, setIsDirectionsVisible] = useState(false);
   const [newTagLocation, setNewTagLocation] = useState(null);
   const [isTagging, setIsTagging] = useState(false);
-  const [taggedData, setTaggedData] = useState([]);
+  const [taggedData] = useState([]); // setter removed (unused)
   const [sidebarCalamities, setSidebarCalamities] = useState([]);
   const [selectedCalamity, setSelectedCalamity] = useState(null);
   const [selectedCalamityType, setSelectedCalamityType] = useState("All");
@@ -146,13 +176,25 @@ const Calamity = () => {
   const [areMarkersVisible, setAreMarkersVisible] = useState(true);
   const savedMarkersRef = useRef([]);
   const [enlargedImage, setEnlargedImage] = useState(null);
-  const [sidebarVisible, setSidebarVisible] = useState(true);
 
-  // Bounding box for Bago City
-  const bagoCityBounds = [
-    [122.7333, 10.4958],
-    [123.5000, 10.6333],
-  ];
+  // Deep-link target (state + ?query)
+  const locationState = useLocation().state || {};
+  const [searchParams] = useSearchParams();
+  const coerceNum = (v) => {
+    if (v === null || v === undefined) return NaN;
+    if (typeof v === "string" && v.trim() === "") return NaN;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : NaN;
+  };
+  const target = {
+    lat: coerceNum(locationState.lat ?? searchParams.get("lat")),
+    lng: coerceNum(locationState.lng ?? searchParams.get("lng")),
+    incidentId: String(locationState.incidentId ?? searchParams.get("incidentId") ?? ""),
+    incidentType: locationState.incidentType ?? searchParams.get("incidentType") ?? "",
+    barangay: locationState.barangay ?? searchParams.get("barangay") ?? "",
+    zoom: coerceNum(locationState.zoom ?? searchParams.get("zoom")),
+  };
+  if (!Number.isFinite(target.zoom)) target.zoom = 16;
 
   // NEW: lock toggle
   const [lockToBago, setLockToBago] = useState(true);
@@ -160,7 +202,6 @@ const Calamity = () => {
   const SIDEBAR_WIDTH = 500;
   const PEEK = 1;
 
-  // Calamity color mapping
   const calamityColorMap = {
     Flood: "#3b82f6",
     Earthquake: "#ef4444",
@@ -211,87 +252,114 @@ const Calamity = () => {
     }
   };
 
-  const renderSavedMarkers = async () => {
-    try {
-      const response = await axios.get("http://localhost:5000/api/calamities");
-      const calamities = response.data;
-      setSidebarCalamities(calamities);
+  // keep id -> marker to anchor chip/halo
+  const calamityMarkerMapRef = useRef(new Map());
+  const selectedLabelRef = useRef(null);
+  const selectedHaloRef = useRef(null);
+  const hasDeepLinkedRef = useRef(false);
 
-      savedMarkersRef.current.forEach((marker) => marker.remove());
-      savedMarkersRef.current = [];
+  const HILITE_SRC  = "selected-calamity-highlight-src";
+  const HILITE_FILL = "selected-calamity-highlight-fill";
+  const HILITE_LINE = "selected-calamity-highlight-line";
 
-      const filtered = selectedCalamityType === "All"
-        ? calamities
-        : calamities.filter(calamity => calamity.calamity_type === selectedCalamityType);
+  /** ---------------- highlight helpers ---------------- **/
+  const runWhenStyleReady = useCallback((cb) => {
+    const m = map.current;
+    if (!m) return;
+    if (m.isStyleLoaded && m.isStyleLoaded()) { cb(); return; }
+    const onStyle = () => {
+      if (m.isStyleLoaded && m.isStyleLoaded()) { m.off("styledata", onStyle); cb(); }
+    };
+    m.on("styledata", onStyle);
+  }, []);
 
-      if (filtered.length === 0) {
-        toast.info("No Calamities Found .", {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: false,
-          theme: "light",
-        });
-        return;
-      }
+  const clearSelection = useCallback(() => {
+    if (!map.current) return;
+    selectedLabelRef.current?.remove(); selectedLabelRef.current = null;
+    selectedHaloRef.current?.remove();  selectedHaloRef.current  = null;
+    if (map.current.getLayer(HILITE_FILL)) map.current.removeLayer(HILITE_FILL);
+    if (map.current.getLayer(HILITE_LINE)) map.current.removeLayer(HILITE_LINE);
+    if (map.current.getSource(HILITE_SRC)) map.current.removeSource(HILITE_SRC);
+  }, []);
 
-      filtered.forEach((calamity) => {
-        let coords = calamity.coordinates;
-        if (typeof coords === "string") {
-          try {
-            coords = JSON.parse(coords);
-          } catch (err) {
-            console.error("Invalid coordinates format:", calamity.coordinates);
-            return;
-          }
-        }
+  const showMarkerChipAndHalo = useCallback((id, text = "Selected incident") => {
+    if (!map.current) return;
+    selectedLabelRef.current?.remove(); selectedLabelRef.current = null;
+    selectedHaloRef.current?.remove();  selectedHaloRef.current  = null;
 
-        if (Array.isArray(coords) && coords.length > 2) {
-          const first = coords[0];
-          const last = coords[coords.length - 1];
-          if (JSON.stringify(first) !== JSON.stringify(last)) coords.push(first);
+    const marker = calamityMarkerMapRef.current.get(String(id));
+    if (!marker) return;
+    const at = marker.getLngLat();
 
-          const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
+    // Chip label
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.textContent = text;
+    const chipMarker = new mapboxgl.Marker({ element: chip, anchor: "bottom", offset: [0, -42] })
+      .setLngLat(at).addTo(map.current);
+    selectedLabelRef.current = chipMarker;
 
-          const marker = new mapboxgl.Marker({ color: "#ef4444" })
-            .setLngLat(center)
-            .setPopup(
-              new mapboxgl.Popup({ offset: 15 }).setHTML(`
-                <div class="text-sm">
-                  <h3 class='font-bold text-red-600'>${calamity.calamity_type}</h3>
-                  <p><strong>Severity:</strong> ${calamity.severity_level || "N/A"}</p>
-                </div>
-              `)
-            )
-            .addTo(map.current);
+    // Halo
+    const haloWrap = document.createElement("div");
+    haloWrap.className = "pulse-wrapper";
+    const ring = document.createElement("div");
+    ring.className = "pulse-ring";
+    haloWrap.appendChild(ring);
+    const haloMarker = new mapboxgl.Marker({ element: haloWrap, anchor: "center" })
+      .setLngLat(at).addTo(map.current);
+    selectedHaloRef.current = haloMarker;
 
-          marker.getElement().addEventListener("click", () => {
-            setSelectedCalamity(calamity);
-            setIsSidebarVisible(true);
-          });
+    try { marker.togglePopup(); } catch {}
+  }, []);
 
-          savedMarkersRef.current.push(marker);
-        }
-      });
-    } catch (error) {
-      console.error("Failed to load saved markers:", error);
+  const getCalamityCenter = useCallback((item) => {
+    let coords = item?.coordinates;
+    if (!coords) return null;
+    if (typeof coords === "string") {
+      try { coords = JSON.parse(coords); } catch { return null; }
     }
-  };
+    if (!Array.isArray(coords) || coords.length < 3) return null;
+    const first = coords[0], last = coords[coords.length - 1];
+    if (JSON.stringify(first) !== JSON.stringify(last)) coords = [...coords, first];
+    const poly = turf.polygon([coords]);
+    let pt = turf.centerOfMass(poly);
+    if (!pt?.geometry?.coordinates) pt = turf.pointOnFeature(poly);
+    return pt.geometry.coordinates; // [lng, lat]
+  }, []);
 
-  /** ---------------- Calamity polygons (unchanged) ---------------- **/
-  const attachPolygonInteractivity = () => {
-    if (!map.current?.getLayer("calamity-polygons-layer")) return;
-    map.current.off("click", "calamity-polygons-layer", handlePolyClick);
-    map.current.off("mouseenter", "calamity-polygons-layer", handlePolyEnter);
-    map.current.off("mouseleave", "calamity-polygons-layer", handlePolyLeave);
-    map.current.on("click", "calamity-polygons-layer", handlePolyClick);
-    map.current.on("mouseenter", "calamity-polygons-layer", handlePolyEnter);
-    map.current.on("mouseleave", "calamity-polygons-layer", handlePolyLeave);
-  };
+  const highlightPolygon = useCallback((item) => {
+    if (!map.current || !item) return;
+    runWhenStyleReady(() => {
+      let coords = item.coordinates;
+      if (typeof coords === "string") { try { coords = JSON.parse(coords); } catch { return; } }
+      if (!Array.isArray(coords) || coords.length < 3) return;
+      const first = coords[0], last = coords[coords.length - 1];
+      if (JSON.stringify(first) !== JSON.stringify(last)) coords = [...coords, first];
+      const feature = turf.polygon([coords], { id: item.calamity_id ?? item.id, calamity_type: item.calamity_type });
 
-  const handlePolyClick = (e) => {
+      if (!map.current.getSource(HILITE_SRC)) {
+        map.current.addSource(HILITE_SRC, { type: "geojson", data: { type: "FeatureCollection", features: [feature] } });
+        map.current.addLayer({ id: HILITE_FILL, type: "fill", source: HILITE_SRC, paint: { "fill-color": "#ef4444", "fill-opacity": 0.15 } });
+        map.current.addLayer({ id: HILITE_LINE, type: "line", source: HILITE_SRC, paint: { "line-color": "#ef4444", "line-width": 4 } });
+      } else {
+        map.current.getSource(HILITE_SRC).setData({ type: "FeatureCollection", features: [feature] });
+      }
+    });
+  }, [runWhenStyleReady]);
+
+  const highlightSelection = useCallback((item) => {
+    if (!map.current || !item) return;
+    clearSelection();
+    const label = `${item.calamity_type || "Incident"}${item.severity_level ? ` – ${item.severity_level}` : ""}`;
+    const id = item.calamity_id ?? item.id;
+    showMarkerChipAndHalo(id, label);
+    highlightPolygon(item);
+    const center = getCalamityCenter(item);
+    if (center) map.current.flyTo({ center, zoom: Math.max(map.current.getZoom(), 16), essential: true });
+  }, [clearSelection, showMarkerChipAndHalo, highlightPolygon, getCalamityCenter]);
+
+  /** ---------------- Calamity polygons ---------------- **/
+  const handlePolyClick = useCallback((e) => {
     if (!e.features?.length) return;
     const feature = e.features[0];
     const polyId = String(feature.properties?.id ?? "");
@@ -300,6 +368,7 @@ const Calamity = () => {
     );
     if (calam) {
       setSelectedCalamity(calam);
+      highlightSelection(calam);
       setIsSidebarVisible(true);
     }
     try {
@@ -309,11 +378,22 @@ const Calamity = () => {
         map.current.easeTo({ center, zoom: Math.max(map.current.getZoom(), 13) });
       }
     } catch {}
-  };
-  const handlePolyEnter = () => { if (map.current) map.current.getCanvas().style.cursor = "pointer"; };
-  const handlePolyLeave = () => { if (map.current) map.current.getCanvas().style.cursor = ""; };
+  }, [highlightSelection, sidebarCalamities]);
 
-  const loadPolygons = async (geojsonData = null, isFiltered = false) => {
+  const handlePolyEnter = useCallback(() => { if (map.current) map.current.getCanvas().style.cursor = "pointer"; }, []);
+  const handlePolyLeave = useCallback(() => { if (map.current) map.current.getCanvas().style.cursor = ""; }, []);
+
+  const attachPolygonInteractivity = useCallback(() => {
+    if (!map.current?.getLayer("calamity-polygons-layer")) return;
+    map.current.off("click", "calamity-polygons-layer", handlePolyClick);
+    map.current.off("mouseenter", "calamity-polygons-layer", handlePolyEnter);
+    map.current.off("mouseleave", "calamity-polygons-layer", handlePolyLeave);
+    map.current.on("click", "calamity-polygons-layer", handlePolyClick);
+    map.current.on("mouseenter", "calamity-polygons-layer", handlePolyEnter);
+    map.current.on("mouseleave", "calamity-polygons-layer", handlePolyLeave);
+  }, [handlePolyClick, handlePolyEnter, handlePolyLeave]);
+
+  const loadPolygons = useCallback(async (geojsonData = null, isFiltered = false) => {
     const res = await axios.get("http://localhost:5000/api/calamities/polygons");
     const fullData = geojsonData || res.data;
 
@@ -364,9 +444,83 @@ const Calamity = () => {
       });
     }
     attachPolygonInteractivity();
-  };
+  }, [attachPolygonInteractivity]);
 
-  /** ---------------- GPS state + layers (new) ---------------- **/
+  const renderSavedMarkers = useCallback(async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/calamities");
+      const calamities = response.data;
+      setSidebarCalamities(calamities);
+
+      // clear previous
+      savedMarkersRef.current.forEach((marker) => marker.remove());
+      savedMarkersRef.current = [];
+      calamityMarkerMapRef.current.clear();
+
+      const filtered = selectedCalamityType === "All"
+        ? calamities
+        : calamities.filter(calamity => calamity.calamity_type === selectedCalamityType);
+
+      if (filtered.length === 0) {
+        toast.info("No Calamities Found .", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: false,
+          theme: "light",
+        });
+        return;
+      }
+
+      filtered.forEach((calamity) => {
+        let coords = calamity.coordinates;
+        if (typeof coords === "string") {
+          try {
+            coords = JSON.parse(coords);
+          } catch (err) {
+            console.error("Invalid coordinates format:", calamity.coordinates);
+            return;
+          }
+        }
+
+        if (Array.isArray(coords) && coords.length > 2) {
+          const first = coords[0];
+          const last = coords[coords.length - 1];
+          if (JSON.stringify(first) !== JSON.stringify(last)) coords.push(first);
+
+          const center = turf.centerOfMass(turf.polygon([coords])).geometry.coordinates;
+
+          const marker = new mapboxgl.Marker({ color: "#ef4444" })
+            .setLngLat(center)
+            .setPopup(
+              new mapboxgl.Popup({ offset: 15 }).setHTML(`
+                <div class="text-sm">
+                  <h3 class='font-bold text-red-600'>${calamity.calamity_type}</h3>
+                  <p><strong>Severity:</strong> ${calamity.severity_level || "N/A"}</p>
+                </div>
+              `)
+            )
+            .addTo(map.current);
+
+          marker.getElement().addEventListener("click", () => {
+            setSelectedCalamity(calamity);
+            highlightSelection(calamity);
+            setIsSidebarVisible(true);
+          });
+
+          const calId = String(calamity.calamity_id ?? calamity.id);
+          calamityMarkerMapRef.current.set(calId, marker); // store for halo/chip
+          savedMarkersRef.current.push(marker);
+        }
+      });
+    } catch (error) {
+      console.error("Failed to load saved markers:", error);
+    }
+  }, [selectedCalamityType, highlightSelection]);
+
+  /** ---------------- GPS state + layers ---------------- **/
   const userMarkerRef = useRef(null);
   const userMarkerElRef = useRef(null);
   const [userLoc, setUserLoc] = useState(null); // {lng,lat,acc}
@@ -382,7 +536,7 @@ const Calamity = () => {
   const USER_ACC_LAYER = "user-accuracy-layer";
   const USER_ACC_OUTLINE = "user-accuracy-outline";
 
-  function ensureUserAccuracyLayers() {
+  const ensureUserAccuracyLayers = useCallback(() => {
     if (!map.current) return;
     const m = map.current;
 
@@ -408,15 +562,16 @@ const Calamity = () => {
         paint: { "line-color": "#2563eb", "line-width": 2 },
       });
     }
-  }
-  function updateUserAccuracyCircle(lng, lat, acc) {
+  }, []);
+
+  const updateUserAccuracyCircle = useCallback((lng, lat, acc) => {
     if (!map.current) return;
     ensureUserAccuracyLayers();
     const circle = makeAccuracyCircle([lng, lat], acc);
     map.current.getSource(USER_ACC_SOURCE).setData(circle);
-  }
+  }, [ensureUserAccuracyLayers]);
 
-  function setUserMarker(lng, lat, acc) {
+  const setUserMarker = useCallback((lng, lat, acc) => {
     if (!map.current) return;
     const m = map.current;
 
@@ -466,21 +621,21 @@ const Calamity = () => {
     if (rotateMapWithHeading && typeof headingDeg === "number") {
       m.setBearing(headingDeg);
     }
-  }
+  }, [headingDeg, rotateMapWithHeading, updateUserAccuracyCircle]);
 
-  function handleFix(glng, glat, accuracy) {
+  const handleFix = useCallback((glng, glat, accuracy) => {
     if (!map.current) return;
 
-    // NEW: if locked and your GPS fix is outside Bago, temporarily expand bounds to include it
-    if (lockToBago && !isInsideBounds([glng, glat], bagoCityBounds)) {
-      const expanded = expandBoundsToIncludePoint(bagoCityBounds, [glng, glat], 0.05);
+    // if locked and your GPS fix is outside Bago, temporarily expand bounds
+    if (lockToBago && !isInsideBounds([glng, glat], BAGO_CITY_BOUNDS)) {
+      const expanded = expandBoundsToIncludePoint(BAGO_CITY_BOUNDS, [glng, glat], 0.05);
       map.current.setMaxBounds(expanded);
       toast.info("You’re outside Bago. Temporarily expanded bounds to include your location.");
     }
 
     setUserLoc({ lng: glng, lat: glat, acc: accuracy });
     setUserMarker(glng, glat, accuracy);
-  }
+  }, [lockToBago, setUserMarker]);
 
   /** ---------------- map init / lifecycle ---------------- **/
   useEffect(() => {
@@ -488,9 +643,9 @@ const Calamity = () => {
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: mapStyle,
-        center: [122.9616, 10.5074],
-        zoom: 7,
-        maxBounds: bagoCityBounds,
+        center: INIT_CENTER,
+        zoom: INIT_ZOOM,
+        maxBounds: BAGO_CITY_BOUNDS,
       });
 
       axios.get("http://localhost:5000/api/calamities/types").then((res) => {
@@ -536,6 +691,7 @@ const Calamity = () => {
                 "line-color": "#7f1d1d",
                 "line-width": 2,
               },
+              
             });
           }
         } catch (err) {
@@ -549,6 +705,30 @@ const Calamity = () => {
         attachPolygonInteractivity();
 
         await renderSavedMarkers();
+
+        // Deep-link initial focus (run ONCE if we already have data)
+        if (!hasDeepLinkedRef.current) {
+          let focus = null;
+
+          if (target.incidentId && sidebarCalamities.length) {
+            const hit = sidebarCalamities.find((c) => String(c.calamity_id ?? c.id) === String(target.incidentId));
+            if (hit) {
+              setSelectedCalamity(hit);
+              highlightSelection(hit);
+              setIsSidebarVisible(true);
+              focus = getCalamityCenter(hit);
+            }
+          }
+
+          if (!focus && Number.isFinite(target.lat) && Number.isFinite(target.lng)) {
+            focus = [target.lng, target.lat];
+          }
+
+          if (focus) {
+            hasDeepLinkedRef.current = true;
+            map.current.flyTo({ center: focus, zoom: target.zoom, essential: true });
+          }
+        }
       });
 
       map.current.on("draw.create", (e) => {
@@ -576,16 +756,61 @@ const Calamity = () => {
         await loadPolygons();
         await renderSavedMarkers();
         attachPolygonInteractivity();
+
+        // re-apply selection after style change
+        if (selectedCalamity) {
+          highlightSelection(selectedCalamity);
+        } else if (!hasDeepLinkedRef.current && target.incidentId && sidebarCalamities.length) {
+          const hit = sidebarCalamities.find(c => String(c.calamity_id ?? c.id) === String(target.incidentId));
+          if (hit) {
+            setSelectedCalamity(hit);
+            highlightSelection(hit);
+            setIsSidebarVisible(true);
+            const center = getCalamityCenter(hit) ||
+              (Number.isFinite(target.lng) && Number.isFinite(target.lat) ? [target.lng, target.lat] : null);
+            if (center) {
+              hasDeepLinkedRef.current = true;
+              map.current.flyTo({ center, zoom: target.zoom, essential: true });
+            }
+          }
+        }
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapStyle]);
+  }, [mapStyle, ensureUserAccuracyLayers, loadPolygons, renderSavedMarkers, highlightSelection]);
 
-  // NEW: watch lock toggle and apply/remove maxBounds
+  // Deep-link effect after markers/data ready
+  useEffect(() => {
+    if (!map.current) return;
+    if (hasDeepLinkedRef.current) return;
+    if (!target.incidentId) return;
+    if (!sidebarCalamities.length) return;
+
+    const hit = sidebarCalamities.find(c => String(c.calamity_id ?? c.id) === String(target.incidentId));
+    if (!hit) return;
+
+    runWhenStyleReady(() => {
+      setSelectedCalamity(hit);
+      highlightSelection(hit);
+      setIsSidebarVisible(true);
+
+      const center =
+        getCalamityCenter(hit) ||
+        (Number.isFinite(target.lng) && Number.isFinite(target.lat) ? [target.lng, target.lat] : null);
+
+      if (center) {
+        map.current.flyTo({ center, zoom: target.zoom ?? 16, essential: true });
+      }
+
+      hasDeepLinkedRef.current = true;
+    });
+  }, [sidebarCalamities, target.incidentId, target.lat, target.lng, target.zoom, highlightSelection, runWhenStyleReady, getCalamityCenter]);
+
+  // watch lock toggle and apply/remove maxBounds
   useEffect(() => {
     if (!map.current) return;
     if (lockToBago) {
-      map.current.setMaxBounds(bagoCityBounds);
+      map.current.setMaxBounds(BAGO_CITY_BOUNDS);
       toast.info("Map locked to Bago City boundaries.");
     } else {
       map.current.setMaxBounds(null);
@@ -617,7 +842,7 @@ const Calamity = () => {
     if (map.current) {
       renderSavedMarkers();
     }
-  }, [selectedCalamityType]);
+  }, [selectedCalamityType, renderSavedMarkers]);
 
   useEffect(() => {
     const filterPolygonsByCalamity = async () => {
@@ -640,7 +865,7 @@ const Calamity = () => {
     if (map.current?.getSource("calamity-polygons")) {
       filterPolygonsByCalamity();
     }
-  }, [selectedCalamityType]);
+  }, [selectedCalamityType, loadPolygons]);
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -650,20 +875,21 @@ const Calamity = () => {
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
-  // Cleanup GPS listeners on unmount
+  // Cleanup GPS + selection
   useEffect(() => {
     return () => {
       try {
         watchStopRef.current?.();
         userMarkerRef.current?.remove();
         compassStopRef.current?.();
+        clearSelection();
       } catch {}
     };
-  }, []);
+  }, [clearSelection]);
 
   return (
     <div className="relative h-screen w-screen">
-      {/* GPS toolbar (same as Admin) */}
+      {/* GPS toolbar */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-white/70 backdrop-blur rounded-xl p-2 shadow-md">
         {/* Locate me */}
         <IconButton
@@ -781,19 +1007,17 @@ const Calamity = () => {
           </svg>
         </IconButton>
 
-        {/* NEW: Lock to Bago toggle */}
+        {/* Lock to Bago toggle */}
         <IconButton
           title={lockToBago ? "Unlock map" : "Lock to Bago"}
           active={lockToBago}
           onClick={() => setLockToBago((v) => !v)}
         >
           {lockToBago ? (
-            // locked icon
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17 8h-1V6a4 4 0 1 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Zm-7-2a2 2 0 1 1 4 0v2h-4V6Z" />
             </svg>
           ) : (
-            // unlocked icon
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17 8h-1V6a4 4 0 0 0-7.33-2.4l1.5 1.32A2 2 0 0 1 13 6v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Z" />
             </svg>
@@ -978,6 +1202,9 @@ const Calamity = () => {
               renderSavedMarkers();
             }
             setAreMarkersVisible(!areMarkersVisible);
+            if (!areMarkersVisible) {
+              clearSelection();
+            }
           }}
           className="absolute bottom-[194px] right-[9px] z-50 bg:white bg-white border border-gray-300 rounded-[5px] w-8 h-8 flex items-center justify-center shadow-[0_0_8px_2px_rgba(0,0,0,0.15)] "
           title={areMarkersVisible ? "Hide Markers" : "Show Markers"}
@@ -1065,4 +1292,4 @@ const Calamity = () => {
   );
 };
 
-export default Calamity;
+export default CalamityFarmerMap;
