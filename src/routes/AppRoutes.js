@@ -44,7 +44,7 @@ const AppRoutes = () => {
 
       {/*User*/}
       <Route path="/UserMap" element={<UserMap />} />
-      <Route path="/CalamityFarmerMap" element={<CalamityMap />} />
+      <Route path="/CalamityMap" element={<CalamityMap />} />
    
       {/*Admin*/}
       <Route path="/AdminLanding" element={<AdminLanding />} />

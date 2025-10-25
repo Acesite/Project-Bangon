@@ -1,10 +1,10 @@
 // components/CalamitySidebar.jsx
 import React, { useMemo, useState, useEffect } from "react";
 import clsx from "clsx";
-import AgriGISLogo from "../../components/MapboxImages/AgriGIS.png";
+import AgriGISLogo from "../../components/MapboxImages/logo.png";
 import Button from "./MapControls/Button";
 
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
+const fmtDate = (d) => (d ? new Date(d).toLocaleString() : "—");
 const fmt = (v) => (v ?? v === 0 ? v : "—");
 const fmtHa = (v) => (v || v === 0 ? Number(v).toFixed(2) + " ha" : "—");
 
@@ -22,18 +22,11 @@ const KV = ({ label, value }) => (
   </div>
 );
 
-// Fixed list used by the Calamity Type filter
+// Filters
 const CALAMITY_FILTERS = [
-  "Flood",
-  "Earthquake",
-  "Typhoon",
-  "Landslide",
-  "Drought",
-  "Wildfire",
-  "Pest",
+  "Flood","Earthquake","Typhoon","Landslide","Drought","Wildfire","Fire","Volcanic","Tsunami","Other",
 ];
 
-// Legend colors
 const CALAMITY_COLORS = {
   Flood: "#3b82f6",
   Earthquake: "#ef4444",
@@ -41,10 +34,12 @@ const CALAMITY_COLORS = {
   Landslide: "#f59e0b",
   Drought: "#f97316",
   Wildfire: "#dc2626",
-  Pest: "#16a34a",
+  Fire: "#dc2626",
+  Volcanic: "#6b7280",
+  Tsunami: "#0ea5e9",
+  Other: "#64748b",
 };
 
-// Barangay -> coords
 const BARANGAY_COORDS = {
   Abuanan: [122.9844, 10.5275],
   Alianza: [122.92424927088227, 10.471876805354725],
@@ -70,7 +65,9 @@ const BARANGAY_COORDS = {
   Taloc: [122.9100707275183, 10.57850192116514],
 };
 
-// Status badge classes
+const STATUS_FILTERS = ["Pending", "Verified", "Resolved", "Rejected"];
+const SEVERITY_FILTERS = ["Low", "Moderate", "High", "Severe"];
+
 const statusBadge = (status) => {
   const map = {
     Pending: "bg-yellow-200 text-yellow-800",
@@ -80,8 +77,6 @@ const statusBadge = (status) => {
   };
   return map[status] || "bg-gray-200 text-gray-800";
 };
-
-// Severity badge classes (includes “Severe”)
 const severityBadge = (severity) => {
   const map = {
     Low: "bg-emerald-200 text-emerald-800",
@@ -92,8 +87,33 @@ const severityBadge = (severity) => {
   return map[severity] || "bg-gray-200 text-gray-800";
 };
 
-// Optional: a list for status filtering
-const STATUS_FILTERS = ["Pending", "Verified", "Resolved", "Rejected"];
+// Normalize media to absolute URLs
+const normalizeMediaArray = (value, base = "http://localhost:5000") => {
+  const urls = new Set();
+  const pushUrl = (raw) => {
+    if (!raw) return;
+    let p = String(raw).trim();
+    if (!p) return;
+
+    if (p.includes(",") && !p.startsWith("[") && !p.startsWith("{")) {
+      p.split(",").forEach((part) => pushUrl(part));
+      return;
+    }
+    if (p.startsWith("[") && p.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(p);
+        if (Array.isArray(parsed)) { parsed.forEach((x) => pushUrl(x)); return; }
+      } catch {}
+    }
+    if (!/^https?:\/\//i.test(p)) {
+      p = p.startsWith("/") ? `${base}${p}` : `${base}/${p}`;
+    }
+    urls.add(p);
+  };
+
+  Array.isArray(value) ? value.forEach(pushUrl) : pushUrl(value);
+  return Array.from(urls);
+};
 
 const CalamitySidebar = ({
   visible,
@@ -111,56 +131,21 @@ const CalamitySidebar = ({
 
   selectedBarangay: selectedBarangayProp = "",
 }) => {
+  // Existing filters
   const [selectedBarangay, setSelectedBarangay] = useState(selectedBarangayProp || "");
   const [selectedStatus, setSelectedStatus] = useState("All");
-  const [cropMap, setCropMap] = useState({});
-  const [ecosystemMap, setEcosystemMap] = useState({});
-  const [varietyMap, setVarietyMap] = useState({});
 
-  // lookups
-  useEffect(() => {
-    let abort = false;
-    (async () => {
-      try {
-        const [ecoRes, cropRes] = await Promise.all([
-          fetch("http://localhost:5000/api/calamities/ecosystems"),
-          fetch("http://localhost:5000/api/calamities/crops"),
-        ]);
-        const ecoData = (await ecoRes.json()) || [];
-        const cropData = (await cropRes.json()) || [];
-        if (abort) return;
-        const cm = {};
-        cropData.forEach((c) => (cm[String(c.id)] = c.name));
-        setCropMap(cm);
-        const em = {};
-        ecoData.forEach((e) => (em[String(e.id)] = e.name));
-        setEcosystemMap(em);
-      } catch {}
-    })();
-    return () => {
-      abort = true;
-    };
-  }, []);
-
-  // varieties for selected calamity
-  useEffect(() => {
-    let abort = false;
-    const cropTypeId = selectedCalamity?.crop_type_id;
-    if (!cropTypeId) return;
-    (async () => {
-      try {
-        const res = await fetch(`http://localhost:5000/api/calamities/crops/${cropTypeId}/varieties`);
-        const data = (await res.json()) || [];
-        if (abort) return;
-        const vm = {};
-        data.forEach((v) => (vm[String(v.id)] = v.name));
-        setVarietyMap(vm);
-      } catch {}
-    })();
-    return () => {
-      abort = true;
-    };
-  }, [selectedCalamity?.crop_type_id]);
+  // New filters
+  const [selectedSeverity, setSelectedSeverity] = useState("All");
+  const [dateFrom, setDateFrom] = useState(""); // YYYY-MM-DD
+  const [dateTo, setDateTo] = useState("");     // YYYY-MM-DD
+  const [search, setSearch] = useState("");
+  const [hasPhotos, setHasPhotos] = useState(false);
+  const [hasVideos, setHasVideos] = useState(false);
+  const [areaMin, setAreaMin] = useState("");
+  const [areaMax, setAreaMax] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [sortBy, setSortBy] = useState("Newest"); // Newest, Oldest, Severity, Area
 
   // sync preselected barangay
   useEffect(() => {
@@ -180,113 +165,190 @@ const CalamitySidebar = ({
     }
   };
 
-  // filter list by type + barangay + status
+  // Helpers
+  const toDateObj = (row) => {
+    const d = row.date_reported || row.created_at;
+    return d ? new Date(d) : null;
+  };
+  const areaValue = (row) => {
+    const v = row.affected_area ?? row.area_ha ?? null;
+    return v != null ? Number(v) : null;
+  };
+  const severityRank = (s) => {
+    const order = { Low: 1, Moderate: 2, High: 3, Severe: 4 };
+    return order[s] || 0;
+  };
+
+  // Filtering + sorting
   const filteredCalamities = useMemo(() => {
-    const byType =
+    const q = search.trim().toLowerCase();
+    const from = dateFrom ? new Date(dateFrom) : null;
+    const to = dateTo ? new Date(dateTo) : null;
+    if (to) to.setHours(23, 59, 59, 999);
+
+    let list =
       selectedCalamityType === "All"
         ? calamities
         : calamities.filter((c) => c.calamity_type === selectedCalamityType);
 
-    const byBarangay = selectedBarangay
-      ? byType.filter((c) => (c.location || "").toLowerCase() === selectedBarangay.toLowerCase())
-      : byType;
+    if (selectedBarangay) {
+      list = list.filter(
+        (c) => (c.barangay || c.location || "").toLowerCase() === selectedBarangay.toLowerCase()
+      );
+    }
 
-    const byStatus =
-      selectedStatus === "All"
-        ? byBarangay
-        : byBarangay.filter((c) => (c.status || "Pending") === selectedStatus);
+    if (selectedStatus !== "All") {
+      list = list.filter((c) => (c.status || "Pending") === selectedStatus);
+    }
 
-    return byStatus;
-  }, [calamities, selectedCalamityType, selectedBarangay, selectedStatus]);
+    if (selectedSeverity !== "All") {
+      const getSev = (c) => {
+        const raw = c.severity_level ?? c.severity ?? "";
+        const s = String(raw).trim();
+        const cap = s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
+        return cap;
+      };
+      list = list.filter((c) => getSev(c) === selectedSeverity);
+    }
 
-  // Build full list of photo URLs (multi-photo support + robust fallback)
-  const photoUrls = useMemo(() => {
-    if (!selectedCalamity) return [];
+    if (from || to) {
+      list = list.filter((c) => {
+        const d = toDateObj(c);
+        if (!d) return false;
+        if (from && d < from) return false;
+        if (to && d > to) return false;
+        return true;
+      });
+    }
 
+    if (hasPhotos) {
+      list = list.filter((c) => {
+        const photos = normalizeMediaArray(c.photos?.length ? c.photos : c.photo);
+        return photos.length > 0;
+      });
+    }
+    if (hasVideos) {
+      list = list.filter((c) => {
+        const videos = normalizeMediaArray(c.videos || []);
+        return videos.length > 0;
+      });
+    }
+
+    if (areaMin || areaMax) {
+      const min = areaMin !== "" ? Number(areaMin) : null;
+      const max = areaMax !== "" ? Number(areaMax) : null;
+      list = list.filter((c) => {
+        const a = areaValue(c);
+        if (a == null) return false;
+        if (min != null && a < min) return false;
+        if (max != null && a > max) return false;
+        return true;
+      });
+    }
+
+    if (q) {
+      list = list.filter((c) => {
+        const hay = [
+          c.calamity_type,
+          c.barangay || c.location,
+          c.description,
+          c.status,
+          c.severity_level || c.severity,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    // Sort
+    const sorted = [...list];
+    sorted.sort((a, b) => {
+      if (sortBy === "Newest" || sortBy === "Oldest") {
+        const da = toDateObj(a)?.getTime() || 0;
+        const db = toDateObj(b)?.getTime() || 0;
+        return sortBy === "Newest" ? db - da : da - db;
+      }
+      if (sortBy === "Severity") {
+        const sa =
+          severityRank(
+            String(a.severity_level ?? a.severity ?? "")
+              .trim()
+              .replace(/^./, (m) => m.toUpperCase())
+          ) || 0;
+        const sb =
+          severityRank(
+            String(b.severity_level ?? b.severity ?? "")
+              .trim()
+              .replace(/^./, (m) => m.toUpperCase())
+          ) || 0;
+        return sb - sa; // highest first
+      }
+     if (sortBy === "Area") {
+  const aa = areaValue(a);
+  const ab = areaValue(b);
+  // Use -Infinity for missing values so “largest area” pushes undefined to the end
+  const va = typeof aa === "number" ? aa : -Infinity;
+  const vb = typeof ab === "number" ? ab : -Infinity;
+  return vb - va; // largest first
+}
+
+      return 0;
+    });
+
+    return sorted;
+  }, [
+    calamities,
+    selectedCalamityType,
+    selectedBarangay,
+    selectedStatus,
+    selectedSeverity,
+    dateFrom,
+    dateTo,
+    search,
+    hasPhotos,
+    hasVideos,
+    areaMin,
+    areaMax,
+    sortBy,
+  ]);
+
+  // Build photo & video URLs for the selected calamity only (detail view)
+  const { photoUrls, videoUrls } = useMemo(() => {
+    if (!selectedCalamity) return { photoUrls: [], videoUrls: [] };
     const base = "http://localhost:5000";
-    const urls = new Set();
-
-    const pushUrl = (raw) => {
-      if (!raw) return;
-      let p = String(raw).trim();
-      if (!p) return;
-
-      // accept csv like "a.jpg, b.jpg"
-      if (p.includes(",") && !p.startsWith("[") && !p.startsWith("{")) {
-        p.split(",").forEach((part) => pushUrl(part));
-        return;
-      }
-
-      // if it's JSON array inside a string, parse
-      if ((p.startsWith("[") && p.endsWith("]")) || (p.startsWith('"') && p.endsWith('"'))) {
-        try {
-          const parsed = JSON.parse(p);
-          if (Array.isArray(parsed)) {
-            parsed.forEach((x) => pushUrl(x));
-            return;
-          }
-        } catch {
-          /* ignore and continue as a single path */
-        }
-      }
-
-      // normalize leading slashes and make absolute
-      if (!/^https?:\/\//i.test(p)) {
-        p = p.startsWith("/") ? `${base}${p}` : `${base}/${p}`;
-      }
-
-      urls.add(p);
-    };
-
-    if (Array.isArray(selectedCalamity.photos)) {
-      selectedCalamity.photos.forEach(pushUrl);
-    } else if (selectedCalamity.photos) {
-      pushUrl(selectedCalamity.photos);
-    }
-
-    if (urls.size === 0 && selectedCalamity.photo) {
-      pushUrl(selectedCalamity.photo);
-    }
-
-    return Array.from(urls);
+    const photos = normalizeMediaArray(
+      selectedCalamity.photos?.length ? selectedCalamity.photos : selectedCalamity.photo,
+      base
+    );
+    const videos = normalizeMediaArray(selectedCalamity.videos || [], base);
+    return { photoUrls: photos, videoUrls: videos };
   }, [selectedCalamity]);
 
   const heroImg = photoUrls.length > 0 ? photoUrls[0] : null;
 
-  const cropName = (id) => (id ? cropMap[String(id)] || `#${id}` : "—");
-  const ecoName = (id) => (id ? ecosystemMap[String(id)] || `#${id}` : "—");
-  const varietyName = (id) => (id ? varietyMap[String(id)] || `#${id}` : "—");
-
-  // Admin full name helper (supports backend + localStorage fallback)
   const adminFullName = useMemo(() => {
     const sc = selectedCalamity || {};
-
-    if (sc.admin_full_name && String(sc.admin_full_name).trim())
-      return sc.admin_full_name;
-
+    if (sc.admin_full_name && String(sc.admin_full_name).trim()) return sc.admin_full_name;
     if (sc.admin_name && String(sc.admin_name).trim()) return sc.admin_name;
     const first = sc.admin_first_name || sc.first_name;
     const last = sc.admin_last_name || sc.last_name;
-    if ((first || last) && String(first || last).trim()) {
-      return [first, last].filter(Boolean).join(" ").trim();
-    }
+    if ((first || last) && String(first || last).trim()) return [first, last].filter(Boolean).join(" ").trim();
 
     if (typeof window !== "undefined") {
       const lsAdminFull = localStorage.getItem("admin_full_name");
       const lsFull = localStorage.getItem("full_name");
       const lsFirst = localStorage.getItem("first_name");
       const lsLast = localStorage.getItem("last_name");
-
       if (lsAdminFull && lsAdminFull.trim()) return lsAdminFull.trim();
       if (lsFull && lsFull.trim()) return lsFull.trim();
       const joined = [lsFirst, lsLast].filter(Boolean).join(" ").trim();
       if (joined) return joined;
     }
-
     return sc.admin_id ? `Admin #${sc.admin_id}` : "—";
   }, [selectedCalamity]);
 
-  // Robust severity value (handles severity_level or legacy severity)
   const severityValue = useMemo(() => {
     const raw = selectedCalamity?.severity_level ?? selectedCalamity?.severity ?? null;
     if (!raw) return null;
@@ -296,6 +358,23 @@ const CalamitySidebar = ({
     if (["Low", "Moderate", "High", "Severe"].includes(cap)) return cap;
     return s;
   }, [selectedCalamity]);
+
+  const areaVal = selectedCalamity?.affected_area ?? selectedCalamity?.area_ha ?? null;
+
+  const clearFilters = () => {
+    setSelectedCalamityType("All");
+    setSelectedBarangay("");
+    setSelectedStatus("All");
+    setSelectedSeverity("All");
+    setDateFrom("");
+    setDateTo("");
+    setSearch("");
+    setHasPhotos(false);
+    setHasVideos(false);
+    setAreaMin("");
+    setAreaMax("");
+    setSortBy("Newest");
+  };
 
   return (
     <div
@@ -328,17 +407,16 @@ const CalamitySidebar = ({
           <dl className="grid grid-cols-3 gap-3">
             <KV label="Region" value="Western Visayas" />
             <KV label="Province" value="Negros Occidental" />
-            <KV label="Municipality" value="Bago City" />
+            <KV label="City" value="Bago City" />
           </dl>
         </Section>
 
         {/* Filters */}
         <Section title="Filters">
           <div className="grid grid-cols-2 gap-3">
+            {/* Type */}
             <div>
-              <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">
-                Calamity Type
-              </label>
+              <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Calamity Type</label>
               <select
                 className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 value={selectedCalamityType}
@@ -346,17 +424,14 @@ const CalamitySidebar = ({
               >
                 <option value="All">All</option>
                 {CALAMITY_FILTERS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
+                  <option key={t} value={t}>{t}</option>
                 ))}
               </select>
             </div>
 
+            {/* Barangay */}
             <div>
-              <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">
-                Barangay
-              </label>
+              <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Barangay</label>
               <select
                 value={selectedBarangay}
                 onChange={handleBarangayChange}
@@ -364,17 +439,14 @@ const CalamitySidebar = ({
               >
                 <option value="">All</option>
                 {Object.keys(BARANGAY_COORDS).map((brgy) => (
-                  <option key={brgy} value={brgy}>
-                    {brgy}
-                  </option>
+                  <option key={brgy} value={brgy}>{brgy}</option>
                 ))}
               </select>
             </div>
 
-            <div className="col-span-2">
-              <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">
-                Status
-              </label>
+            {/* Status */}
+            <div>
+              <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Status</label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
@@ -382,12 +454,153 @@ const CalamitySidebar = ({
               >
                 <option value="All">All</option>
                 {STATUS_FILTERS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </div>
+
+            {/* Severity */}
+            <div>
+              <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Severity</label>
+              <select
+                value={selectedSeverity}
+                onChange={(e) => setSelectedSeverity(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              >
+                <option value="All">All</option>
+                {SEVERITY_FILTERS.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date From */}
+            <div>
+              <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Date From</label>
+              <input
+                type="date"
+                className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+
+            {/* Date To */}
+            <div>
+              <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Date To</label>
+              <input
+                type="date"
+                className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+
+            {/* Search (full width) */}
+            <div className="col-span-2">
+              <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Search</label>
+              <input
+                type="text"
+                placeholder="Type, barangay, description..."
+                className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            {/* Sort */}
+            <div>
+              <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Sort</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              >
+                <option value="Newest">Newest</option>
+                <option value="Oldest">Oldest</option>
+                <option value="Severity">Severity (High → Low)</option>
+                <option value="Area">Largest Area</option>
+              </select>
+            </div>
+
+            {/* Results count + Clear */}
+            <div className="flex items-end justify-between col-span-1">
+              <div className="text-xs text-gray-500">
+                Matching: <span className="font-semibold text-gray-700">{filteredCalamities.length}</span>
+              </div>
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-xs px-2 py-1 rounded-md border border-gray-300 hover:bg-gray-100"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          {/* Advanced */}
+          <div className="mt-3">
+            <button
+              type="button"
+              className="text-xs text-gray-600 hover:text-gray-900 underline"
+              onClick={() => setShowAdvanced((v) => !v)}
+            >
+              {showAdvanced ? "Hide advanced" : "Show advanced"}
+            </button>
+
+            {showAdvanced && (
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {/* Area Min/Max */}
+                <div>
+                  <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">
+                    Area Min (ha)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={areaMin}
+                    onChange={(e) => setAreaMin(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">
+                    Area Max (ha)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={areaMax}
+                    onChange={(e) => setAreaMax(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
+
+                {/* Has media */}
+                <div className="col-span-2 grid grid-cols-2 gap-3">
+                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={hasPhotos}
+                      onChange={(e) => setHasPhotos(e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
+                    Has photos
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={hasVideos}
+                      onChange={(e) => setHasVideos(e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
+                    Has videos
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
         </Section>
 
@@ -395,10 +608,10 @@ const CalamitySidebar = ({
         {selectedCalamity && (
           <Section title="Report details">
             <div className="flex flex-wrap gap-2 mb-3">
-              {selectedCalamity.location && (
+              {(selectedCalamity.barangay || selectedCalamity.location) && (
                 <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                   <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
-                  {selectedCalamity.location}
+                  {selectedCalamity.barangay || selectedCalamity.location}
                 </span>
               )}
 
@@ -441,40 +654,21 @@ const CalamitySidebar = ({
                 </span>
               )}
 
-              {selectedCalamity.affected_area && (
+              {areaVal != null && (
                 <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-                  {fmtHa(selectedCalamity.affected_area)}
+                  {fmtHa(areaVal)}
                 </span>
               )}
             </div>
 
             <dl className="grid grid-cols-2 gap-4">
               <KV label="Calamity Type" value={fmt(selectedCalamity.calamity_type)} />
-              <KV label="Crop Stage" value={fmt(selectedCalamity.crop_stage)} />
-              <KV label="Crop Type" value={fmt(cropName(selectedCalamity.crop_type_id))} />
-              <KV label="Ecosystem" value={fmt(ecoName(selectedCalamity.ecosystem_id))} />
-              <KV label="Variety" value={fmt(varietyName(selectedCalamity.crop_variety_id))} />
-              <KV label="Affected Area" value={fmtHa(selectedCalamity.affected_area)} />
-              <KV
-            label="Severity"
-            value={
-              (() => {
-                const raw =
-                  (selectedCalamity?.severity_level ?? "").toString().trim() ||
-                  (selectedCalamity?.severity ?? "").toString().trim();
-                if (!raw) return "—";
-                const cap = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
-                return cap; // Low / Moderate / High / Severe
-              })()
-            }
-          />
-              <KV label="Location (Barangay)" value={fmt(selectedCalamity.location)} />
+              <KV label="Barangay" value={fmt(selectedCalamity.barangay || selectedCalamity.location)} />
+              <KV label="Latitude" value={fmt(selectedCalamity.latitude)} />
+              <KV label="Longitude" value={fmt(selectedCalamity.longitude)} />
               <KV label="Reported By" value={fmt(adminFullName)} />
-              <KV
-                label="Reported"
-                value={fmtDate(selectedCalamity.date_reported || selectedCalamity.created_at)}
-              />
+              <KV label="Reported" value={fmtDate(selectedCalamity.date_reported || selectedCalamity.created_at)} />
               <div className="col-span-2">
                 <span
                   className={clsx(
@@ -496,7 +690,10 @@ const CalamitySidebar = ({
 
             {photoUrls.length > 0 && (
               <div className="mt-4">
-                <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Photos</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Photos</div>
+                  <div className="text-[11px] text-gray-500">{photoUrls.length}</div>
+                </div>
                 <div className="grid grid-cols-3 gap-2">
                   {photoUrls.map((url, idx) => (
                     <button
@@ -513,6 +710,29 @@ const CalamitySidebar = ({
                         loading="lazy"
                       />
                     </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {videoUrls.length > 0 && (
+              <div className="mt-5">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Videos</div>
+                  <div className="text-[11px] text-gray-500">{videoUrls.length}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {videoUrls.map((url, idx) => (
+                    <div key={idx} className="relative rounded-md border border-gray-200 overflow-hidden">
+                      <video
+                        src={url}
+                        className="w-full h-40 object-cover bg-black"
+                        controls
+                        preload="metadata"
+                        crossOrigin="anonymous"
+                        onError={() => console.warn("Video failed to load:", url)}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
