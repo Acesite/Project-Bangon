@@ -131,14 +131,14 @@ const AdminNavBar = () => {
         {/* Navigation */}
         <div className="flex items-center space-x-6 ml-auto">
           <nav className="hidden md:flex space-x-6">
-            <a
+            {/* <a
               href="/SuperAdminLandingPage"
               className={`tracking-wide font-light hover:text-green-700 ${
                 location.pathname === "/AdminLanding" ? "text-green-700 font-medium" : "text-black-600"
               }`}
             >
               Home
-            </a>
+            </a> */}
             <a
               href="/ManageAccount"
               className={`tracking-wide font-light hover:text-green-700 ${
@@ -156,14 +156,14 @@ const AdminNavBar = () => {
             >
              Calamity
             </a>
-            <a
+            {/* <a
               href="/SuperAdminManageCrop"
               className={`tracking-wide font-light hover:text-green-700 ${
                 location.pathname === "/SuperAdminManageCrop" ? "text-green-700 font-medium" : "text-black-600"
               }`}
             >
               Crops
-            </a>
+            </a> */}
             <a
               href="/Graphs"
               className={`tracking-wide font-light hover:text-green-700 ${

@@ -40,29 +40,69 @@ const CALAMITY_COLORS = {
   Other: "#64748b",
 };
 
+// ALL 61 BARANGAYS OF BACOLOD CITY
 const BARANGAY_COORDS = {
-  Abuanan: [122.9844, 10.5275],
-  Alianza: [122.92424927088227, 10.471876805354725],
-  Atipuluan: [122.94997254227323, 10.51054338526979],
-  Bacong: [123.03026270744279, 10.520037893339277],
-  Bagroy: [122.87467558102158, 10.47702885963125],
-  Balingasag: [122.84330579876998, 10.528672212250575],
-  Binubuhan: [122.98236293756698, 10.457428765280468],
-  Busay: [122.8936085581886, 10.536447801424544],
-  Calumangan: [122.8857773056537, 10.55943773159997],
-  Caridad: [122.89676017560787, 10.484855427956782],
-  Dulao: [122.94775786836688, 10.549767917490168],
-  Ilijan: [123.04567999131407, 10.44537414453059],
-  "Lag-asan": [122.84543167453091, 10.519843756585255],
-  Mailum: [123.05148249170527, 10.469013722796765],
-  "Ma-ao": [123.018102985426, 10.508962844307234],
-  Malingin: [122.92533490443519, 10.51102316577104],
-  Napoles: [122.86024955431672, 10.510195807139885],
-  Pacol: [122.86326134780008, 10.48966963268301],
-  Poblacion: [122.83378471878187, 10.535871883140523],
-  Sagasa: [122.89592554988106, 10.465232192594353],
-  Tabunan: [122.93868999567334, 10.570304584775227],
-  Taloc: [122.9100707275183, 10.57850192116514],
+  "Alangilan": [122.9485, 10.6985],
+  "Alijis": [122.9825, 10.6425],
+  "Banago": [122.9625, 10.7085],
+  "Bata": [122.9385, 10.6625],
+  "Cabug": [122.9785, 10.6185],
+  "Estefania": [122.9525, 10.6285],
+  "Felisa": [122.9685, 10.6885],
+  "Granada": [122.9925, 10.6485],
+  "Handumanan": [123.0025, 10.5885],
+  "Mandalagan": [122.9425, 10.6485],
+  "Mansilingan": [122.9825, 10.6685],
+  "Montevista": [122.9585, 10.7185],
+  "Pahanocoy": [123.0125, 10.6285],
+  "Punta Taytay": [122.9385, 10.6885],
+  "Singcang-Airport": [122.9285, 10.6385],
+  "Sum-ag": [122.9685, 10.6085],
+  "Taculing": [122.9285, 10.6185],
+  "Tangub": [122.9885, 10.7085],
+  "Villamonte": [122.9525, 10.6485],
+  "Vista Alegre": [122.9625, 10.6785],
+  "Barangay 1": [122.9445, 10.6765],
+  "Barangay 2": [122.9465, 10.6745],
+  "Barangay 3": [122.9485, 10.6725],
+  "Barangay 4": [122.9505, 10.6705],
+  "Barangay 5": [122.9525, 10.6685],
+  "Barangay 6": [122.9545, 10.6665],
+  "Barangay 7": [122.9565, 10.6685],
+  "Barangay 8": [122.9585, 10.6705],
+  "Barangay 9": [122.9605, 10.6725],
+  "Barangay 10": [122.9625, 10.6745],
+  "Barangay 11": [122.9645, 10.6765],
+  "Barangay 12": [122.9465, 10.6785],
+  "Barangay 13": [122.9485, 10.6805],
+  "Barangay 14": [122.9505, 10.6825],
+  "Barangay 15": [122.9525, 10.6845],
+  "Barangay 16": [122.9545, 10.6825],
+  "Barangay 17": [122.9565, 10.6805],
+  "Barangay 18": [122.9585, 10.6785],
+  "Barangay 19": [122.9605, 10.6765],
+  "Barangay 20": [122.9625, 10.6785],
+  "Barangay 21": [122.9645, 10.6805],
+  "Barangay 22": [122.9445, 10.6825],
+  "Barangay 23": [122.9465, 10.6845],
+  "Barangay 24": [122.9485, 10.6865],
+  "Barangay 25": [122.9505, 10.6885],
+  "Barangay 26": [122.9525, 10.6905],
+  "Barangay 27": [122.9545, 10.6925],
+  "Barangay 28": [122.9565, 10.6905],
+  "Barangay 29": [122.9585, 10.6885],
+  "Barangay 30": [122.9605, 10.6865],
+  "Barangay 31": [122.9625, 10.6845],
+  "Barangay 32": [122.9645, 10.6825],
+  "Barangay 33": [122.9465, 10.6905],
+  "Barangay 34": [122.9485, 10.6925],
+  "Barangay 35": [122.9505, 10.6945],
+  "Barangay 36": [122.9525, 10.6965],
+  "Barangay 37": [122.9545, 10.6985],
+  "Barangay 38": [122.9565, 10.6965],
+  "Barangay 39": [122.9585, 10.6945],
+  "Barangay 40": [122.9605, 10.6925],
+  "Barangay 41": [122.9625, 10.6905],
 };
 
 const STATUS_FILTERS = ["Pending", "Verified", "Resolved", "Rejected"];
@@ -285,14 +325,13 @@ const CalamitySidebar = ({
           ) || 0;
         return sb - sa; // highest first
       }
-     if (sortBy === "Area") {
-  const aa = areaValue(a);
-  const ab = areaValue(b);
-  // Use -Infinity for missing values so “largest area” pushes undefined to the end
-  const va = typeof aa === "number" ? aa : -Infinity;
-  const vb = typeof ab === "number" ? ab : -Infinity;
-  return vb - va; // largest first
-}
+      if (sortBy === "Area") {
+        const aa = areaValue(a);
+        const ab = areaValue(b);
+        const va = typeof aa === "number" ? aa : -Infinity;
+        const vb = typeof ab === "number" ? ab : -Infinity;
+        return vb - va; // largest first
+      }
 
       return 0;
     });
@@ -407,7 +446,7 @@ const CalamitySidebar = ({
           <dl className="grid grid-cols-3 gap-3">
             <KV label="Region" value="Western Visayas" />
             <KV label="Province" value="Negros Occidental" />
-            <KV label="City" value="Bago City" />
+            <KV label="City" value="Bacolod City" />
           </dl>
         </Section>
 
@@ -758,9 +797,9 @@ const CalamitySidebar = ({
           </details>
         </Section>
 
-        <div className="mt-5">
+        {/* <div className="mt-5">
           <Button to="/AdminLanding" label="Home" />
-        </div>
+        </div> */}
       </div>
     </div>
   );

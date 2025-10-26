@@ -91,7 +91,7 @@ const ManageCalamity = () => {
   const [editForm, setEditForm] = useState({});
   const [activeActionId, setActiveActionId] = useState(null);
 
-  const [incidentTypes, setIncidentTypes] = useState([]); // optional taxonomy
+  const [incidentTypes, setIncidentTypes] = useState([]);
   const [selectedType, setSelectedType] = useState(null);
   const [search, setSearch] = useState("");
 
@@ -102,11 +102,6 @@ const ManageCalamity = () => {
 
   const [viewingIncident, setViewingIncident] = useState(null);
 
-  /* NEW: Lookup lists to show names instead of raw IDs in the modal */
-  const [cropTypes, setCropTypes] = useState([]);
-  const [varieties, setVarieties] = useState([]);
-  const [ecosystems, setEcosystems] = useState([]);
-
   useEffect(() => {
     AOS.init({ duration: 400, once: true });
     (async () => {
@@ -116,7 +111,7 @@ const ManageCalamity = () => {
           axios.get("http://localhost:5000/api/managecalamities"),
           axios
             .get("http://localhost:5000/api/managecalamities/types")
-            .catch(() => ({ data: [] })), // optional
+            .catch(() => ({ data: [] })),
         ]);
         setIncidents(incRes.data || []);
         setIncidentTypes(typesRes.data || []);
@@ -124,22 +119,6 @@ const ManageCalamity = () => {
         console.error(e);
       } finally {
         setIsLoading(false);
-      }
-    })();
-
-    /* Fetch lookup lists for selects */
-    (async () => {
-      try {
-        const [ct, cv, eco] = await Promise.all([
-          axios.get("http://localhost:5000/api/crop-types").catch(() => ({ data: [] })),
-          axios.get("http://localhost:5000/api/crop-varieties").catch(() => ({ data: [] })),
-          axios.get("http://localhost:5000/api/ecosystems").catch(() => ({ data: [] })),
-        ]);
-        setCropTypes(Array.isArray(ct.data) ? ct.data : []);
-        setVarieties(Array.isArray(cv.data) ? cv.data : []);
-        setEcosystems(Array.isArray(eco.data) ? eco.data : []);
-      } catch (e) {
-        // Silently ignore; UI will fallback to text inputs
       }
     })();
   }, []);
@@ -170,13 +149,11 @@ const ManageCalamity = () => {
         c.incident_type,
         c.type_name,
         c.status,
+        c.severity_level,
         c.barangay,
         c.location,
         c.description,
-        c.crop_stage,
-        c.ecosystem_name,
-        c.crop_type_name,
-        c.variety_name,
+        // coordinates removed from search to avoid long-string matches
       ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
@@ -260,8 +237,7 @@ const ManageCalamity = () => {
       incident_type:
         latest.calamity_type || latest.incident_type || latest.type_name || "",
       severity_text: latest.severity_level || latest.severity_text || "",
-      severity: latest.severity || 0,
-      status: latest.status || "",
+      status: latest.status || "Pending",
       barangay: latest.barangay || latest.location || "",
       reported_at: reportedRaw || "",
       reported_at_input: toDatetimeLocalValue(reportedRaw),
@@ -270,12 +246,7 @@ const ManageCalamity = () => {
       longitude: latest.longitude ?? "",
       note: latest.description || latest.note || "",
       affected_area: latest.affected_area ?? "",
-      crop_stage: latest.crop_stage ?? "",
-
-      // IDs for selects
-      crop_type_id: latest.crop_type_id ?? "",
-      crop_variety_id: latest.crop_variety_id ?? "",
-      ecosystem_id: latest.ecosystem_id ?? "",
+      coordinates: latest.coordinates || "",
     });
   };
 
@@ -305,7 +276,6 @@ const ManageCalamity = () => {
         incident_type: editForm.incident_type || null,
         status: editForm.status || null,
         severity_text: editForm.severity_text || null,
-        severity: coerceNum(editForm.severity),
         reported_at:
           editForm.reported_at ||
           fromDatetimeLocalToISO(editForm.reported_at_input) ||
@@ -314,14 +284,8 @@ const ManageCalamity = () => {
         latitude: coerceNum(editForm.latitude),
         longitude: coerceNum(editForm.longitude),
         affected_area: coerceNum(editForm.affected_area),
-        crop_stage: editForm.crop_stage || null,
-
-        // Send IDs from selects
-        crop_type_id: coerceNum(editForm.crop_type_id),
-        crop_variety_id: coerceNum(editForm.crop_variety_id),
-        ecosystem_id: coerceNum(editForm.ecosystem_id),
-
-        note: editForm.note || null,
+        coordinates: editForm.coordinates || null,
+        note: editForm.note || null, // controller maps to description
       };
 
       await axios.put(
@@ -533,39 +497,14 @@ const ManageCalamity = () => {
                       </div>
                     </div>
 
-                    {/* Meta */}
+                    {/* Meta (coordinates/lat/lng removed) */}
                     <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2">
                       <Stat
                         label="Reported"
                         value={fmtDate(inc.date_reported || inc.reported_at)}
                       />
-                      <Stat
-                        label="Location (Barangay)"
-                        value={fmtStr(inc.location || inc.barangay)}
-                      />
+                      <Stat label="Barangay" value={fmtStr(inc.barangay || inc.location)} />
                       <Stat label="Affected Area" value={fmtHa(inc.affected_area)} />
-                      <Stat label="Crop Stage" value={fmtStr(inc.crop_stage)} />
-                      <Stat
-                        label="Crop Type"
-                        value={
-                          inc.crop_type_name || inc.crop_type || inc.crop_type_id
-                        }
-                      />
-                      <Stat
-                        label="Ecosystem"
-                        value={
-                          inc.ecosystem_name ||
-                          inc.ecosystem ||
-                          inc.ecosystem_id
-                        }
-                      />
-                      <Stat
-                        label="Variety"
-                        value={
-                          inc.variety_name || inc.variety || inc.crop_variety_id
-                        }
-                      />
-
                       <Stat
                         label="Map"
                         value={
@@ -573,7 +512,7 @@ const ManageCalamity = () => {
                             <button
                               className="text-emerald-700 hover:underline"
                               onClick={() =>
-                                navigate("/CalamityFarmerMap", {
+                                navigate("/CalamityMap", {
                                   state: {
                                     incidentId: String(inc.id),
                                     incidentType: type,
@@ -595,10 +534,7 @@ const ManageCalamity = () => {
                       />
                     </div>
 
-                    <NoteClamp
-                      text={inc.description || inc.note}
-                      className="mt-3"
-                    />
+                    <NoteClamp text={inc.description || inc.note} className="mt-3" />
 
                     <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-100">
                       <div className="text-[12px] text-slate-500">
@@ -700,7 +636,7 @@ const ManageCalamity = () => {
                 value={editForm.incident_type || ""}
                 onChange={handleEditChange}
                 className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                placeholder="Incident Type (e.g., Flood, Fire)"
+                placeholder="Calamity Type (e.g., Flood, Fire)"
               />
 
               <select
@@ -742,9 +678,19 @@ const ManageCalamity = () => {
                 value={editForm.barangay || ""}
                 onChange={handleEditChange}
                 className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                placeholder="Barangay / Location"
+                placeholder="Barangay"
               />
 
+              <input
+                name="affected_area"
+                value={editForm.affected_area ?? ""}
+                onChange={handleEditChange}
+                className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                placeholder="Affected Area (ha)"
+              />
+
+              {/* Keeping these inputs so admins can maintain map data;
+                  but they are not shown on cards/modals */}
               <input
                 name="latitude"
                 value={editForm.latitude ?? ""}
@@ -762,103 +708,19 @@ const ManageCalamity = () => {
               />
 
               <input
-                name="affected_area"
-                value={editForm.affected_area ?? ""}
+                name="coordinates"
+                value={editForm.coordinates || ""}
                 onChange={handleEditChange}
-                className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                placeholder="Affected Area (ha)"
+                className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-600 md:col-span-2"
+                placeholder="Coordinates (polygon/linestring/geojson text)"
               />
-
-              <input
-                name="crop_stage"
-                value={editForm.crop_stage || ""}
-                onChange={handleEditChange}
-                className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                placeholder="Crop Stage"
-              />
-
-              {/* CROP TYPE (select with names) */}
-              {cropTypes.length > 0 ? (
-                <select
-                  name="crop_type_id"
-                  value={editForm.crop_type_id ?? ""}
-                  onChange={handleEditChange}
-                  className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                >
-                  <option value="">-- Crop Type --</option>
-                  {cropTypes.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  readOnly
-                  value={editingIncident?.crop_type_name ?? editForm.crop_type_id ?? ""}
-                  className="border px-3 py-2 rounded bg-slate-50 text-slate-600"
-                  placeholder="Crop Type"
-                />
-              )}
-
-              {/* ECOSYSTEM (select with names) */}
-              {ecosystems.length > 0 ? (
-                <select
-                  name="ecosystem_id"
-                  value={editForm.ecosystem_id ?? ""}
-                  onChange={handleEditChange}
-                  className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                >
-                  <option value="">-- Ecosystem --</option>
-                  {ecosystems.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  readOnly
-                  value={
-                    editingIncident?.ecosystem_name ?? editForm.ecosystem_id ?? ""
-                  }
-                  className="border px-3 py-2 rounded bg-slate-50 text-slate-600"
-                  placeholder="Ecosystem"
-                />
-              )}
-
-              {/* VARIETY (select with names) */}
-              {varieties.length > 0 ? (
-                <select
-                  name="crop_variety_id"
-                  value={editForm.crop_variety_id ?? ""}
-                  onChange={handleEditChange}
-                  className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-600 md:col-span-2"
-                >
-                  <option value="">-- Variety --</option>
-                  {varieties.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  readOnly
-                  value={
-                    editingIncident?.variety_name ?? editForm.crop_variety_id ?? ""
-                  }
-                  className="border px-3 py-2 rounded bg-slate-50 text-slate-600 md:col-span-2"
-                  placeholder="Variety"
-                />
-              )}
 
               <textarea
                 name="note"
                 value={editForm.note || ""}
                 onChange={handleEditChange}
                 className="border px-3 py-2 rounded md:col-span-2 focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                placeholder="Description / Notes"
+                placeholder="Description"
               />
             </div>
 
@@ -880,7 +742,7 @@ const ManageCalamity = () => {
         </div>
       )}
 
-      {/* View All Modal */}
+      {/* View Modal (coordinates/lat/lng removed) */}
       {viewingIncident && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50">
           <div className="bg-white p-6 md:p-8 rounded-2xl w-full max-w-2xl shadow-2xl relative">
@@ -917,43 +779,8 @@ const ManageCalamity = () => {
                   viewingIncident.date_reported || viewingIncident.reported_at
                 )}
               />
-              <Stat
-                label="Affected Area"
-                value={fmtHa(viewingIncident.affected_area)}
-              />
-              <Stat label="Crop Stage" value={fmtStr(viewingIncident.crop_stage)} />
-              <Stat
-                label="Crop Type"
-                value={fmtStr(
-                  viewingIncident.crop_type_name || viewingIncident.crop_type_id
-                )}
-              />
-              <Stat
-                label="Ecosystem"
-                value={fmtStr(
-                  viewingIncident.ecosystem_name || viewingIncident.ecosystem_id
-                )}
-              />
-              <Stat
-                label="Variety"
-                value={fmtStr(
-                  viewingIncident.variety_name || viewingIncident.crop_variety_id
-                )}
-              />
-              <Stat
-                label="Latitude"
-                value={
-                  viewingIncident.latitude ? fmtNum(viewingIncident.latitude) : "N/A"
-                }
-              />
-              <Stat
-                label="Longitude"
-                value={
-                  viewingIncident.longitude
-                    ? fmtNum(viewingIncident.longitude)
-                    : "N/A"
-                }
-              />
+              <Stat label="Affected Area" value={fmtHa(viewingIncident.affected_area)} />
+              <Stat label="Barangay" value={fmtStr(viewingIncident.barangay)} />
             </div>
 
             {renderPhotoStrip(viewingIncident)}
@@ -981,7 +808,7 @@ const ManageCalamity = () => {
         </div>
       )}
 
-      {/* Confirm Delete Modal */}
+      {/* Confirm Delete */}
       {pendingDelete && (
         <ConfirmDialog
           title="Delete incident"
