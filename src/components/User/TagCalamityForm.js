@@ -1,5 +1,6 @@
 // components/User/TagCalamityForm.js
 import React, { useState, useEffect, useMemo } from "react";
+import PropTypes from "prop-types";
 
 /* ---------- tiny UI bits ---------- */
 const Spinner = () => (
@@ -27,10 +28,28 @@ const Label = ({ children, required, htmlFor }) => (
   </label>
 );
 
+/* ---------- City → Barangay mapping (extend as you add more cities) ---------- */
+const CITY_BARANGAYS = {
+  "Bacolod City": [
+    "Alangilan","Alijis","Banago","Bata","Cabug","Estefania","Felisa","Granada","Handumanan",
+    "Mandalagan","Mansilingan","Montevista","Pahanocoy","Punta Taytay","Singcang-Airport","Sum-ag",
+    "Taculing","Tangub","Villamonte","Vista Alegre","Barangay 1","Barangay 2","Barangay 3","Barangay 4",
+    "Barangay 5","Barangay 6","Barangay 7","Barangay 8","Barangay 9","Barangay 10","Barangay 11",
+    "Barangay 12","Barangay 13","Barangay 14","Barangay 15","Barangay 16","Barangay 17","Barangay 18",
+    "Barangay 19","Barangay 20","Barangay 21","Barangay 22","Barangay 23","Barangay 24","Barangay 25",
+    "Barangay 26","Barangay 27","Barangay 28","Barangay 29","Barangay 30","Barangay 31","Barangay 32",
+    "Barangay 33","Barangay 34","Barangay 35","Barangay 36","Barangay 37","Barangay 38","Barangay 39",
+    "Barangay 40","Barangay 41"
+  ],
+  // Add more cities here when you need them:
+  // "Talisay City": ["Barangay A", "Barangay B"],
+  // "Silay City": [...]
+};
+
 /**
  * Aligned to calamityController (tbl_incident).
  * Sends:
- * - calamity_type, description, barangay, status, severity_level
+ * - calamity_type, description, barangay, city, status, severity_level
  * - coordinates (JSON stringified polygon ring)
  * - affected_area (ha), admin_id
  * - files => photos[] (mixed images/videos); controller splits by MIME
@@ -44,6 +63,7 @@ const TagCalamityForm = ({
 }) => {
   const [calamityType, setCalamityType]   = useState("");
   const [description, setDescription]     = useState("");
+  const [city, setCity]                   = useState("");                // NEW: city state
   const [barangay, setBarangay]           = useState(selectedBarangay || "");
   const [status, setStatus]               = useState("Pending");
   const [severityLevel, setSeverityLevel] = useState("");
@@ -52,6 +72,19 @@ const TagCalamityForm = ({
   const [files, setFiles]                 = useState([]); // mixed images/videos
   const [submitError, setSubmitError]     = useState("");
   const [isSubmitting, setIsSubmitting]   = useState(false);
+
+  // Derive barangay options based on city
+  const barangayOptions = useMemo(() => {
+    return city && CITY_BARANGAYS[city] ? CITY_BARANGAYS[city] : [];
+  }, [city]);
+
+  // If user picks a city, reset barangay if it’s not in that city
+  useEffect(() => {
+    if (!city) return;
+    if (barangay && !barangayOptions.includes(barangay)) {
+      setBarangay("");
+    }
+  }, [city, barangayOptions, barangay]);
 
   // optional: show first vertex lat/lng
   const coordStr = useMemo(() => {
@@ -125,6 +158,7 @@ const TagCalamityForm = ({
       const formData = new FormData();
       formData.append("calamity_type", calamityType);
       formData.append("description", description.trim());
+      formData.append("city", city || "");                                        // NEW: send city
       formData.append("barangay", barangay || selectedBarangay || "");
       formData.append("status", status);
       formData.append("severity_level", severityLevel);
@@ -148,6 +182,7 @@ const TagCalamityForm = ({
 
   const canSubmit =
     calamityType &&
+    city &&                                   // NEW: require a city to be chosen
     (barangay || selectedBarangay) &&
     description.trim().length > 0 &&
     status &&
@@ -168,6 +203,12 @@ const TagCalamityForm = ({
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Context chips */}
             <div className="flex flex-wrap gap-2">
+              {city && (
+                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
+                  {city}
+                </span>
+              )}
               {(barangay || selectedBarangay) && (
                 <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                   <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
@@ -214,18 +255,47 @@ const TagCalamityForm = ({
                 <HelpText>Choose the category that best matches the event.</HelpText>
               </div>
 
+              {/* NEW: City */}
               <div>
-                <Label htmlFor="barangay" required>Barangay</Label>
-                <input
-                  id="barangay"
-                  type="text"
-                  value={barangay}
-                  onChange={(e) => setBarangay(e.target.value)}
-                  placeholder="e.g., Brgy. San Isidro"
+                <Label htmlFor="city" required>City / Municipality</Label>
+                <select
+                  id="city"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
-                />
-                <HelpText>Specify the barangay where the incident occurred.</HelpText>
+                >
+                  <option value="">Select city</option>
+                  {Object.keys(CITY_BARANGAYS).map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <HelpText>Select the city to load its barangays.</HelpText>
+              </div>
+
+              {/* Barangay becomes a dependent select */}
+              <div className="sm:col-span-2">
+                <Label htmlFor="barangay" required>Barangay</Label>
+                <select
+                  id="barangay"
+                  value={barangay}
+                  onChange={(e) => setBarangay(e.target.value)}
+                  disabled={!city}
+                  className={`w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!city ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                  required
+                >
+                  {!city ? (
+                    <option value="">Select a city first</option>
+                  ) : (
+                    <>
+                      <option value="">Select barangay</option>
+                      {barangayOptions.map((b) => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </>
+                  )}
+                </select>
+                <HelpText>Barangays are filtered based on the selected city.</HelpText>
               </div>
 
               <div>
@@ -385,6 +455,38 @@ const TagCalamityForm = ({
       </div>
     </div>
   );
+};
+
+/* ---------- prop types (non-breaking; documentation & dev safety) ---------- */
+TagCalamityForm.propTypes = {
+  defaultLocation: PropTypes.shape({
+    coordinates: PropTypes.arrayOf(
+      PropTypes.arrayOf(PropTypes.number.isRequired).isRequired
+    ),
+    hectares: PropTypes.number,
+  }),
+  selectedBarangay: PropTypes.string,
+  onCancel: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+  setNewTagLocation: PropTypes.func,
+};
+
+ErrorText.propTypes = {
+  children: PropTypes.node,
+  id: PropTypes.string,
+};
+HelpText.propTypes = {
+  children: PropTypes.node,
+  id: PropTypes.string,
+};
+SectionTitle.propTypes = {
+  title: PropTypes.string.isRequired,
+  subtitle: PropTypes.string,
+};
+Label.propTypes = {
+  children: PropTypes.node,
+  required: PropTypes.bool,
+  htmlFor: PropTypes.string,
 };
 
 export default TagCalamityForm;

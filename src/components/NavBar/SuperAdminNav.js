@@ -122,23 +122,15 @@ const AdminNavBar = () => {
 
   return (
     <header className="w-full bg-white shadow-md fixed top-0 left-0 z-50 font-poppins">
-      <div className="container mx-auto flex items-center justify-between py-4 px-6">
-        {/* Logo */}
-        <div className="flex items-start ml-[159px]">
-          <img src="/images/AgriGIS.png" alt="AgriGIS" className="h-[50px] w-auto" />
+      <div className="container mx-auto flex items-center justify-between py-2 px-6">
+        {/* Logo - INCREASED SIZE */}
+        <div className="flex items-center ml-[159px]">
+          <img src="/images/logo2.png" alt="AgriGIS" className="h-[60px] w-auto" />
         </div>
 
         {/* Navigation */}
         <div className="flex items-center space-x-6 ml-auto">
           <nav className="hidden md:flex space-x-6">
-            {/* <a
-              href="/SuperAdminLandingPage"
-              className={`tracking-wide font-light hover:text-green-700 ${
-                location.pathname === "/AdminLanding" ? "text-green-700 font-medium" : "text-black-600"
-              }`}
-            >
-              Home
-            </a> */}
             <a
               href="/ManageAccount"
               className={`tracking-wide font-light hover:text-green-700 ${
@@ -156,14 +148,6 @@ const AdminNavBar = () => {
             >
              Calamity
             </a>
-            {/* <a
-              href="/SuperAdminManageCrop"
-              className={`tracking-wide font-light hover:text-green-700 ${
-                location.pathname === "/SuperAdminManageCrop" ? "text-green-700 font-medium" : "text-black-600"
-              }`}
-            >
-              Crops
-            </a> */}
             <a
               href="/Graphs"
               className={`tracking-wide font-light hover:text-green-700 ${

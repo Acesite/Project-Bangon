@@ -112,14 +112,21 @@ function buildPreviewHTML(c) {
   const type = c.calamity_type || c.type || "Incident";
   const sev = c.severity_level || c.severity || "N/A";
   const barangay = c.barangay || c.location_name || "";
+  const city = c.city || ""; // <-- added city support
   const notes = c.notes || c.description || "";
 
+  // Expanded severity colors to include Moderate + Severe
   const sevColors = {
+    Severe: { bg: '#fecaca', text: '#7f1d1d' },
     High: { bg: '#fee2e2', text: '#991b1b' },
-    Medium: { bg: '#fef3c7', text: '#92400e' },
+    Moderate: { bg: '#fef3c7', text: '#92400e' },
+    Medium: { bg: '#fef3c7', text: '#92400e' }, // backward-compat
     Low: { bg: '#dbeafe', text: '#1e40af' }
   };
   const sevColor = sevColors[sev] || { bg: '#f3f4f6', text: '#374151' };
+
+  // Location line prefers both when available
+  const locationText = [barangay, city].filter(Boolean).join(", ");
 
   return `
     <div style="width: 280px; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: transparent; border-radius: 12px; overflow: visible;">
@@ -146,13 +153,17 @@ function buildPreviewHTML(c) {
             </svg>
             ${type}
           </div>
-          ${barangay ? `<div style="font-size: 13px; color: #6b7280; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            <strong>Barangay:</strong> ${barangay}
-          </div>` : ""}
+          ${
+            locationText
+              ? `<div style="font-size: 13px; color: #6b7280; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  <strong>Location:</strong> ${locationText}
+                </div>`
+              : ""
+          }
           ${
             notes
               ? `<div style="font-size: 12px; color: #4b5563; line-height: 1.4; max-height: 2.8em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; border-left: 3px solid #e5e7eb; padding-left: 8px; margin-top: 8px;">
@@ -240,7 +251,7 @@ function IconButton({ title, active, onClick, children }) {
   );
 }
 
-const CalamityFarmerMap = () => {
+const CalamityMap = () => {
   addPulseStylesOnce();
 
   const mapContainer = useRef(null);
@@ -1572,4 +1583,4 @@ const CalamityFarmerMap = () => {
   );
 };
 
-export default CalamityFarmerMap;
+export default CalamityMap;

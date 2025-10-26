@@ -2,12 +2,22 @@
 import React, { useMemo, useState, useEffect } from "react";
 import clsx from "clsx";
 import AgriGISLogo from "../../components/MapboxImages/logo.png";
-import Button from "./MapControls/Button";
 
+/* ----------------------- tiny utils ----------------------- */
 const fmtDate = (d) => (d ? new Date(d).toLocaleString() : "—");
 const fmt = (v) => (v ?? v === 0 ? v : "—");
 const fmtHa = (v) => (v || v === 0 ? Number(v).toFixed(2) + " ha" : "—");
 
+// defensively handle possibly-non-string barangay values
+const safeLower = (v) =>
+  typeof v === "string"
+    ? v.toLowerCase()
+    : String((v && v.name) || v || "").toLowerCase();
+
+const brgyText = (v) =>
+  typeof v === "string" ? v : (v && typeof v === "object" && v.name) ? String(v.name) : "";
+
+/* ---------------------- UI primitives --------------------- */
 const Section = ({ title, children }) => (
   <div className="rounded-xl border border-gray-200 bg-white p-4 mb-4">
     {title && <h3 className="text-sm font-semibold text-gray-900 mb-3">{title}</h3>}
@@ -22,7 +32,7 @@ const KV = ({ label, value }) => (
   </div>
 );
 
-// Filters
+/* ------------------------- filters ------------------------ */
 const CALAMITY_FILTERS = [
   "Flood","Earthquake","Typhoon","Landslide","Drought","Wildfire","Fire","Volcanic","Tsunami","Other",
 ];
@@ -40,69 +50,70 @@ const CALAMITY_COLORS = {
   Other: "#64748b",
 };
 
-// ALL 61 BARANGAYS OF BACOLOD CITY
+// Bacolod barangays (name -> [lng, lat]) — from your list, converted to lng,lat
 const BARANGAY_COORDS = {
-  "Alangilan": [122.9485, 10.6985],
-  "Alijis": [122.9825, 10.6425],
-  "Banago": [122.9625, 10.7085],
-  "Bata": [122.9385, 10.6625],
-  "Cabug": [122.9785, 10.6185],
-  "Estefania": [122.9525, 10.6285],
-  "Felisa": [122.9685, 10.6885],
-  "Granada": [122.9925, 10.6485],
-  "Handumanan": [123.0025, 10.5885],
-  "Mandalagan": [122.9425, 10.6485],
-  "Mansilingan": [122.9825, 10.6685],
-  "Montevista": [122.9585, 10.7185],
-  "Pahanocoy": [123.0125, 10.6285],
-  "Punta Taytay": [122.9385, 10.6885],
-  "Singcang-Airport": [122.9285, 10.6385],
-  "Sum-ag": [122.9685, 10.6085],
-  "Taculing": [122.9285, 10.6185],
-  "Tangub": [122.9885, 10.7085],
-  "Villamonte": [122.9525, 10.6485],
-  "Vista Alegre": [122.9625, 10.6785],
-  "Barangay 1": [122.9445, 10.6765],
-  "Barangay 2": [122.9465, 10.6745],
-  "Barangay 3": [122.9485, 10.6725],
-  "Barangay 4": [122.9505, 10.6705],
-  "Barangay 5": [122.9525, 10.6685],
-  "Barangay 6": [122.9545, 10.6665],
-  "Barangay 7": [122.9565, 10.6685],
-  "Barangay 8": [122.9585, 10.6705],
-  "Barangay 9": [122.9605, 10.6725],
-  "Barangay 10": [122.9625, 10.6745],
-  "Barangay 11": [122.9645, 10.6765],
-  "Barangay 12": [122.9465, 10.6785],
-  "Barangay 13": [122.9485, 10.6805],
-  "Barangay 14": [122.9505, 10.6825],
-  "Barangay 15": [122.9525, 10.6845],
-  "Barangay 16": [122.9545, 10.6825],
-  "Barangay 17": [122.9565, 10.6805],
-  "Barangay 18": [122.9585, 10.6785],
-  "Barangay 19": [122.9605, 10.6765],
-  "Barangay 20": [122.9625, 10.6785],
-  "Barangay 21": [122.9645, 10.6805],
-  "Barangay 22": [122.9445, 10.6825],
-  "Barangay 23": [122.9465, 10.6845],
-  "Barangay 24": [122.9485, 10.6865],
-  "Barangay 25": [122.9505, 10.6885],
-  "Barangay 26": [122.9525, 10.6905],
-  "Barangay 27": [122.9545, 10.6925],
-  "Barangay 28": [122.9565, 10.6905],
-  "Barangay 29": [122.9585, 10.6885],
-  "Barangay 30": [122.9605, 10.6865],
-  "Barangay 31": [122.9625, 10.6845],
-  "Barangay 32": [122.9645, 10.6825],
-  "Barangay 33": [122.9465, 10.6905],
-  "Barangay 34": [122.9485, 10.6925],
-  "Barangay 35": [122.9505, 10.6945],
-  "Barangay 36": [122.9525, 10.6965],
-  "Barangay 37": [122.9545, 10.6985],
-  "Barangay 38": [122.9565, 10.6965],
-  "Barangay 39": [122.9585, 10.6945],
-  "Barangay 40": [122.9605, 10.6925],
-  "Barangay 41": [122.9625, 10.6905],
+  Alangilan: [123.096056, 10.661722],
+Alijis: [122.952333, 10.634639],
+  Banago: [122.9486, 10.6981],
+  Bata: [122.972361, 10.702833],
+  Cabug: [122.9814, 10.7236],
+  Estefania: [122.9831, 10.6869],
+  Felisa: [122.9919, 10.7050],
+  Granada: [122.9750, 10.6436],
+  Handumanan: [122.9669, 10.7014],
+  Mandalagan: [122.97447, 10.68672],
+  Mansilingan: [122.983583, 10.621444],
+  Montevista: [122.9917, 10.7269],
+  Pahanocoy: [122.9583, 10.6181],
+  "Punta Taytay": [122.9333, 10.6886],
+  "Singcang-Airport": [122.9417, 10.6417],
+  "Sum-ag": [122.9333, 10.6681],
+  Taculing: [122.957028, 10.651472],
+  Tangub: [122.9333, 10.7000],
+  Villamonte: [122.9583, 10.6931],
+  "Vista Alegre": [122.9583, 10.7056],
+
+  "Barangay 1": [122.9581, 10.6958],
+  "Barangay 2": [122.9583, 10.6950],
+  "Barangay 3": [122.9586, 10.6942],
+  "Barangay 4": [122.9589, 10.6936],
+  "Barangay 5": [122.9592, 10.6931],
+  "Barangay 6": [122.9594, 10.6928],
+  "Barangay 7": [122.9597, 10.6922],
+  "Barangay 8": [122.9600, 10.6917],
+  "Barangay 9": [122.9603, 10.6911],
+  "Barangay 10": [122.9606, 10.6906],
+  "Barangay 11": [122.9608, 10.6900],
+  "Barangay 12": [122.945194, 10.671361],
+  "Barangay 13": [122.9614, 10.6889],
+  "Barangay 14": [122.9617, 10.6883],
+  "Barangay 15": [122.9619, 10.6878],
+  "Barangay 16": [122.9622, 10.6872],
+  "Barangay 17": [122.9625, 10.6867],
+  "Barangay 18": [122.9628, 10.6861],
+  "Barangay 19": [122.9631, 10.6856],
+  "Barangay 20": [122.9633, 10.6850],
+  "Barangay 21": [122.9636, 10.6844],
+  "Barangay 22": [122.9639, 10.6839],
+  "Barangay 23": [122.9642, 10.6833],
+  "Barangay 24": [122.9644, 10.6828],
+  "Barangay 25": [122.9647, 10.6822],
+  "Barangay 26": [122.9650, 10.6817],
+  "Barangay 27": [122.9653, 10.6811],
+  "Barangay 28": [122.9656, 10.6806],
+  "Barangay 29": [122.9658, 10.6800],
+  "Barangay 30": [122.9661, 10.6794],
+  "Barangay 31": [122.9664, 10.6789],
+  "Barangay 32": [122.9667, 10.6783],
+  "Barangay 33": [122.9669, 10.6778],
+  "Barangay 34": [122.9672, 10.6772],
+  "Barangay 35": [122.9675, 10.6767],
+  "Barangay 36": [122.9678, 10.6761],
+  "Barangay 37": [122.9681, 10.6756],
+  "Barangay 38": [122.9683, 10.6750],
+  "Barangay 39": [122.9686, 10.6744],
+  "Barangay 40": [122.9689, 10.6739],
+  "Barangay 41": [122.9692, 10.6733],
 };
 
 const STATUS_FILTERS = ["Pending", "Verified", "Resolved", "Rejected"];
@@ -127,7 +138,7 @@ const severityBadge = (severity) => {
   return map[severity] || "bg-gray-200 text-gray-800";
 };
 
-// Normalize media to absolute URLs
+/* ----------- normalize media to absolute URLs ----------- */
 const normalizeMediaArray = (value, base = "http://localhost:5000") => {
   const urls = new Set();
   const pushUrl = (raw) => {
@@ -142,7 +153,10 @@ const normalizeMediaArray = (value, base = "http://localhost:5000") => {
     if (p.startsWith("[") && p.endsWith("]")) {
       try {
         const parsed = JSON.parse(p);
-        if (Array.isArray(parsed)) { parsed.forEach((x) => pushUrl(x)); return; }
+        if (Array.isArray(parsed)) {
+          parsed.forEach((x) => pushUrl(x));
+          return;
+        }
       } catch {}
     }
     if (!/^https?:\/\//i.test(p)) {
@@ -155,6 +169,7 @@ const normalizeMediaArray = (value, base = "http://localhost:5000") => {
   return Array.from(urls);
 };
 
+/* ----------------------- main component ----------------------- */
 const CalamitySidebar = ({
   visible,
   setEnlargedImage,
@@ -170,9 +185,15 @@ const CalamitySidebar = ({
   selectedCalamity = null,
 
   selectedBarangay: selectedBarangayProp = "",
+
+  // Map style switcher props
+  mapStyles = {},
+  setMapStyle = () => {},
+  showLayers = false,
+  setShowLayers = () => {},
 }) => {
-  // Existing filters
-  const [selectedBarangay, setSelectedBarangay] = useState(selectedBarangayProp || "");
+  /* ----------------------- local state ----------------------- */
+  const [selectedBarangay, setSelectedBarangay] = useState(brgyText(selectedBarangayProp) || "");
   const [selectedStatus, setSelectedStatus] = useState("All");
 
   // New filters
@@ -187,16 +208,15 @@ const CalamitySidebar = ({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [sortBy, setSortBy] = useState("Newest"); // Newest, Oldest, Severity, Area
 
-  // sync preselected barangay
+  // sync preselected barangay from parent (normalize to string)
   useEffect(() => {
-    if (selectedBarangayProp && selectedBarangayProp !== selectedBarangay) {
-      setSelectedBarangay(selectedBarangayProp);
-    }
+    const asText = brgyText(selectedBarangayProp);
+    if (asText !== selectedBarangay) setSelectedBarangay(asText);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBarangayProp]);
 
   const handleBarangayChange = (e) => {
-    const brgy = e.target.value;
+    const brgy = e.target.value; // string from <select>
     setSelectedBarangay(brgy);
     if (BARANGAY_COORDS[brgy]) {
       const coordinates = BARANGAY_COORDS[brgy];
@@ -205,7 +225,7 @@ const CalamitySidebar = ({
     }
   };
 
-  // Helpers
+  /* ------------------------- helpers ------------------------- */
   const toDateObj = (row) => {
     const d = row.date_reported || row.created_at;
     return d ? new Date(d) : null;
@@ -219,7 +239,20 @@ const CalamitySidebar = ({
     return order[s] || 0;
   };
 
-  // Filtering + sorting
+  /* ------------- calamity type options (stable) -------------- */
+  const calamityTypeOptions = useMemo(() => {
+    const fromProp = Array.isArray(calamityTypes) ? calamityTypes.filter(Boolean) : [];
+    const base = fromProp.length ? fromProp : CALAMITY_FILTERS;
+    const seen = new Set();
+    return base.filter((t) => {
+      const key = String(t);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [calamityTypes]);
+
+  /* -------------------- filtering + sorting ------------------- */
   const filteredCalamities = useMemo(() => {
     const q = search.trim().toLowerCase();
     const from = dateFrom ? new Date(dateFrom) : null;
@@ -231,9 +264,10 @@ const CalamitySidebar = ({
         ? calamities
         : calamities.filter((c) => c.calamity_type === selectedCalamityType);
 
-    if (selectedBarangay) {
+    const selectedBarangayKey = safeLower(selectedBarangay);
+    if (selectedBarangayKey) {
       list = list.filter(
-        (c) => (c.barangay || c.location || "").toLowerCase() === selectedBarangay.toLowerCase()
+        (c) => safeLower(c.barangay || c.location) === selectedBarangayKey
       );
     }
 
@@ -291,6 +325,7 @@ const CalamitySidebar = ({
         const hay = [
           c.calamity_type,
           c.barangay || c.location,
+          c.city,
           c.description,
           c.status,
           c.severity_level || c.severity,
@@ -302,7 +337,6 @@ const CalamitySidebar = ({
       });
     }
 
-    // Sort
     const sorted = [...list];
     sorted.sort((a, b) => {
       if (sortBy === "Newest" || sortBy === "Oldest") {
@@ -332,7 +366,6 @@ const CalamitySidebar = ({
         const vb = typeof ab === "number" ? ab : -Infinity;
         return vb - va; // largest first
       }
-
       return 0;
     });
 
@@ -353,7 +386,7 @@ const CalamitySidebar = ({
     sortBy,
   ]);
 
-  // Build photo & video URLs for the selected calamity only (detail view)
+  /* ---------------- media for selected calamity --------------- */
   const { photoUrls, videoUrls } = useMemo(() => {
     if (!selectedCalamity) return { photoUrls: [], videoUrls: [] };
     const base = "http://localhost:5000";
@@ -373,7 +406,8 @@ const CalamitySidebar = ({
     if (sc.admin_name && String(sc.admin_name).trim()) return sc.admin_name;
     const first = sc.admin_first_name || sc.first_name;
     const last = sc.admin_last_name || sc.last_name;
-    if ((first || last) && String(first || last).trim()) return [first, last].filter(Boolean).join(" ").trim();
+    if ((first || last) && String(first || last).trim())
+      return [first, last].filter(Boolean).join(" ").trim();
 
     if (typeof window !== "undefined") {
       const lsAdminFull = localStorage.getItem("admin_full_name");
@@ -399,6 +433,7 @@ const CalamitySidebar = ({
   }, [selectedCalamity]);
 
   const areaVal = selectedCalamity?.affected_area ?? selectedCalamity?.area_ha ?? null;
+  const cityValue = selectedCalamity?.city || selectedCalamity?.city_name || null;
 
   const clearFilters = () => {
     setSelectedCalamityType("All");
@@ -415,6 +450,7 @@ const CalamitySidebar = ({
     setSortBy("Newest");
   };
 
+  /* ------------------------------ UI ------------------------------ */
   return (
     <div
       className={clsx(
@@ -441,6 +477,46 @@ const CalamitySidebar = ({
           </div>
         </div>
 
+        {/* Map Layers */}
+        <Section title="Map Layers">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-700">Switch basemap</span>
+            <label className="inline-flex items-center gap-2 text-xs text-gray-600">
+              <input
+                type="checkbox"
+                checked={!!showLayers}
+                onChange={(e) => setShowLayers?.(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              Keep panel open
+            </label>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {Object.entries(mapStyles || {}).map(([label, { url, thumbnail }]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setMapStyle?.(url)}
+                className="w-full rounded-md border border-gray-300 overflow-hidden relative hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                title={`Use ${label} style`}
+              >
+                <div className="aspect-square w-full bg-gray-100">
+                  {thumbnail ? (
+                    <img src={thumbnail} alt={label} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full grid place-items-center text-[10px] text-gray-500">
+                      {label}
+                    </div>
+                  )}
+                </div>
+                <div className="absolute bottom-0 inset-x-0 text-[10px] text-white text-center bg-black/60 py-0.5">
+                  {label}
+                </div>
+              </button>
+            ))}
+          </div>
+        </Section>
+
         {/* Location */}
         <Section title="Location">
           <dl className="grid grid-cols-3 gap-3">
@@ -462,7 +538,7 @@ const CalamitySidebar = ({
                 onChange={(e) => setSelectedCalamityType?.(e.target.value)}
               >
                 <option value="All">All</option>
-                {CALAMITY_FILTERS.map((t) => (
+                {(calamityTypeOptions.length ? calamityTypeOptions : CALAMITY_FILTERS).map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
@@ -535,12 +611,12 @@ const CalamitySidebar = ({
               />
             </div>
 
-            {/* Search (full width) */}
+            {/* Search */}
             <div className="col-span-2">
               <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Search</label>
               <input
                 type="text"
-                placeholder="Type, barangay, description..."
+                placeholder="Type, barangay, city, description..."
                 className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -654,6 +730,14 @@ const CalamitySidebar = ({
                 </span>
               )}
 
+              {/* City chip */}
+              {cityValue && (
+                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
+                  {cityValue}
+                </span>
+              )}
+
               {selectedCalamity.status && (
                 <span
                   className={clsx(
@@ -704,6 +788,7 @@ const CalamitySidebar = ({
             <dl className="grid grid-cols-2 gap-4">
               <KV label="Calamity Type" value={fmt(selectedCalamity.calamity_type)} />
               <KV label="Barangay" value={fmt(selectedCalamity.barangay || selectedCalamity.location)} />
+              <KV label="City" value={fmt(cityValue)} />
               <KV label="Latitude" value={fmt(selectedCalamity.latitude)} />
               <KV label="Longitude" value={fmt(selectedCalamity.longitude)} />
               <KV label="Reported By" value={fmt(adminFullName)} />
@@ -796,10 +881,6 @@ const CalamitySidebar = ({
             </ul>
           </details>
         </Section>
-
-        {/* <div className="mt-5">
-          <Button to="/AdminLanding" label="Home" />
-        </div> */}
       </div>
     </div>
   );

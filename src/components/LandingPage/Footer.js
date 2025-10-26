@@ -8,7 +8,7 @@ const Footer = () => {
             {/* Left Section */}
             <div className="mb-4 md:mb-0">
   <img 
-    src="/images/AgriGIS.png" // Adjust the path based on your project structure
+    src="/images/logo2.png" // Adjust the path based on your project structure
     alt="AgriGIS Solutions Logo"
     className="w-32 h-auto" // Adjust width as needed
   />
